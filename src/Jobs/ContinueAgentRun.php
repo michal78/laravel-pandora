@@ -52,6 +52,8 @@ use Pandora\Pandora\Runs\RunStepRecorder;
 use Pandora\Pandora\Tools\ToolCallCoordinator;
 use Pandora\Pandora\Tools\ToolContext;
 use Pandora\Pandora\Tools\ToolGatekeeper;
+use Pandora\Pandora\Usage\BudgetGuard;
+use Pandora\Pandora\Usage\UsageRecorder;
 
 /**
  * ONE iteration of the execution loop.
@@ -128,10 +130,12 @@ final class ContinueAgentRun implements ShouldQueue
         CredentialManager $credentials,
         ModelRouter $router,
         ProviderHealthMonitor $health,
+        UsageRecorder $usage,
+        BudgetGuard $budgets,
     ): void {
         $this->withPandoraContext($tenants, $actors, function () use (
             $locks, $states, $broadcaster, $context, $providers, $messages, $steps, $audit,
-            $actors, $tools, $gatekeeper, $credentials, $router, $health
+            $actors, $tools, $gatekeeper, $credentials, $router, $health, $usage, $budgets
         ): void {
             // 1. Take ownership. Another worker holding it means there is
             //    nothing for us to do -- not an error.
@@ -152,7 +156,7 @@ final class ContinueAgentRun implements ShouldQueue
                 $this->iterate(
                     $run, $states, $broadcaster, $context, $providers, $messages,
                     $steps, $audit, $actors, $tools, $gatekeeper, $credentials,
-                    $router, $health,
+                    $router, $health, $usage, $budgets,
                 );
             } catch (PandoraException $e) {
                 $this->failRun($run, $e, $states, $broadcaster, $messages, $steps, $audit);
@@ -183,6 +187,8 @@ final class ContinueAgentRun implements ShouldQueue
         CredentialManager $credentials,
         ModelRouter $router,
         ProviderHealthMonitor $health,
+        UsageRecorder $usage,
+        BudgetGuard $budgets,
     ): void {
         // 2. Assert the run may continue.
         if ($run->state->isTerminal()) {
@@ -213,8 +219,10 @@ final class ContinueAgentRun implements ShouldQueue
         $agent = Agent::query()->findOrFail($run->agent_id);
 
         // 3. Budgets, checked BEFORE the expensive call -- a run that would
-        //    exceed its budget never makes the request.
+        //    exceed its budget never makes the request. The run's own limits
+        //    first, then every wider scope.
         $this->assertWithinBudget($run, $agent);
+        $budgets->assert($run, $agent);
 
         /** @var Session $session */
         $session = Session::query()->findOrFail($run->session_id);
@@ -323,6 +331,16 @@ final class ContinueAgentRun implements ShouldQueue
             'input_tokens' => $run->input_tokens + $response->usage->inputTokens,
             'output_tokens' => $run->output_tokens + $response->usage->outputTokens,
         ])->save();
+
+        // One row per CALL, not per run: a run that failed over spent money at
+        // two providers, and a single aggregated row would hide that in
+        // exactly the situation where somebody is asking why the bill grew.
+        $usage->record(
+            $run,
+            (string) $run->provider_key,
+            (string) $run->model_key,
+            $response->usage,
+        );
 
         // 9. Finalise the assistant message.
         if ($assistantMessage !== null) {

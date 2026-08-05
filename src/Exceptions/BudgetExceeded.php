@@ -37,6 +37,27 @@ final class BudgetExceeded extends PandoraException
         return new self("Run [{$runId}] exceeded its token budget of {$limit}.", 'tokens');
     }
 
+    /**
+     * A spend limit at a scope wider than the run itself.
+     *
+     * The scope is named because it decides who can act on it: "this
+     * conversation has spent its budget" is actionable by the person reading
+     * it; "the deployment has" is a support ticket.
+     */
+    public static function spend(string $scope, string $limitName, int $limit, int $spent): self
+    {
+        return new self(
+            sprintf(
+                'The %s budget for %s is %s and %s has been used.',
+                $limitName,
+                $scope,
+                number_format($limit),
+                number_format($spent),
+            ),
+            $limitName.'_'.$scope,
+        );
+    }
+
     public function userMessage(): string
     {
         return 'The agent reached its configured limit for this run and stopped.';

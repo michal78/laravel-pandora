@@ -304,6 +304,34 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Budgets
+    |--------------------------------------------------------------------------
+    |
+    | Spend limits, checked BEFORE each model request. A budget checked after
+    | the response is an accounting record; this one actually stops a run.
+    |
+    | Run-scope limits come from the agent row (`token_budget`,
+    | `cost_budget_minor`); the wider scopes are configured here. Null means no
+    | limit. Costs are in MINOR units of the currency -- cents, not dollars.
+    |
+    | An unpriced model contributes nothing to a COST budget, because its cost
+    | is null rather than zero. Use a token budget where prices are unknown.
+    |
+    */
+
+    'budgets' => [
+
+        // day | week | month | forever
+        'period' => env('PANDORA_BUDGET_PERIOD', 'month'),
+
+        'conversation' => ['tokens' => null, 'cost_minor' => null],
+        'agent' => ['tokens' => null, 'cost_minor' => null],
+        'tenant' => ['tokens' => null, 'cost_minor' => null],
+        'global' => ['tokens' => null, 'cost_minor' => null],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Agents
     |--------------------------------------------------------------------------
     |

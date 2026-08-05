@@ -70,6 +70,8 @@ use Pandora\Pandora\UI\Livewire\RunDetail;
 use Pandora\Pandora\UI\Livewire\RunsIndex;
 use Pandora\Pandora\UI\Livewire\ToolsIndex;
 use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Pandora\Usage\BudgetGuard;
+use Pandora\Pandora\Usage\UsageRecorder;
 
 /**
  * Boots Pandora into a host application.
@@ -344,6 +346,16 @@ final class PandoraServiceProvider extends ServiceProvider
                 ->needs(ConnectionInterface::class)
                 ->give(static fn (Container $app): ConnectionInterface => $app->make('pandora.db'));
         }
+
+        $this->app->singleton(UsageRecorder::class, static fn (Container $app): UsageRecorder => new UsageRecorder(
+            $app->make(ModelCatalog::class),
+            $app->make(ActorManager::class),
+        ));
+
+        $this->app->singleton(BudgetGuard::class, static fn (Container $app): BudgetGuard => new BudgetGuard(
+            $app->make(Config::class),
+            $app->make(AuditLogger::class),
+        ));
 
         $this->app->singleton(AuditLogger::class, static fn (Container $app): AuditLogger => new AuditLogger(
             $app->make(TenantManager::class),

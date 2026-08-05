@@ -32,7 +32,7 @@ function pandoraTables(): array
     return [
         'agents', 'conversations', 'sessions', 'conversation_participants',
         'messages', 'runs', 'run_steps', 'settings', 'audit_logs',
-        'tool_executions', 'approvals', 'provider_credentials', 'models', 'provider_health',
+        'tool_executions', 'approvals', 'provider_credentials', 'models', 'provider_health', 'usage_records',
     ];
 }
 
@@ -129,7 +129,12 @@ it('omits updated_at from append-only tables', function (): void {
 it('rolls migrations back cleanly', function (): void {
     $prefix = config('pandora.database.table_prefix');
 
-    $this->artisan('migrate:rollback', ['--step' => 9])->assertSuccessful();
+    // Counted rather than hard-coded: every phase adds migrations, and a
+    // fixed step count quietly stops reaching the table it was written to
+    // check.
+    $steps = count(glob(dirname(__DIR__, 2).'/database/migrations/*.php') ?: []);
+
+    $this->artisan('migrate:rollback', ['--step' => $steps])->assertSuccessful();
 
     expect(Schema::hasTable($prefix.'runs'))->toBeFalse();
 });
