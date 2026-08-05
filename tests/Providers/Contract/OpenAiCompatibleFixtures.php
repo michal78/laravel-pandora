@@ -195,7 +195,17 @@ class OpenAiCompatibleFixtures implements ProviderFixtures
         return '{"id":"chatcmpl-truncated","choices":[{"message":{"role":"assist';
     }
 
-    public function sentModel(array $body): ?string
+    public function expectedToolCallId(ToolCall $call, int $index): string
+    {
+        return $call->id;
+    }
+
+    public function correlationFor(ToolCall $call): string
+    {
+        return $call->id;
+    }
+
+    public function sentModel(array $body, string $url): ?string
     {
         return is_string($body['model'] ?? null) ? $body['model'] : null;
     }
@@ -247,7 +257,7 @@ class OpenAiCompatibleFixtures implements ProviderFixtures
         return null;
     }
 
-    public function sentToolResultIds(array $body): array
+    public function sentToolResultCorrelations(array $body): array
     {
         $ids = [];
 

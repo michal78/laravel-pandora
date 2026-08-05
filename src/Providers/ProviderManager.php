@@ -120,6 +120,12 @@ final class ProviderManager
                 http: $this->container->make(Factory::class),
                 credentials: $this->credentials,
             ),
+            'gemini' => new Adapters\GeminiProvider(
+                key: $key,
+                config: $config,
+                http: $this->container->make(Factory::class),
+                credentials: $this->credentials,
+            ),
             'openai-compatible' => new Adapters\OpenAiCompatibleProvider(
                 key: $key,
                 config: $config,

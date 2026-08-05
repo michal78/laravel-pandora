@@ -93,9 +93,29 @@ interface ProviderFixtures
     // ------------------------------------------------- reading what was sent
 
     /**
+     * The model as this vendor received it.
+     *
+     * The URL is passed too because not every vendor puts it in the body --
+     * Gemini names the model in the path.
+     *
      * @param array<string, mixed> $body
      */
-    public function sentModel(array $body): ?string;
+    public function sentModel(array $body, string $url): ?string;
+
+    /**
+     * The id the adapter should report for a tool call the vendor returned.
+     *
+     * Usually the vendor's own id. Gemini issues none at all, so its adapter
+     * synthesises one, and this is where the suite is told what to expect
+     * rather than pretending every vendor works the same way.
+     */
+    public function expectedToolCallId(ToolCall $call, int $index): string;
+
+    /**
+     * What this vendor uses to tie a tool RESULT back to the call that asked
+     * for it: an id where there is one, the function name where there is not.
+     */
+    public function correlationFor(ToolCall $call): string;
 
     /**
      * The conversation as this vendor received it, normalised back to roles
@@ -120,11 +140,12 @@ interface ProviderFixtures
     public function sentSystemPrompt(array $body): ?string;
 
     /**
-     * The ids of the tool results in the request, so the suite can prove a
-     * result was replayed against the call that asked for it.
+     * The correlations carried by the tool results in the request, so the
+     * suite can prove a result was replayed against the call that asked for
+     * it. Matched against `correlationFor()`.
      *
      * @param array<string, mixed> $body
      * @return list<string>
      */
-    public function sentToolResultIds(array $body): array;
+    public function sentToolResultCorrelations(array $body): array;
 }

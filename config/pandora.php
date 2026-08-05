@@ -188,6 +188,14 @@ return [
                 'connect_timeout' => 10,
             ],
 
+            'gemini' => [
+                'adapter' => 'gemini',
+                'base_url' => env('PANDORA_GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
+                'api_key' => env('PANDORA_GEMINI_API_KEY'),
+                'timeout' => 120,
+                'connect_timeout' => 10,
+            ],
+
             'ollama' => [
                 'adapter' => 'openai-compatible',
                 'base_url' => env('PANDORA_OLLAMA_BASE_URL', 'http://localhost:11434/v1'),

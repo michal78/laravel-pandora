@@ -89,7 +89,8 @@ final class ProviderContractTests
 
             $body = ProviderContractTests::lastRequestBody();
 
-            expect($fixtures->sentModel($body))->toBe($fixtures->model())
+            expect($fixtures->sentModel($body, ProviderContractTests::lastRequest()->url()))
+                ->toBe($fixtures->model())
                 ->and($fixtures->sentSystemPrompt($body))->toBe('You are terse.');
 
             // The system message is excluded here: some vendors carry it
@@ -236,25 +237,40 @@ final class ProviderContractTests
 
             $response = $fixtures->make()->chat(ProviderContractTests::request($fixtures));
 
+            $call = new ToolCall('call_a1', 'lookup_order', ['id' => '1234']);
+
             expect($response->finishReason)->toBe(FinishReason::ToolCalls)
                 ->and($response->isFinal())->toBeFalse()
                 ->and($response->toolCalls)->toHaveCount(1)
-                ->and($response->toolCalls[0]->id)->toBe('call_a1')
+                ->and($response->toolCalls[0]->id)->toBe($fixtures->expectedToolCallId($call, 0))
                 ->and($response->toolCalls[0]->name)->toBe('lookup_order')
                 ->and($response->toolCalls[0]->arguments)->toBe(['id' => '1234']);
         });
 
-        it('assembles multiple tool calls in one turn with their ids intact', function () use ($fixtures): void {
-            ProviderContractTests::fake($fixtures, $fixtures->toolCallResponse([
+        it('assembles multiple tool calls in one turn, each separately addressable', function () use ($fixtures): void {
+            $calls = [
                 new ToolCall('call_a1', 'lookup_order', ['id' => '1']),
                 new ToolCall('call_b2', 'lookup_order', ['id' => '2']),
                 new ToolCall('call_c3', 'cancel_order', ['id' => '3']),
-            ]));
+            ];
+
+            ProviderContractTests::fake($fixtures, $fixtures->toolCallResponse($calls));
 
             $response = $fixtures->make()->chat(ProviderContractTests::request($fixtures));
 
+            $expected = [];
+
+            foreach ($calls as $index => $call) {
+                $expected[] = $fixtures->expectedToolCallId($call, $index);
+            }
+
+            // Distinct ids matter more than any particular id: two parallel
+            // calls to the same tool have to be answerable separately, and a
+            // vendor that issues no ids of its own still has to end up with
+            // usable ones.
             expect(array_map(static fn (ToolCall $c): string => $c->id, $response->toolCalls))
-                ->toBe(['call_a1', 'call_b2', 'call_c3'])
+                ->toBe($expected)
+                ->and(array_unique($expected))->toHaveCount(3)
                 ->and($response->toolCalls[2]->arguments)->toBe(['id' => '3']);
         });
 
@@ -295,8 +311,8 @@ final class ProviderContractTests
                 ],
             ));
 
-            expect($fixtures->sentToolResultIds(ProviderContractTests::lastRequestBody()))
-                ->toBe(['call_a1']);
+            expect($fixtures->sentToolResultCorrelations(ProviderContractTests::lastRequestBody()))
+                ->toBe([$fixtures->correlationFor($call)]);
         });
     }
 
