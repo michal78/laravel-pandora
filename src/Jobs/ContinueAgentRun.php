@@ -14,23 +14,33 @@ use Pandora\Pandora\Audit\AuditLogger;
 use Pandora\Pandora\Context\ContextBuilder;
 use Pandora\Pandora\Context\ContextRequest;
 use Pandora\Pandora\Contracts\ChatProvider;
+use Pandora\Pandora\Contracts\ModelRouter;
 use Pandora\Pandora\Contracts\StreamingProvider;
 use Pandora\Pandora\Conversations\Conversation;
 use Pandora\Pandora\Conversations\Session;
 use Pandora\Pandora\Core\Actor\ActorManager;
 use Pandora\Pandora\Core\Tenancy\TenantManager;
 use Pandora\Pandora\Exceptions\BudgetExceeded;
+use Pandora\Pandora\Exceptions\NoModelAvailable;
 use Pandora\Pandora\Exceptions\PandoraException;
+use Pandora\Pandora\Exceptions\Provider\ContextOverflow;
 use Pandora\Pandora\Exceptions\Provider\ProviderException;
+use Pandora\Pandora\Exceptions\Provider\ProviderRateLimited;
+use Pandora\Pandora\Exceptions\Provider\ProviderTimeout;
+use Pandora\Pandora\Exceptions\Provider\ProviderUnavailable;
 use Pandora\Pandora\Messages\Message;
 use Pandora\Pandora\Messages\MessageWriter;
+use Pandora\Pandora\Providers\Catalog\ModelCatalog;
 use Pandora\Pandora\Providers\Credentials\CredentialManager;
 use Pandora\Pandora\Providers\Data\ChatMessage;
 use Pandora\Pandora\Providers\Data\ChatRequest;
 use Pandora\Pandora\Providers\Data\ChatResponse;
 use Pandora\Pandora\Providers\Data\StreamDelta;
 use Pandora\Pandora\Providers\Data\StreamDeltaType;
+use Pandora\Pandora\Providers\Data\ToolDefinition;
+use Pandora\Pandora\Providers\Health\ProviderHealthMonitor;
 use Pandora\Pandora\Providers\ProviderManager;
+use Pandora\Pandora\Providers\Routing\RoutingRequest;
 use Pandora\Pandora\Realtime\RunBroadcaster;
 use Pandora\Pandora\Runs\Enums\RunState;
 use Pandora\Pandora\Runs\Enums\RunStepStatus;
@@ -116,10 +126,12 @@ final class ContinueAgentRun implements ShouldQueue
         ToolCallCoordinator $tools,
         ToolGatekeeper $gatekeeper,
         CredentialManager $credentials,
+        ModelRouter $router,
+        ProviderHealthMonitor $health,
     ): void {
         $this->withPandoraContext($tenants, $actors, function () use (
             $locks, $states, $broadcaster, $context, $providers, $messages, $steps, $audit,
-            $actors, $tools, $gatekeeper, $credentials
+            $actors, $tools, $gatekeeper, $credentials, $router, $health
         ): void {
             // 1. Take ownership. Another worker holding it means there is
             //    nothing for us to do -- not an error.
@@ -140,6 +152,7 @@ final class ContinueAgentRun implements ShouldQueue
                 $this->iterate(
                     $run, $states, $broadcaster, $context, $providers, $messages,
                     $steps, $audit, $actors, $tools, $gatekeeper, $credentials,
+                    $router, $health,
                 );
             } catch (PandoraException $e) {
                 $this->failRun($run, $e, $states, $broadcaster, $messages, $steps, $audit);
@@ -168,6 +181,8 @@ final class ContinueAgentRun implements ShouldQueue
         ToolCallCoordinator $tools,
         ToolGatekeeper $gatekeeper,
         CredentialManager $credentials,
+        ModelRouter $router,
+        ProviderHealthMonitor $health,
     ): void {
         // 2. Assert the run may continue.
         if ($run->state->isTerminal()) {
@@ -232,15 +247,8 @@ final class ContinueAgentRun implements ShouldQueue
             $chatMessages[] = ChatMessage::user($run->input);
         }
 
-        // 6. Resolve provider and model.
-        $providerKey = $run->provider_key ?? $providers->default();
-        /** @var string $modelKey */
-        $modelKey = $run->model_key ?? config('pandora.models.default', 'fake-model');
-
-        $provider = $providers->chat($providerKey);
-
-        // What this agent may ASK for. Advertising a tool grants nothing: the
-        // request is judged in full when it arrives.
+        // 6. What this agent may ASK for. Advertising a tool grants nothing:
+        //    the request is judged in full when it arrives.
         $toolDefinitions = $gatekeeper->advertise(new ToolContext(
             run: $run,
             agent: $agent,
@@ -249,27 +257,7 @@ final class ContinueAgentRun implements ShouldQueue
             toolCallId: '',
         ));
 
-        $request = new ChatRequest(
-            model: $modelKey,
-            messages: $chatMessages,
-            options: $agent->provider_options ?? [],
-            stream: $provider instanceof StreamingProvider,
-            tools: $toolDefinitions,
-        );
-
-        $steps->record(
-            $run,
-            RunStepType::ModelRequest,
-            RunStepStatus::Started,
-            $request->toTrace(),
-            label: "{$providerKey} / {$modelKey}",
-        );
-
-        $run->forceFill([
-            'provider_key' => $providerKey,
-            'model_key' => $modelKey,
-            'iterations' => $run->iterations + 1,
-        ])->save();
+        $run->forceFill(['iterations' => $run->iterations + 1])->save();
 
         // 7. The assistant message the run streams into. Created before the
         //    call so a reload during the request finds something to render.
@@ -281,22 +269,35 @@ final class ContinueAgentRun implements ShouldQueue
             $broadcaster->messageCreated($assistantMessage, $run->correlation_id);
         }
 
-        // 8. Call the model.
+        // 8. Route, and call -- walking the fallback chain when a failure is
+        //    one another model could survive.
         $startedAt = hrtime(true);
 
         try {
-            // The agent is in scope for the duration of the call, and only
-            // for its duration, so a per-agent credential resolves without
-            // any part of the request carrying one.
-            $response = $credentials->forAgent($agent->id, fn (): ChatResponse => $this->callProvider(
-                $provider,
-                $request,
+            $response = $this->callWithFailover(
+                new RoutingRequest(
+                    agent: $agent,
+                    runProvider: $run->provider_key,
+                    runModel: $run->model_key,
+                    conversationProvider: $conversation?->provider_override,
+                    conversationModel: $conversation?->model_override,
+                    tenantId: $run->tenant_id,
+                ),
                 $run,
+                $agent,
+                $chatMessages,
+                $toolDefinitions,
                 $assistantMessage,
+                $router,
+                $providers,
+                $credentials,
+                $health,
                 $messages,
                 $broadcaster,
-            ));
-        } catch (ProviderException $e) {
+                $steps,
+                $audit,
+            );
+        } catch (PandoraException $e) {
             if ($assistantMessage !== null) {
                 $messages->fail($assistantMessage, $e->userMessage());
                 $broadcaster->messageCompleted($run, $assistantMessage, failed: true);
@@ -380,6 +381,192 @@ final class ContinueAgentRun implements ShouldQueue
                 'duration_ms' => $run->durationMs(),
             ],
         );
+    }
+
+    /**
+     * Route, call, and on a survivable failure route again.
+     *
+     * The loop is the whole of failover. Every hop leaves two steps on the
+     * trace -- where it went, and why the previous one did not work -- so a
+     * run that quietly finished on the third model in the chain can be
+     * explained months later without guessing.
+     *
+     * @param list<ChatMessage> $chatMessages
+     * @param list<ToolDefinition> $toolDefinitions
+     */
+    private function callWithFailover(
+        RoutingRequest $routing,
+        Run $run,
+        Agent $agent,
+        array $chatMessages,
+        array $toolDefinitions,
+        ?Message $assistantMessage,
+        ModelRouter $router,
+        ProviderManager $providers,
+        CredentialManager $credentials,
+        ProviderHealthMonitor $health,
+        MessageWriter $messages,
+        RunBroadcaster $broadcaster,
+        RunStepRecorder $steps,
+        AuditLogger $audit,
+    ): ChatResponse {
+        /** @var list<string> $excluded */
+        $excluded = [];
+        $rateLimitAttempts = 0;
+        $lastFailure = null;
+
+        $maxRateLimitAttempts = (int) config('pandora.providers.retry.rate_limit_attempts', 2);
+
+        while (true) {
+            try {
+                $decision = $router->resolve($routing->excluding($excluded));
+            } catch (NoModelAvailable $e) {
+                // The chain is exhausted. The operator needs the reason the
+                // last real attempt failed, not "no model available" -- that
+                // sends them hunting through four config files for a problem
+                // that is nothing to do with configuration.
+                throw $lastFailure ?? $e;
+            }
+
+            $steps->record(
+                $run,
+                RunStepType::ModelRouting,
+                RunStepStatus::Succeeded,
+                $decision->toTrace(),
+                label: $decision->reference().' — '.$decision->source->label(),
+            );
+
+            $provider = $providers->chat($decision->providerKey);
+
+            $request = new ChatRequest(
+                model: $decision->modelKey,
+                messages: $chatMessages,
+                options: $agent->provider_options ?? [],
+                stream: $provider instanceof StreamingProvider,
+                tools: $toolDefinitions,
+            );
+
+            $steps->record(
+                $run,
+                RunStepType::ModelRequest,
+                RunStepStatus::Started,
+                $request->toTrace(),
+                label: $decision->reference(),
+            );
+
+            $run->forceFill([
+                'provider_key' => $decision->providerKey,
+                'model_key' => $decision->modelKey,
+            ])->save();
+
+            try {
+                // The agent is in scope for the duration of the call, and only
+                // for its duration, so a per-agent credential resolves without
+                // any part of the request carrying one.
+                $response = $credentials->forAgent($agent->id, fn (): ChatResponse => $this->callProvider(
+                    $provider,
+                    $request,
+                    $run,
+                    $assistantMessage,
+                    $messages,
+                    $broadcaster,
+                ));
+
+                // A working call is evidence too: it lets a degraded provider
+                // recover without waiting for the next probe.
+                $health->recordSuccess($decision->providerKey, $response->usage->durationMs);
+
+                return $response;
+            } catch (ProviderException $e) {
+                $lastFailure = $e;
+
+                $steps->record(
+                    $run,
+                    RunStepType::ModelRequest,
+                    RunStepStatus::Failed,
+                    ['provider' => $decision->providerKey, 'model' => $decision->modelKey],
+                    label: $decision->reference(),
+                    errorClass: $e::class,
+                    errorMessage: $e->getMessage(),
+                );
+
+                if ($this->indicatesProviderTrouble($e)) {
+                    $health->recordFailure($decision->providerKey, $e->getMessage());
+                }
+
+                // A rate limit is the one failure worth waiting out: the model
+                // that was asked for is usually still the right one, and a
+                // fallback chain that fires on every 429 spends the day
+                // answering from the wrong model.
+                if ($e instanceof ProviderRateLimited && $rateLimitAttempts < $maxRateLimitAttempts) {
+                    $rateLimitAttempts++;
+                    $this->waitOutRateLimit($e);
+
+                    continue;
+                }
+
+                if (! $e->allowsFailover()) {
+                    throw $e;
+                }
+
+                // A larger context is the only thing that can help here, so
+                // the chain is narrowed rather than merely advanced.
+                if ($e instanceof ContextOverflow) {
+                    $routing = $routing->needingContext(
+                        $this->contextLimitOf($decision->providerKey, $decision->modelKey),
+                    );
+                }
+
+                $excluded[] = $decision->reference();
+
+                $audit->record(
+                    action: 'provider.failover',
+                    targetType: Run::class,
+                    targetId: (string) $run->getKey(),
+                    runId: (string) $run->getKey(),
+                    severity: 'warning',
+                    metadata: [
+                        'from' => $decision->reference(),
+                        'reason' => $e->errorCode(),
+                        'attempt' => count($excluded),
+                    ],
+                );
+            }
+        }
+    }
+
+    /**
+     * Whether a failure says anything about the PROVIDER's health.
+     *
+     * A rejected request and an exhausted quota are facts about us, not about
+     * the provider, and counting them towards degradation would take a
+     * perfectly healthy provider out of every fallback chain.
+     */
+    private function indicatesProviderTrouble(ProviderException $exception): bool
+    {
+        return $exception instanceof ProviderUnavailable
+            || $exception instanceof ProviderTimeout;
+    }
+
+    private function waitOutRateLimit(ProviderRateLimited $exception): void
+    {
+        /** @var int $configured */
+        $configured = config('pandora.providers.retry.delay_ms', 500);
+
+        // Honour Retry-After when the provider sent one, but never sleep a
+        // worker for longer than the run's own patience.
+        $delayMs = $exception->retryAfterSeconds !== null
+            ? min($exception->retryAfterSeconds * 1000, 5_000)
+            : $configured;
+
+        if ($delayMs > 0) {
+            usleep($delayMs * 1000);
+        }
+    }
+
+    private function contextLimitOf(string $providerKey, string $modelKey): ?int
+    {
+        return app(ModelCatalog::class)->find($providerKey, $modelKey)?->context_limit;
     }
 
     /**

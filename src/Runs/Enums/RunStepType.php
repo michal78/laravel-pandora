@@ -12,6 +12,7 @@ namespace Pandora\Pandora\Runs\Enums;
  */
 enum RunStepType: string
 {
+    case ModelRouting = 'model_routing';
     case ModelRequest = 'model_request';
     case ModelResponse = 'model_response';
     case ContextRetrieval = 'context_retrieval';
@@ -31,6 +32,7 @@ enum RunStepType: string
     public function label(): string
     {
         return match ($this) {
+            self::ModelRouting => 'Model routed',
             self::ModelRequest => 'Model request',
             self::ModelResponse => 'Model response',
             self::ContextRetrieval => 'Context built',

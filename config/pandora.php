@@ -7,6 +7,7 @@ use Pandora\Pandora\Context\Providers\SystemInstructionsProvider;
 use Pandora\Pandora\Core\Actor\GuardActorResolver;
 use Pandora\Pandora\Core\Tenancy\NullTenantResolver;
 use Pandora\Pandora\Providers\Credentials\DatabaseCredentialResolver;
+use Pandora\Pandora\Providers\Routing\DeterministicModelRouter;
 use Pandora\Pandora\Tools\Policies\RiskBasedToolPolicy;
 
 /*
@@ -169,6 +170,26 @@ return [
             'failure_threshold' => (int) env('PANDORA_PROVIDER_FAILURE_THRESHOLD', 3),
         ],
 
+        /*
+        | Routing. The default is deterministic and explainable (ADR-0006):
+        | explicit call, run override, conversation override, agent default,
+        | configured default -- then the agent's fallback chain in order.
+        |
+        | Bind your own ModelRouter for cost- or latency-aware routing; every
+        | hop it chooses is still recorded on the run trace.
+        */
+        'router' => DeterministicModelRouter::class,
+
+        /*
+        | A rate limit is the one failure worth waiting out before moving on:
+        | the model that was asked for is usually still the right one. Every
+        | other retryable failure fails over immediately.
+        */
+        'retry' => [
+            'rate_limit_attempts' => (int) env('PANDORA_RATE_LIMIT_ATTEMPTS', 2),
+            'delay_ms' => (int) env('PANDORA_RATE_LIMIT_DELAY_MS', 500),
+        ],
+
         'connections' => [
 
             'fake' => [
@@ -253,6 +274,15 @@ return [
         // How long a price is trusted before it is flagged as stale in the
         // control center. It is not ignored -- an operator is told.
         'pricing_stale_after_days' => (int) env('PANDORA_PRICING_STALE_DAYS', 90),
+
+        /*
+        | An allowlist per tenant, applied to the candidate set BEFORE routing
+        | so a fallback chain cannot walk out of it. A tenant with no entry is
+        | unrestricted. `provider/*` permits a whole provider.
+        |
+        |     'acme' => ['openai/gpt-4o-mini', 'anthropic/*'],
+        */
+        'tenant_restrictions' => [],
 
         'catalog' => [
             // [

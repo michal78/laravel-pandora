@@ -48,13 +48,15 @@ it('records an ordered, typed trace of the run', function (): void {
 
     expect($types)->toBe([
         RunStepType::ContextRetrieval,
+        // Which model, and why, before the request that used it.
+        RunStepType::ModelRouting,
         RunStepType::ModelRequest,
         RunStepType::ModelResponse,
         RunStepType::FinalResponse,
     ]);
 
     // Sequence is contiguous from 1.
-    expect($run->steps()->pluck('sequence')->all())->toBe([1, 2, 3, 4]);
+    expect($run->steps()->pluck('sequence')->all())->toBe([1, 2, 3, 4, 5]);
 });
 
 it('persists the user message and the assistant reply', function (): void {

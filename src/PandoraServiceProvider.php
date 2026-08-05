@@ -30,6 +30,7 @@ use Pandora\Pandora\Contracts\ActorResolver;
 use Pandora\Pandora\Contracts\AgentDefinition;
 use Pandora\Pandora\Contracts\ContextProvider;
 use Pandora\Pandora\Contracts\CredentialResolver;
+use Pandora\Pandora\Contracts\ModelRouter;
 use Pandora\Pandora\Contracts\TenantResolver;
 use Pandora\Pandora\Contracts\ToolPolicy;
 use Pandora\Pandora\Conversations\ConversationManager;
@@ -44,6 +45,7 @@ use Pandora\Pandora\Providers\Credentials\CredentialManager;
 use Pandora\Pandora\Providers\Credentials\DatabaseCredentialResolver;
 use Pandora\Pandora\Providers\Health\ProviderHealthMonitor;
 use Pandora\Pandora\Providers\ProviderManager;
+use Pandora\Pandora\Providers\Routing\DeterministicModelRouter;
 use Pandora\Pandora\Realtime\RunBroadcaster;
 use Pandora\Pandora\Runs\RunFactory;
 use Pandora\Pandora\Runs\RunLock;
@@ -90,6 +92,7 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->registerSupport();
         $this->registerTenancy();
         $this->registerProviders();
+        $this->registerRouting();
         $this->registerAgents();
         $this->registerTools();
         $this->registerRuntime();
@@ -222,6 +225,19 @@ final class PandoraServiceProvider extends ServiceProvider
                 $default,
                 $app->make(CredentialManager::class),
             );
+        });
+    }
+
+    private function registerRouting(): void
+    {
+        $this->app->singleton(ModelRouter::class, static function (Container $app): ModelRouter {
+            /** @var class-string<ModelRouter> $class */
+            $class = $app->make(Config::class)->get(
+                'pandora.providers.router',
+                DeterministicModelRouter::class,
+            );
+
+            return $app->make($class);
         });
     }
 
