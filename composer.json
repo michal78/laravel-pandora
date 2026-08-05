@@ -14,7 +14,7 @@
         "illuminate/bus": "^13.0",
         "illuminate/console": "^13.0",
         "illuminate/broadcasting": "^13.0",
-        "symfony/uid": "^7.0"
+        "symfony/uid": "^7.0|^8.0"
     },
     "require-dev": {
         "orchestra/testbench": "^11.0",

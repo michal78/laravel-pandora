@@ -141,6 +141,11 @@ return [
 
             'fake' => [
                 'adapter' => 'fake',
+
+                // Milliseconds between streamed chunks. Zero is instant, which
+                // is what tests want; a small value makes streaming visible in
+                // the browser before any provider credentials exist.
+                'chunk_delay_ms' => (int) env('PANDORA_FAKE_CHUNK_DELAY_MS', 0),
             ],
 
             'openai' => [

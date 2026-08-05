@@ -40,6 +40,16 @@ final class StartAgentRun implements ShouldQueue
         public readonly ?string $tenantId = null,
         public readonly ?string $actorType = null,
         public readonly ?string $actorId = null,
+        /**
+         * Run the whole chain in this process.
+         *
+         * Dispatching this job synchronously is not enough on its own: the
+         * continuations it spawns would still go to the configured queue and
+         * the caller would return while the run was only just starting. The
+         * flag is carried through every continuation so that "execute and
+         * wait" means exactly that, on any queue connection.
+         */
+        public readonly bool $synchronous = false,
     ) {
         $this->onQueue(self::queueName('agents'));
         $this->onConnection(self::queueConnection());
@@ -102,12 +112,17 @@ final class StartAgentRun implements ShouldQueue
                 $run = $states->transition($run, RunState::Running);
                 $broadcaster->stateChanged($run, $previous);
 
-                ContinueAgentRun::dispatch(
-                    $run->getKey(),
+                $continue = new ContinueAgentRun(
+                    (string) $run->getKey(),
                     $this->tenantId,
                     $this->actorType,
                     $this->actorId,
+                    $this->synchronous,
                 );
+
+                $this->synchronous
+                    ? dispatch_sync($continue)
+                    : dispatch($continue);
             } catch (PandoraException $e) {
                 $this->failRun($run, $e, $states, $broadcaster, $audit);
             }

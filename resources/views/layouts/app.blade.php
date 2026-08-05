@@ -18,7 +18,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Pandora' }} &middot; {{ config('pandora.ui.brand', 'Pandora') }}</title>
 
-    <style>{!! file_get_contents(__DIR__ . '/../assets/pandora.css') !!}</style>
+    <style>{!! \Pandora\Pandora\UI\Assets::styles() !!}</style>
 
     @livewireStyles
 </head>

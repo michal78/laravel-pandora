@@ -108,7 +108,10 @@ final class ProviderManager
         }
 
         return match ($adapter) {
-            'fake' => new Adapters\FakeProvider($key),
+            // `chunk_delay_ms` paces the fake stream so a fresh installation
+            // can actually see streaming in the browser. Zero in tests.
+            'fake' => (new Adapters\FakeProvider($key))
+                ->withChunkDelay(((int) ($config['chunk_delay_ms'] ?? 0)) * 1000),
             'openai-compatible' => new Adapters\OpenAiCompatibleProvider(
                 key: $key,
                 config: $config,

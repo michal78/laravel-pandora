@@ -206,6 +206,7 @@ final class PendingAgentRun
             tenantId: $run->tenant_id,
             actorType: $run->actor_type,
             actorId: $run->actor_id,
+            synchronous: true,
         ));
 
         return $run;

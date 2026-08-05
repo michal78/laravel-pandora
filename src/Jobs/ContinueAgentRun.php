@@ -68,6 +68,8 @@ final class ContinueAgentRun implements ShouldQueue
         public readonly ?string $tenantId = null,
         public readonly ?string $actorType = null,
         public readonly ?string $actorId = null,
+        /** @see StartAgentRun::__construct() -- carried through every continuation. */
+        public readonly bool $synchronous = false,
     ) {
         $this->onQueue(self::queueName('agents'));
         $this->onConnection(self::queueConnection());
