@@ -9,6 +9,9 @@ use Pandora\Pandora\Agents\Agent;
 use Pandora\Pandora\Agents\AgentRegistry;
 use Pandora\Pandora\Agents\AgentRunner;
 use Pandora\Pandora\Agents\PendingAgentRun;
+use Pandora\Pandora\Automation\AutomationScheduler;
+use Pandora\Pandora\Automation\EventTriggerRegistry;
+use Pandora\Pandora\Automation\PendingEventTrigger;
 use Pandora\Pandora\Contracts\AgentDefinition;
 use Pandora\Pandora\Conversations\Conversation;
 use Pandora\Pandora\Conversations\ConversationManager;
@@ -61,6 +64,31 @@ final class Pandora
     public function agents(): AgentRegistry
     {
         return $this->container->make(AgentRegistry::class);
+    }
+
+    /**
+     * Start a run when a Laravel event fires.
+     *
+     *   Pandora::on(OrderShipped::class)
+     *       ->when(fn (OrderShipped $e) => $e->order->isInternational())
+     *       ->map(fn (OrderShipped $e) => ['reference' => $e->order->reference])
+     *       ->run('logistics');
+     *
+     * The counterpart to a database automation of trigger type `event`. Both
+     * exist because both are wanted: code for what belongs in version control
+     * and gets reviewed, rows for what an operator adds at 3am.
+     *
+     * Declare these in a service provider's `boot()`. Nothing is registered
+     * until `run()` is called on the returned builder.
+     */
+    public function on(string $eventClass): PendingEventTrigger
+    {
+        return $this->container->make(EventTriggerRegistry::class)->on($eventClass);
+    }
+
+    public function automations(): AutomationScheduler
+    {
+        return $this->container->make(AutomationScheduler::class);
     }
 
     public function providers(): ProviderManager

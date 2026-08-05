@@ -21,11 +21,14 @@ use Pandora\Pandora\Agents\AgentRegistry;
 use Pandora\Pandora\Agents\AgentRunner;
 use Pandora\Pandora\Approvals\ApprovalManager;
 use Pandora\Pandora\Audit\AuditLogger;
+use Pandora\Pandora\Automation\Automation;
 use Pandora\Pandora\Automation\AutomationDispatcher;
 use Pandora\Pandora\Automation\AutomationScheduler;
 use Pandora\Pandora\Automation\AutonomyBudget;
 use Pandora\Pandora\Automation\ConditionRegistry;
+use Pandora\Pandora\Automation\EventTriggerRegistry;
 use Pandora\Pandora\Automation\Schedule\NextRun;
+use Pandora\Pandora\Automation\Webhooks\WebhookReceiver;
 use Pandora\Pandora\Console\Commands\AgentListCommand;
 use Pandora\Pandora\Console\Commands\AgentRunCommand;
 use Pandora\Pandora\Console\Commands\AutomationListCommand;
@@ -126,6 +129,7 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->registerConfiguredAgents();
         $this->registerConfiguredTools();
         $this->registerAutomationSchedule();
+        $this->registerAutomationTriggers();
         $this->registerRoutesAndUi();
     }
 
@@ -344,6 +348,18 @@ final class PandoraServiceProvider extends ServiceProvider
             $app->make(TenantManager::class),
             $app->make(RunCanceller::class),
         ));
+
+        $this->app->singleton(WebhookReceiver::class, static fn (Container $app): WebhookReceiver => new WebhookReceiver(
+            $app->make(AutomationDispatcher::class),
+            $app->make(AuditLogger::class),
+            $app->make(Redactor::class),
+            $app->make(Config::class),
+        ));
+
+        // A singleton because `Pandora::on()` bindings are declared in a host's
+        // boot(): a fresh registry per resolution would mean a binding
+        // registered at boot is invisible to the event that needs it.
+        $this->app->singleton(EventTriggerRegistry::class, static fn (Container $app): EventTriggerRegistry => new EventTriggerRegistry($app));
     }
 
     private function registerRuntime(): void
@@ -587,6 +603,65 @@ final class PandoraServiceProvider extends ServiceProvider
                 // pathologically slow tick from stacking.
                 ->withoutOverlapping()
                 ->runInBackground();
+        });
+    }
+
+    /**
+     * Attach event listeners and the webhook route.
+     *
+     * Listeners are attached only for classes some binding names, so an
+     * application with no event automations pays nothing. The alternative --
+     * a wildcard listener -- would be a tax on every event the host
+     * dispatches, forever.
+     */
+    private function registerAutomationTriggers(): void
+    {
+        /** @var Config $config */
+        $config = $this->app->make(Config::class);
+
+        if ($config->get('pandora.automation.enabled', true) !== true) {
+            return;
+        }
+
+        // In booted() so a host's own boot() has already declared its
+        // `Pandora::on()` bindings. Boot order is not something a package gets
+        // to insist on, so late additions re-attach themselves.
+        $this->app->booted(static function (Container $app): void {
+            $app->make(EventTriggerRegistry::class)->listen();
+        });
+
+        // Keep the cached event-class list honest. An operator who adds an
+        // event automation and finds it never fires would reasonably conclude
+        // the feature is broken.
+        Automation::saved(static function (Automation $automation): void {
+            app(EventTriggerRegistry::class)->flush();
+        });
+
+        Automation::deleted(static function (Automation $automation): void {
+            app(EventTriggerRegistry::class)->flush();
+        });
+
+        if ($config->get('pandora.automation.webhooks.enabled', true) !== true
+            || $config->get('pandora.routes.enabled', true) !== true) {
+            return;
+        }
+
+        /** @var string $prefix */
+        $prefix = $config->get('pandora.routes.prefix', 'pandora');
+        /** @var string $path */
+        $path = $config->get('pandora.automation.webhooks.path', 'webhooks');
+        /** @var array<int, string> $middleware */
+        $middleware = $config->get('pandora.automation.webhooks.middleware', []);
+        /** @var string|null $domain */
+        $domain = $config->get('pandora.routes.domain');
+
+        Route::group(array_filter([
+            'prefix' => $prefix.'/'.$path,
+            'middleware' => $middleware,
+            'domain' => $domain,
+            'as' => 'pandora.webhooks.',
+        ]), function (): void {
+            $this->loadRoutesFrom(__DIR__.'/../routes/webhooks.php');
         });
     }
 

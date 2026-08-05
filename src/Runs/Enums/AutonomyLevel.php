@@ -38,4 +38,32 @@ enum AutonomyLevel: string
     {
         return in_array($this, [self::ActWithApproval, self::ActWithinPolicy], true);
     }
+
+    /**
+     * How much rope, as a number. Only meaningful next to another level.
+     */
+    public function weight(): int
+    {
+        return match ($this) {
+            self::ObserveOnly => 0,
+            self::Suggest => 1,
+            self::ActWithApproval => 2,
+            self::ActWithinPolicy => 3,
+        };
+    }
+
+    /**
+     * The more restrictive of two levels.
+     *
+     * Lives here because three things need it -- an automation against its
+     * agent, an event binding against its agent, and the manual-run button --
+     * and the one that reimplemented it wrongly would be the interesting one.
+     * The direction is never negotiable: a thing that schedules an agent may
+     * ask for less than the agent has and never for more, or scheduling
+     * becomes privilege escalation. See ADR-0009.
+     */
+    public function narrowerOf(self $other): self
+    {
+        return $this->weight() <= $other->weight() ? $this : $other;
+    }
 }

@@ -5,8 +5,6 @@ declare(strict_types=1);
 use Pandora\Pandora\Agents\Agent;
 use Pandora\Pandora\Agents\AgentRunner;
 use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Core\Tenancy\TenantContext;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
 use Pandora\Pandora\Messages\Message;
 use Pandora\Pandora\Runs\Run;
 use Pandora\Pandora\Runs\RunStep;
@@ -21,11 +19,6 @@ uses(MakesRuns::class);
  * daemons it takes its capability list from. If any of these fail, the whole
  * premise fails.
  */
-function inTenant(string $id, Closure $callback): mixed
-{
-    return app(TenantManager::class)->with(new TenantContext($id), $callback);
-}
-
 it('stamps the current tenant on every record it creates', function (): void {
     $agent = inTenant('acme', fn () => $this->makeAgent());
 

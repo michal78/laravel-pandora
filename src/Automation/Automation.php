@@ -183,16 +183,7 @@ final class Automation extends Model
      */
     public function effectiveAutonomy(Agent $agent): AutonomyLevel
     {
-        $order = [
-            AutonomyLevel::ObserveOnly->value => 0,
-            AutonomyLevel::Suggest->value => 1,
-            AutonomyLevel::ActWithApproval->value => 2,
-            AutonomyLevel::ActWithinPolicy->value => 3,
-        ];
-
-        return $order[$this->autonomy_level->value] <= $order[$agent->autonomy_level->value]
-            ? $this->autonomy_level
-            : $agent->autonomy_level;
+        return $this->autonomy_level->narrowerOf($agent->autonomy_level);
     }
 
     /**

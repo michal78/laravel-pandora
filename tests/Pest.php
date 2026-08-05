@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Pandora\Pandora\Core\Tenancy\TenantContext;
+use Pandora\Pandora\Core\Tenancy\TenantManager;
 use Pandora\Pandora\Tests\TestCase;
 
 uses(TestCase::class)->in(
@@ -17,3 +19,16 @@ uses(TestCase::class)->in(
     'Approvals',
     'Automation',
 );
+
+/**
+ * Run a callback as a given tenant.
+ *
+ * Shared rather than redeclared per file: three test files needed it, PHP
+ * function names are global, and the third one to be written discovered that
+ * the hard way.
+ */
+function inTenant(string $id, Closure $callback): mixed
+{
+    return app(TenantManager::class)
+        ->with(new TenantContext($id), $callback);
+}
