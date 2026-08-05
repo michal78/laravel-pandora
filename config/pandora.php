@@ -6,6 +6,7 @@ use Pandora\Pandora\Context\Providers\RecentMessagesProvider;
 use Pandora\Pandora\Context\Providers\SystemInstructionsProvider;
 use Pandora\Pandora\Core\Actor\GuardActorResolver;
 use Pandora\Pandora\Core\Tenancy\NullTenantResolver;
+use Pandora\Pandora\Tools\Policies\RiskBasedToolPolicy;
 
 /*
 |--------------------------------------------------------------------------
@@ -238,6 +239,12 @@ return [
             'enabled' => env('PANDORA_TOOL_DISCOVERY', false),
             'path' => app_path('Tools'),
         ],
+
+        // Authorization layer 4. Bind your own to express the decisions that
+        // matter to your application -- clamp a refund, force a tenant filter,
+        // refuse a tool outside business hours. The default reads each agent's
+        // `approval_policy` and otherwise raises no objection.
+        'policy' => RiskBasedToolPolicy::class,
 
         // Built-in tools. Each is low risk by construction; they are listed
         // separately so a deployment can drop the lot with one line.

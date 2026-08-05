@@ -9,6 +9,7 @@ use Illuminate\Contracts\Auth\Factory;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +28,7 @@ use Pandora\Pandora\Contracts\ActorResolver;
 use Pandora\Pandora\Contracts\AgentDefinition;
 use Pandora\Pandora\Contracts\ContextProvider;
 use Pandora\Pandora\Contracts\TenantResolver;
+use Pandora\Pandora\Contracts\ToolPolicy;
 use Pandora\Pandora\Conversations\ConversationManager;
 use Pandora\Pandora\Conversations\SessionResolver;
 use Pandora\Pandora\Core\Actor\ActorManager;
@@ -41,9 +43,11 @@ use Pandora\Pandora\Runs\RunStateMachine;
 use Pandora\Pandora\Runs\RunStepRecorder;
 use Pandora\Pandora\Support\CorrelationId;
 use Pandora\Pandora\Support\Redactor;
+use Pandora\Pandora\Tools\Policies\RiskBasedToolPolicy;
 use Pandora\Pandora\Tools\Schema\RuleSchemaGenerator;
 use Pandora\Pandora\Tools\Tool;
 use Pandora\Pandora\Tools\ToolDiscovery;
+use Pandora\Pandora\Tools\ToolGatekeeper;
 use Pandora\Pandora\Tools\ToolRegistry;
 use Pandora\Pandora\UI\Assets;
 use Pandora\Pandora\UI\Http\AssetController;
@@ -197,6 +201,22 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->app->singleton(ToolRegistry::class, static fn (Container $app): ToolRegistry => new ToolRegistry(
             $app,
             $app->make(RuleSchemaGenerator::class),
+        ));
+
+        // An interface with a dull default: the interesting policy decisions
+        // belong to the host, which binds its own.
+        $this->app->singleton(ToolPolicy::class, static function (Container $app): ToolPolicy {
+            /** @var class-string<ToolPolicy> $class */
+            $class = $app->make(Config::class)->get('pandora.tools.policy', RiskBasedToolPolicy::class);
+
+            return $app->make($class);
+        });
+
+        $this->app->singleton(ToolGatekeeper::class, static fn (Container $app): ToolGatekeeper => new ToolGatekeeper(
+            $app->make(ToolRegistry::class),
+            $app->make(ToolPolicy::class),
+            $app->make(ValidationFactory::class),
+            $app->make(Config::class),
         ));
     }
 
