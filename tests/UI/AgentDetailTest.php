@@ -13,6 +13,7 @@ use Pandora\Pandora\Runs\Enums\AutonomyLevel;
 use Pandora\Pandora\Runs\Enums\RunState;
 use Pandora\Pandora\Runs\Run;
 use Pandora\Pandora\Tests\Fixtures\AgentFactory;
+use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
 use Pandora\Pandora\Tests\Fixtures\EchoAgent;
 use Pandora\Pandora\UI\Livewire\AgentDetail;
 use Pandora\Pandora\UI\Livewire\AgentsIndex;
@@ -450,8 +451,54 @@ it('names the phase that fills each tab that is not built yet', function (): voi
     // An operator who cannot find where tools are granted should learn that
     // the page is coming, not conclude that agents cannot be granted tools.
     Livewire::test(AgentDetail::class, ['agent' => 'support'])
-        ->call('selectTab', 'automations')
-        ->assertSee('Phase 4')
+        ->call('selectTab', 'tools')
+        ->assertSee('Phase 3.5+')
         ->call('selectTab', 'memory')
         ->assertSee('Phase 5');
+});
+
+// ------------------------------------------------------------- automations
+
+it('lists what starts this agent on its own', function (): void {
+    $agent = AgentFactory::database();
+
+    AutomationFactory::make([], $agent);
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => 'support'])
+        ->call('selectTab', 'automations')
+        ->assertSee('Nightly report')
+        // A link out, not an editor: an automation is edited on its own page,
+        // where the schedule, the condition and the autonomy cap sit together.
+        ->assertSee('nightly-report')
+        ->assertSee(route('pandora.automations.show', ['automation' => 'nightly-report']), false);
+});
+
+it('shows the EFFECTIVE autonomy of an automation, not what it asked for', function (): void {
+    // An automation asking for more than this agent has gets this agent's
+    // level, and showing the request rather than the outcome would misreport
+    // what the agent can actually do.
+    $agent = AgentFactory::database(['autonomy_level' => 'observe_only']);
+
+    AutomationFactory::make([
+        'autonomy_level' => 'act_within_policy',
+    ], $agent);
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => 'support'])
+        ->call('selectTab', 'automations')
+        ->assertSee('Observe only')
+        ->assertDontSee('Act within policy');
+});
+
+it('says plainly when nothing starts the agent on its own', function (): void {
+    AgentFactory::database();
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => 'support'])
+        ->call('selectTab', 'automations')
+        ->assertSee('Nothing starts this agent on its own');
 });

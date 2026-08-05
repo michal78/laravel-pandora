@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
+use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
 
 /**
  * The sidebar offers no link that answers 403.
@@ -19,6 +20,7 @@ it('shows the pages an ordinary authenticated user may open', function (): void 
         ->assertOk()
         ->assertSee('Providers')
         ->assertSee('Runs')
+        ->assertSee('Automations')
         ->assertSee('Tools');
 });
 
@@ -54,10 +56,29 @@ it('grants an authenticated user the read-only abilities by default', function (
         // An agent row decides which tools a language model can reach, so
         // editing one is administrative however ordinary the page looks.
         ->and(Gate::forUser($user)->allows('pandora.agents.manage'))->toBeFalse()
+        // Phase 4 criterion: an automation acts unattended, so being able to
+        // create one is administrative by definition.
+        ->and(Gate::forUser($user)->allows('pandora.automations.manage'))->toBeFalse()
         ->and(Gate::forUser($user)->allows('pandora.approvals.resolve'))->toBeFalse();
 });
 
 it('grants a guest nothing at all', function (): void {
     expect(Gate::allows('pandora.access'))->toBeFalse()
         ->and(Gate::allows('pandora.usage.view'))->toBeFalse();
+});
+
+it('reaches both automation pages over HTTP from the sidebar', function (): void {
+    // The Livewire tests exercise the components; this proves the routes are
+    // registered, the layout renders them, and the link in the sidebar goes
+    // somewhere real.
+    Gate::define('pandora.automations.manage', static fn (): bool => true);
+
+    $this->actingAsUser();
+
+    $automation = AutomationFactory::make();
+
+    $this->get(route('pandora.automations'))->assertOk()->assertSee('Nightly report');
+    $this->get(route('pandora.automations.show', ['automation' => $automation->slug]))
+        ->assertOk()
+        ->assertSee('Nightly report');
 });

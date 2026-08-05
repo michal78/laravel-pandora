@@ -67,6 +67,7 @@
                 'instructions' => 'Instructions',
                 'models' => 'Models',
                 'limits' => 'Limits & Autonomy',
+                'automations' => 'Automations',
                 'runs' => 'Runs',
                 'usage' => 'Usage',
             ];
@@ -490,6 +491,74 @@
     @endif
 
     {{-- ------------------------------------------------------- pending tabs --}}
+    {{-- --------------------------------------------------------- automations --}}
+    @if ($tab === 'automations')
+        <x-pandora::card title="What starts this agent on its own" :padded="false">
+            <x-slot:actions>
+                @if ($canManageAutomations)
+                    <a class="pd-btn pd-btn-ghost" href="{{ route('pandora.automations') }}" wire:navigate>All automations</a>
+                @endif
+            </x-slot:actions>
+
+            <div class="pd-table-wrap">
+                <table class="pd-table">
+                    <thead>
+                        <tr><th>Automation</th><th>Trigger</th><th>Next run</th><th>Autonomy</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($automations as $automation)
+                            <tr wire:key="agent-automation-{{ $automation->id }}">
+                                <td>
+                                    <a class="pd-link"
+                                       href="{{ route('pandora.automations.show', ['automation' => $automation->slug]) }}"
+                                       wire:navigate>{{ $automation->name }}</a>
+                                    <div class="pd-mono pd-faint">{{ $automation->slug }}</div>
+                                </td>
+                                <td>{{ $automation->trigger_type->label() }}</td>
+                                <td>
+                                    @if (! $automation->enabled)
+                                        <span class="pd-muted">—</span>
+                                    @elseif ($automation->next_run_at !== null)
+                                        {{ $automation->next_run_at->setTimezone($automation->timezone)->toDayDateTimeString() }}
+                                    @else
+                                        <span class="pd-muted">Waits for its trigger</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    {{-- The EFFECTIVE level, not the stored one. An automation
+                                         asking for more than this agent has gets this agent's,
+                                         and showing the request rather than the outcome would
+                                         misreport what the agent can actually do. --}}
+                                    <x-pandora::badge :tone="$automation->effectiveAutonomy($agent)->allowsMutation() ? 'warning' : 'muted'">
+                                        {{ $automation->effectiveAutonomy($agent)->label() }}
+                                    </x-pandora::badge>
+                                </td>
+                                <td>
+                                    @if ($automation->enabled)
+                                        <x-pandora::badge tone="success">Enabled</x-pandora::badge>
+                                    @else
+                                        <x-pandora::badge tone="muted">Disabled</x-pandora::badge>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5">
+                                    <x-pandora::empty-state title="Nothing starts this agent on its own">
+                                        Automations are created on the
+                                        <a class="pd-link" href="{{ route('pandora.automations') }}" wire:navigate>Automations</a>
+                                        page. Whatever level one asks for, it can never exceed this agent's
+                                        own ({{ $agent->autonomy_level->label() }}).
+                                    </x-pandora::empty-state>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-pandora::card>
+    @endif
+
     @if (isset($pendingTabs[$tab]))
         <x-pandora::card :title="$pendingTabs[$tab]['label']">
             <x-pandora::empty-state :title="$pendingTabs[$tab]['label'].' arrives in '.$pendingTabs[$tab]['phase']">

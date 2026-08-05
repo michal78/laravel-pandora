@@ -12,6 +12,7 @@ use Livewire\Component;
 use Pandora\Pandora\Agents\Agent;
 use Pandora\Pandora\Agents\AgentRegistry;
 use Pandora\Pandora\Audit\AuditLogger;
+use Pandora\Pandora\Automation\Automation;
 use Pandora\Pandora\Runs\Enums\AutonomyLevel;
 use Pandora\Pandora\Runs\Run;
 use Pandora\Pandora\UI\PandoraGate;
@@ -102,7 +103,6 @@ final class AgentDetail extends Component
         'skills' => ['label' => 'Skills', 'phase' => 'Phase 5', 'note' => 'Skills are instructions, never code (ADR-0008).'],
         'memory' => ['label' => 'Memory', 'phase' => 'Phase 5', 'note' => 'Scope, retention and what this agent is allowed to remember.'],
         'channels' => ['label' => 'Channels', 'phase' => 'Phase 7', 'note' => 'Where this agent can be reached, and which identities map to it.'],
-        'automations' => ['label' => 'Automations', 'phase' => 'Phase 4', 'note' => 'Triggers that start this agent without a human typing.'],
         'workspace' => ['label' => 'Workspace', 'phase' => 'Phase 5', 'note' => 'The files this agent may read and write, and its quota.'],
         'permissions' => ['label' => 'Permissions', 'phase' => 'Phase 6', 'note' => 'Delegation, MCP access and the abilities required to run it.'],
     ];
@@ -329,6 +329,8 @@ final class AgentDetail extends Component
             'canViewCosts' => PandoraGate::allows('costs.view'),
             'autonomyLevels' => AutonomyLevel::cases(),
             'runs' => $this->tab === 'runs' ? $this->recentRuns($agent) : collect(),
+            'automations' => $this->tab === 'automations' ? $this->automationsFor($agent) : collect(),
+            'canManageAutomations' => PandoraGate::allows('automations.manage'),
             'usage' => $this->tab === 'usage' ? $this->usageSummary($agent) : [],
             'pendingTabs' => self::PENDING_TABS,
         ])->layout('pandora::layouts.app', ['title' => $agent->name]);
@@ -343,6 +345,24 @@ final class AgentDetail extends Component
             ->where('agent_id', $agent->id)
             ->latest('created_at')
             ->limit(25)
+            ->get();
+    }
+
+    /**
+     * Everything that starts this agent without a human typing.
+     *
+     * Read-only here, and deliberately so: an automation is edited on its own
+     * page, where the schedule, the condition and the autonomy cap sit
+     * together. A second editor for the same row is a second place for the two
+     * to disagree.
+     *
+     * @return Collection<int, Automation>
+     */
+    private function automationsFor(Agent $agent): mixed
+    {
+        return Automation::query()
+            ->where('agent_id', $agent->getKey())
+            ->orderBy('name')
             ->get();
     }
 
