@@ -246,11 +246,50 @@ return [
         // `approval_policy` and otherwise raises no objection.
         'policy' => RiskBasedToolPolicy::class,
 
-        // Built-in tools. Each is low risk by construction; they are listed
-        // separately so a deployment can drop the lot with one line.
+        // Built-in tools. Registered, not granted: an agent still has to name
+        // each one in its allowlist. Set to false to install none of them.
         'builtin' => [
             'enabled' => env('PANDORA_BUILTIN_TOOLS', true),
         ],
+
+        /*
+        | Resources readable by the `query_records` tool.
+        |
+        | The model names a RESOURCE; you decide what that means. Nothing is
+        | readable until it appears here, `authorize` runs against the acting
+        | user, and `scope` is where an ownership or tenant constraint goes so
+        | that it applies whatever the model asked for.
+        |
+        | 'orders' => [
+        |     'model' => App\Models\Order::class,
+        |     'fields' => ['id', 'reference', 'status', 'total'],
+        |     'filterable' => ['reference', 'status'],
+        |     'max_results' => 25,
+        |     'authorize' => fn ($user) => $user->can('viewAny', App\Models\Order::class),
+        |     'scope' => fn ($query, $user) => $query->where('user_id', $user->id),
+        | ],
+        */
+        'resources' => [],
+
+        // Exact configuration keys readable by `read_config`. Exact, not
+        // prefixes: `services.*` would hand over every third-party credential
+        // in the application.
+        'readable_config' => [],
+
+        /*
+        | Jobs, events and notifications available to agents. Each is named,
+        | class-exact, and declares which arguments it accepts -- a model picks
+        | from this list and never supplies a class name.
+        |
+        | 'send_receipt' => [
+        |     'class' => App\Jobs\SendReceipt::class,
+        |     'arguments' => ['orderId'],
+        |     'authorize' => fn ($user, array $arguments) => $user->can('create', Receipt::class),
+        | ],
+        */
+        'jobs' => [],
+        'events' => [],
+        'notifications' => [],
 
         // Tools available to every agent without being named in its allowlist.
         // Deliberately empty: implicit access is how a support agent ends up

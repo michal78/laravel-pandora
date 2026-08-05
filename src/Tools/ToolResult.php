@@ -23,7 +23,20 @@ final readonly class ToolResult implements \JsonSerializable
         public string $content,
         public array $data = [],
         public array $metadata = [],
+        public bool $awaitsUser = false,
     ) {}
+
+    /**
+     * The tool asked the user something and cannot finish until they answer.
+     *
+     * The run parks at `waiting_for_user` holding no job, exactly as it does
+     * for an approval. A tool cannot transition a run itself -- only the state
+     * machine may -- so it says so in its result and the executor acts on it.
+     */
+    public static function awaitingUser(string $question): self
+    {
+        return new self(true, $question, awaitsUser: true);
+    }
 
     /**
      * @param array<string, mixed> $data

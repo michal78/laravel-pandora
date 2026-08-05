@@ -35,8 +35,11 @@ final class RunStateMachine
             RunState::Cancelling, RunState::Running,
         ],
         'waiting_for_tool' => [
-            RunState::Running, RunState::WaitingForApproval, RunState::Failed,
-            RunState::TimedOut, RunState::Cancelling,
+            // WaitingForUser is reachable because a tool may ASK something --
+            // AskUser is a tool like any other, and its answer comes from a
+            // person rather than from code.
+            RunState::Running, RunState::WaitingForApproval, RunState::WaitingForUser,
+            RunState::Failed, RunState::TimedOut, RunState::Cancelling,
         ],
         'waiting_for_approval' => [
             RunState::Running, RunState::WaitingForTool, RunState::Cancelled,

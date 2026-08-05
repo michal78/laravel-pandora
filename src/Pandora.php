@@ -13,7 +13,11 @@ use Pandora\Pandora\Contracts\AgentDefinition;
 use Pandora\Pandora\Conversations\Conversation;
 use Pandora\Pandora\Conversations\ConversationManager;
 use Pandora\Pandora\Core\Actor\ActorContext;
+use Pandora\Pandora\Exceptions\InvalidRunTransition;
+use Pandora\Pandora\Jobs\ResumeRunWithUserReply;
+use Pandora\Pandora\Messages\MessageWriter;
 use Pandora\Pandora\Providers\ProviderManager;
+use Pandora\Pandora\Runs\Enums\RunState;
 use Pandora\Pandora\Runs\Run;
 use Pandora\Pandora\Runs\RunCanceller;
 
@@ -78,6 +82,47 @@ final class Pandora
         $model = $agent instanceof Agent ? $agent : $this->agents()->get($agent);
 
         return $this->conversations()->start($model, $actor, $title, $channel);
+    }
+
+    /**
+     * Answer a run that asked the user something.
+     *
+     * The answer becomes an ordinary message in the conversation, so the next
+     * iteration picks it up through the usual context pipeline -- there is no
+     * second path by which a reply reaches the model.
+     */
+    public function reply(Run|string $run, string $answer, bool $synchronous = false): Run
+    {
+        $model = $run instanceof Run ? $run : Run::query()->findOrFail($run);
+
+        if ($model->state !== RunState::WaitingForUser) {
+            throw InvalidRunTransition::notAwaitingUser((string) $model->getKey(), $model->state);
+        }
+
+        if ($model->conversation_id !== null) {
+            /** @var Conversation $conversation */
+            $conversation = Conversation::query()->findOrFail($model->conversation_id);
+
+            $this->container->make(MessageWriter::class)->userMessage(
+                $conversation,
+                (string) $model->session_id,
+                $answer,
+                $model->actor_type,
+                $model->actor_id,
+            );
+        }
+
+        $job = new ResumeRunWithUserReply(
+            runId: (string) $model->getKey(),
+            tenantId: $model->tenant_id,
+            actorType: $model->actor_type,
+            actorId: $model->actor_id,
+            synchronous: $synchronous,
+        );
+
+        $synchronous ? dispatch_sync($job) : dispatch($job);
+
+        return $model->refresh();
     }
 
     public function cancel(Run|string $run, ?string $reason = null): Run

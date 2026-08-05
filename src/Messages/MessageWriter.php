@@ -130,6 +130,25 @@ final class MessageWriter
     }
 
     /**
+     * A question the agent is waiting on an answer to.
+     *
+     * An assistant message rather than a tool result: the user is being
+     * addressed, and it belongs in the conversation where they will see it.
+     */
+    public function question(Conversation $conversation, Run $run, string $question): Message
+    {
+        return $this->create($conversation, [
+            'session_id' => $run->session_id,
+            'run_id' => $run->getKey(),
+            'role' => MessageRole::Assistant->value,
+            'type' => MessageType::Text->value,
+            'content' => $question,
+            'streaming_state' => StreamingState::Complete->value,
+            'metadata' => ['awaiting_answer' => true],
+        ]);
+    }
+
+    /**
      * Buffer a delta, flushing when a threshold is reached.
      *
      * @return bool Whether a flush occurred (and therefore whether a broadcast is due).

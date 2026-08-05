@@ -24,6 +24,7 @@ use Pandora\Pandora\Runs\Enums\RunState;
 use Pandora\Pandora\Runs\Enums\RunStepStatus;
 use Pandora\Pandora\Runs\Enums\RunStepType;
 use Pandora\Pandora\Runs\Run;
+use Pandora\Pandora\Runs\RunStateMachine;
 use Pandora\Pandora\Runs\RunStepRecorder;
 use Pandora\Pandora\Support\Redactor;
 use Pandora\Pandora\Tools\Enums\ToolExecutionStatus;
@@ -177,7 +178,53 @@ final class ExecuteToolCall implements ShouldQueue
                 ],
             );
 
+            if ($result->awaitsUser) {
+                $this->awaitUser($run, $result, $messages, $broadcaster, $connection);
+
+                return;
+            }
+
             $this->fanIn($execution, $coordinator, $connection);
+        });
+    }
+
+    /**
+     * Park the run for the person it is acting for.
+     *
+     * Same shape as an approval pause and for the same reason: no job in
+     * flight, nothing consumed, and a question sitting in the conversation
+     * where the user will actually see it.
+     */
+    private function awaitUser(
+        Run $run,
+        ToolResult $result,
+        MessageWriter $messages,
+        RunBroadcaster $broadcaster,
+        ConnectionInterface $connection,
+    ): void {
+        if ($run->conversation_id !== null) {
+            /** @var Conversation|null $conversation */
+            $conversation = Conversation::query()->find($run->conversation_id);
+
+            if ($conversation !== null) {
+                $message = $messages->question($conversation, $run, $result->content);
+                $broadcaster->messageCreated($message, $run->correlation_id);
+            }
+        }
+
+        $states = app(RunStateMachine::class);
+
+        $connection->transaction(function () use ($run, $states, $broadcaster): void {
+            /** @var Run $fresh */
+            $fresh = Run::query()->lockForUpdate()->findOrFail($run->getKey());
+
+            if ($fresh->state->isTerminal() || $fresh->state === RunState::WaitingForUser) {
+                return;
+            }
+
+            $previous = $fresh->state;
+            $fresh = $states->transition($fresh, RunState::WaitingForUser);
+            $broadcaster->stateChanged($fresh, $previous);
         });
     }
 

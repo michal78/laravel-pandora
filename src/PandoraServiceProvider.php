@@ -45,6 +45,7 @@ use Pandora\Pandora\Runs\RunStateMachine;
 use Pandora\Pandora\Runs\RunStepRecorder;
 use Pandora\Pandora\Support\CorrelationId;
 use Pandora\Pandora\Support\Redactor;
+use Pandora\Pandora\Tools\BuiltIn\BuiltInTools;
 use Pandora\Pandora\Tools\Policies\RiskBasedToolPolicy;
 use Pandora\Pandora\Tools\Schema\RuleSchemaGenerator;
 use Pandora\Pandora\Tools\Tool;
@@ -387,6 +388,11 @@ final class PandoraServiceProvider extends ServiceProvider
 
         /** @var list<class-string<Tool>> $tools */
         $tools = $config->get('pandora.tools.registered', []);
+
+        // Registered, not granted: an agent still has to name each one.
+        if ($config->get('pandora.tools.builtin.enabled', true) === true) {
+            $tools = [...BuiltInTools::all(), ...$tools];
+        }
 
         if ($config->get('pandora.tools.discovery.enabled') === true) {
             /** @var string $path */

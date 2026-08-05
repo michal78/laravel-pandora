@@ -23,4 +23,14 @@ final class InvalidRunTransition extends PandoraException
     {
         return new self("Run [{$runId}] is already in terminal state [{$from->value}].");
     }
+
+    /**
+     * A reply arrived for a run that had not asked anything.
+     */
+    public static function notAwaitingUser(string $runId, RunState $state): self
+    {
+        return new self(
+            "Run [{$runId}] is not waiting for an answer; it is [{$state->value}].",
+        );
+    }
 }
