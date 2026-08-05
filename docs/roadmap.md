@@ -12,7 +12,7 @@
 | 2 | Tools and approvals | 🔨 34/36 acceptance criteria verified; database matrix and host walkthrough outstanding |
 | 3 | Providers and routing | 🔨 39/40 acceptance criteria verified; database matrix outstanding |
 | 3.5 | Agents page | 🔨 20/20 acceptance criteria verified; host walkthrough outstanding (Q9) |
-| 4 | Automation | ⬜ |
+| 4 | Automation | 🔨 |
 | 5 | Memory and context | ⬜ |
 | 6 | Multi-agent and MCP | ⬜ |
 | 7 | Channels and extensions | ⬜ |
@@ -177,17 +177,60 @@ it is for Phases 1 and 2 — nobody has yet clicked Edit in a browser against a 
 
 ---
 
-## Phase 4 — Automation ⬜
+## Phase 4 — Automation 🔨
 
-`Automation` entity with all six trigger types · single scheduler entry driving `next_run_at` ·
-timezone handling · misfire, concurrency and retry policies · idempotency preventing double-fire ·
-Laravel event triggers via `Pandora::on()` · signed, replay-protected webhooks · heartbeats and
-autonomy levels · conditional polling · goal queue and pending observations · run history ·
-Automations UI · the agent's **Automations** tab · `pandora:automation:list` / `:run`.
+The phase where Pandora starts doing things nobody asked it to do in the moment. Everything else in
+this roadmap runs because a human pressed something; an automation runs because a clock, an event or
+a remote system said so. That is the capability ADR-0009 exists to bound.
 
-**Acceptance:** two schedulers firing simultaneously produce exactly one run. Autonomy levels are
-enforced. An automation exhausting its autonomy budget disables itself and notifies an admin. Webhook
-replay is rejected.
+### Scope
+
+**Data** — 4 migrations: `automations`, `automation_runs`, `webhook_deliveries`, `observations`
+
+**Entity** — `Automation` with all six trigger types (`one_off` · `cron` · `interval` · `event` ·
+`webhook` · `heartbeat`), a timezone, a condition, a concurrency policy, a misfire policy, a retry
+policy, an autonomy level and an autonomy budget.
+
+**Scheduling** — `NextRun` computing `next_run_at` in the automation's own timezone ·
+`AutomationScheduler` claiming due rows · one Laravel scheduler entry (`pandora:automation:tick`)
+driving all of it · `AutomationRun` occurrence rows uniquely keyed on
+`(automation, idempotency_key)` — the double-fire guard.
+
+**Dispatch** — `AutomationDispatcher`: condition → concurrency → autonomy budget → idempotency →
+run. Every refusal is an occurrence row with a reason, not a silence.
+
+**Autonomy** — an autonomous run is stamped with the automation's level, clamped to the agent's, and
+consumes a budget. Exhausting it disables the automation and notifies an admin.
+
+**Triggers** — `Pandora::on(SomeEvent::class)->run('agent')` for code-defined event bindings, plus
+database automations bound to an event class · signed, replay-protected webhook endpoints, one per
+automation.
+
+**Proposals** — the `propose_follow_up` tool writes a pending `Observation` instead of scheduling
+work. Promotion to an automation is a human act behind `pandora.automations.manage`.
+
+**UI** — Automations index and detail, run history, manual run, the agent's **Automations** tab,
+sidebar entry.
+
+**Console** — `pandora:automation:list` · `pandora:automation:run` · `pandora:automation:tick`.
+
+### The decision this phase exists to get right
+
+**An occurrence fires exactly once, whatever the infrastructure does.** Two schedulers, a queue
+retry, a duplicated webhook delivery and a replayed event all converge on the same guard: an
+occurrence has a deterministic idempotency key, that key is uniquely indexed with the automation,
+and the insert is the claim. Nothing downstream is trusted to notice a duplicate.
+
+The alternative — checking `last_run_at` before dispatching — is a race with a window the width of a
+database round trip, and it fails exactly when it matters: under the load that made you run two
+schedulers.
+
+### Acceptance
+
+See `docs/development/phase-4-acceptance.md` — 26 criteria mapped to automated tests. The
+load-bearing ones: two schedulers firing simultaneously produce exactly one run; an automation
+exhausting its autonomy budget disables itself and notifies an admin; a replayed webhook is
+rejected; and an automation can never raise the autonomy of the agent it binds to.
 
 ---
 
