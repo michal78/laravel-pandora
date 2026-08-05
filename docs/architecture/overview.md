@@ -271,12 +271,12 @@ Sixteen groups. Each page is authorized independently (`security-model.md`).
 | Dashboard | status, attention items, health, usage summary |
 | Chat | conversation list, thread, composer, tool cards, approval cards |
 | Conversations | search, filter, tags, archive, fork, usage |
-| Agents | index; detail tabs: Overview · Instructions · Models · Limits & Autonomy · Runs · Usage (built, Phase 3.5) — Tools · Skills · Memory · Channels · Automations · Workspace · Permissions (each filled by the phase that builds its subsystem) |
+| Agents | index; detail tabs: Overview · Instructions · Models · Limits & Autonomy · Automations · Runs · Usage (built, Phases 3.5 and 4) — Tools · Skills · Memory · Channels · Workspace · Permissions (each filled by the phase that builds its subsystem) |
 | Runs | active / waiting / completed / failed / cancelled; run detail timeline; raw trace (admin only) |
 | Tools | registry, schema, risk, policy, executions, success rates, test console |
 | Skills | installed, validation, import/export, editor, warnings |
 | Providers | credentials status, models, capabilities, health, latency, cost, fallbacks, test connection |
-| Automations | list, schedule overview, editor, history, manual run |
+| Automations | list with next/last run, editor (overview · schedule · behaviour · history · webhook), occurrence history including refusals, manual run, webhook secret rotation, the agent-proposal queue (built, Phase 4) |
 | Approvals | pending / approved / denied / expired, audit history |
 | Memory | search, scope, type, sensitivity, suggested memories awaiting review |
 | Workspaces | tree, editor, preview, upload/download, diffs, quota |

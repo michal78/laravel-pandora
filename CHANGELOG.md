@@ -122,6 +122,48 @@ All notable changes to this project are documented here. The format follows
   - `agent.created`, `agent.updated` (carrying the changed keys with before and after values) and
     `agent.deleted` audit actions.
 
+- **Phase 4 — Automation.** Pandora can now act without a human in the moment, on a leash:
+  - `Automation` entity with all six trigger types — one-off, cron, interval, event, webhook and
+    heartbeat — each with its own timezone, condition, concurrency policy, misfire policy, retry
+    policy, autonomy level and autonomy budget. Four migrations: `automations`, `automation_runs`,
+    `webhook_deliveries`, `observations`.
+  - **An occurrence fires exactly once.** Its idempotency key is derived deterministically from
+    `(automation, occurrence)` and uniquely indexed, and the insert *is* the claim — so two
+    schedulers, a queue retry and a duplicated delivery all converge on one run, decided by the
+    database before anything expensive has happened.
+  - One Laravel scheduler entry, registered by Pandora itself, drives everything. Occurrences are
+    computed in each automation's own timezone, so a 9am schedule stays 9am across daylight saving
+    rather than moving twice a year.
+  - **ADR-0009's autonomy levels are now enforced, not merely stored.** `ToolGatekeeper` gained an
+    autonomy layer, and every run records the level it ran at. `observe_only` and `suggest` deny a
+    mutating tool call; `act_with_approval` pauses for a human on anything mutating whatever the
+    policy waived. The layer lives in the gatekeeper rather than in `ToolPolicy` precisely because a
+    policy is the layer a host replaces.
+  - **An automation can never widen what its agent may do.** The effective level is the lower of the
+    two, on every path — the scheduler, the event listener, the webhook and the manual run button.
+  - Autonomy budgets in occurrences per rolling window. Exhausting one disables the automation and
+    notifies an admin, because one that merely skipped would keep trying forever and nobody would
+    learn it was broken.
+  - `Pandora::on(SomeEvent::class)->when(...)->map(...)->run('agent')` for code-declared event
+    bindings, alongside database automations bound to an event class. Listeners are attached only for
+    classes something actually names — never a wildcard.
+  - Signed, replay-protected webhooks, one endpoint per automation. HMAC-SHA256 over
+    `"{timestamp}.{raw body}"` with constant-time comparison; replay refused by a unique
+    `(automation, signature)` insert rather than by a timestamp window, which is not a replay defence.
+    Secrets are stored encrypted, hidden from serialisation, and shown once.
+  - Conditional polling with conditions named in the row and defined in `config/pandora.php`. A name
+    the registry does not know refuses the occurrence rather than guessing — or executing.
+  - The goal queue: `propose_follow_up` lets an agent propose work for itself and schedules nothing.
+    Promotion is a human act behind `pandora.automations.manage` and produces a disabled one-off
+    automation at `observe_only`.
+  - Automations index and detail pages, the agent's Automations tab, a sidebar entry, and
+    `pandora:automation:list` / `:run` / `:tick`.
+  - Every occurrence is recorded, **including the ones that produced no run**, with a reason — "it
+    never fired" and "it fired and declined" are different incidents.
+  - `automation.created`, `.updated`, `.deleted`, `.enabled`, `.disabled`, `.fired`, `.refused`,
+    `.budget_exhausted`, `webhook.rejected`, `observation.proposed`, `.promoted` and `.dismissed`
+    audit actions.
+
 ### Fixed
 - `pandora:install` publishes the migrations an existing installation is MISSING, instead of
   skipping the step because some are already present. An upgrade that added a table previously left

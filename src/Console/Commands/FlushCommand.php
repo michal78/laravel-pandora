@@ -43,6 +43,9 @@ final class FlushCommand extends Command
      */
     private const ACTIVITY = [
         'run_steps',
+        'automation_runs',
+        'webhook_deliveries',
+        'observations',
         'tool_executions',
         'approvals',
         'usage_records',
@@ -63,6 +66,9 @@ final class FlushCommand extends Command
         'models',
         'provider_credentials',
         'settings',
+        // Before agents: an automation binds to one, and leaving orphaned
+        // automations behind would mean every occurrence refused forever.
+        'automations',
         'agents',
     ];
 
@@ -113,7 +119,7 @@ final class FlushCommand extends Command
         if ($this->option('all') !== true) {
             $this->components->twoColumnDetail(
                 '<fg=gray>Kept</>',
-                '<fg=gray>agents, credentials, models, settings</>',
+                '<fg=gray>agents, automations, credentials, models, settings</>',
             );
         }
 

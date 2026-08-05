@@ -1,7 +1,15 @@
 # Phase 4 — Acceptance Test Plan
 
-> **Status: planning.** Nothing below is ticked on the strength of code existing; each criterion is
-> ticked only when the named automated test asserts it and that test passes.
+> **Status as of 2026-08-06: 26 of 26 criteria verified.**
+>
+> ```
+> vendor/bin/pest        -> Tests: 925 passed (3,151 assertions)
+> vendor/bin/phpstan     -> [OK] No errors  (level 8, checkModelProperties on)
+> vendor/bin/pint --test -> passed
+> ```
+>
+> Nothing below is ticked on the strength of code existing; each criterion is ticked only when the
+> named automated test asserts it and that test passes.
 
 Every phase before this one runs because a human pressed something. Phase 4 is the first that runs
 because a clock did, and that changes what "correct" means. A chat page that renders twice is
@@ -51,32 +59,38 @@ promotion · Automations index and detail · the agent's Automations tab ·
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 1 | `NextRun` computes cron occurrences in the automation's own timezone, not the server's | `Automation/NextRunTest` |
-| 2 | Interval and one-off triggers compute a next occurrence; a fired one-off schedules nothing further | `Automation/NextRunTest` |
-| 3 | A DST transition neither skips nor repeats a daily occurrence | `Automation/NextRunTest` |
-| 4 | The scheduler selects exactly the enabled automations whose `next_run_at` has passed | `Automation/SchedulerTest` |
-| 5 | **Two schedulers running simultaneously over the same due automation produce exactly one run** | `Automation/SchedulerTest` |
-| 6 | A queue retry of `RunAutomation` for the same occurrence produces no second run | `Automation/IdempotencyTest` |
-| 7 | Each occurrence writes an `automation_runs` row, including when it is refused, with the reason | `Automation/SchedulerTest` |
-| 8 | `next_run_at` advances past the occurrence just claimed, so a slow run is not re-claimed | `Automation/SchedulerTest` |
-| 9 | Misfire `skip` drops missed occurrences; `run_once` catches up with exactly one; `run_all` is bounded by the configured cap | `Automation/MisfireTest` |
-| 10 | Concurrency `skip` refuses while a run of the same automation is live; `allow` does not | `Automation/ConcurrencyTest` |
-| 11 | A condition that evaluates false records a skipped occurrence and creates no run | `Automation/ConditionTest` |
-| 12 | A condition naming something not in the configured registry refuses the occurrence rather than executing anything | `Automation/ConditionTest` |
-| 13 | An automation run is created with an autonomous trigger type and the automation's context | `Automation/DispatchTest` |
-| 14 | **An automation cannot raise the autonomy of its agent — the effective level is the lower of the two** | `Automation/AutonomyTest` |
-| 15 | An `observe_only` effective level denies a mutating tool call inside the resulting run | `Automation/AutonomyTest` |
-| 16 | **An automation exhausting its autonomy budget disables itself, records it, and notifies an admin** | `Automation/AutonomyTest` |
-| 17 | Consecutive failures past the retry policy's limit disable the automation | `Automation/RetryTest` |
-| 18 | A code-registered `Pandora::on(Event::class)->run('agent')` binding creates a run when the event fires | `Automation/EventTriggerTest` |
-| 19 | A database automation bound to an event class fires on that event, and only that event | `Automation/EventTriggerTest` |
-| 20 | An event no binding names causes no listener work | `Automation/EventTriggerTest` |
-| 21 | A correctly signed webhook creates a run and answers 202 with the run id | `Automation/WebhookTest` |
-| 22 | **A replayed webhook — identical signature — is rejected and creates no second run** | `Automation/WebhookTest` |
-| 23 | A wrong signature, an absent signature, a stale timestamp and a disabled automation are each rejected without creating a run | `Automation/WebhookTest` |
-| 24 | The `propose_follow_up` tool writes a pending observation and schedules nothing | `Automation/ObservationTest` |
-| 25 | Promoting an observation requires `pandora.automations.manage` and produces a disabled one-off automation | `Automation/ObservationTest` |
-| 26 | **A tenant cannot see, run, edit or delete another tenant's automation, and a foreign webhook slug answers 404** | `Automation/TenancyTest` |
+| 1 | ✅ `NextRun` computes cron occurrences in the automation's own timezone, not the server's | `Automation/NextRunTest` |
+| 2 | ✅ Interval and one-off triggers compute a next occurrence; a fired one-off schedules nothing further | `Automation/NextRunTest` |
+| 3 | ✅ A DST transition neither skips nor repeats a daily occurrence | `Automation/NextRunTest` |
+| 4 | ✅ The scheduler selects exactly the enabled automations whose `next_run_at` has passed | `Automation/SchedulerTest` |
+| 5 | ✅ **Two schedulers running simultaneously over the same due automation produce exactly one run** | `Automation/SchedulerTest` |
+| 6 | ✅ A queue retry of `RunAutomation` for the same occurrence produces no second run | `Automation/IdempotencyTest` |
+| 7 | ✅ Each occurrence writes an `automation_runs` row, including when it is refused, with the reason | `Automation/SchedulerTest` |
+| 8 | ✅ `next_run_at` advances past the occurrence just claimed, so a slow run is not re-claimed | `Automation/SchedulerTest` |
+| 9 | ✅ Misfire `skip` drops missed occurrences; `run_once` catches up with exactly one; `run_all` is bounded by the configured cap | `Automation/MisfireTest` |
+| 10 | ✅ Concurrency `skip` refuses while a run of the same automation is live; `allow` does not | `Automation/ConcurrencyTest` |
+| 11 | ✅ A condition that evaluates false records a skipped occurrence and creates no run | `Automation/ConditionTest` |
+| 12 | ✅ A condition naming something not in the configured registry refuses the occurrence rather than executing anything | `Automation/ConditionTest` |
+| 13 | ✅ An automation run is created with an autonomous trigger type and the automation's context | `Automation/SchedulerTest` |
+| 14 | ✅ **An automation cannot raise the autonomy of its agent — the effective level is the lower of the two** | `Automation/AutonomyTest` |
+| 15 | ✅ An `observe_only` effective level denies a mutating tool call inside the resulting run | `Automation/AutonomyTest` |
+| 16 | ✅ **An automation exhausting its autonomy budget disables itself, records it, and notifies an admin** | `Automation/AutonomyTest` |
+| 17 | ✅ Consecutive failures past the retry policy's limit disable the automation | `Automation/RetryTest` |
+| 18 | ✅ A code-registered `Pandora::on(Event::class)->run('agent')` binding creates a run when the event fires | `Automation/EventTriggerTest` |
+| 19 | ✅ A database automation bound to an event class fires on that event, and only that event | `Automation/EventTriggerTest` |
+| 20 | ✅ An event no binding names causes no listener work | `Automation/EventTriggerTest` |
+| 21 | ✅ A correctly signed webhook creates a run and answers 202 with the run id | `Automation/WebhookTest` |
+| 22 | ✅ **A replayed webhook — identical signature — is rejected and creates no second run** | `Automation/WebhookTest` |
+| 23 | ✅ A wrong signature, an absent signature, a stale timestamp and a disabled automation are each rejected without creating a run | `Automation/WebhookTest` |
+| 24 | ✅ The `propose_follow_up` tool writes a pending observation and schedules nothing | `Automation/ObservationTest` |
+| 25 | ✅ Promoting an observation requires `pandora.automations.manage` and produces a disabled one-off automation | `Automation/ObservationTest` |
+| 26 | ✅ **A tenant cannot see, run, edit or delete another tenant's automation, and a foreign webhook slug answers 404** | `Automation/TenancyTest` |
+
+Test files: `Automation/NextRunTest` · `SchedulerTest` · `MisfireTest` · `ConcurrencyTest` ·
+`ConditionTest` · `IdempotencyTest` · `AutonomyTest` · `RetryTest` · `EventTriggerTest` ·
+`WebhookTest` · `ObservationTest` · `TenancyTest`, plus `UI/AutomationsPageTest`,
+`UI/AutomationDetailTest`, `UI/NavigationTest` and `UI/AgentDetailTest`. 158 tests across the
+automation and automation-UI files.
 
 Supporting behaviour asserted by the same files, not counted separately: the index lists schedules
 with next and last run; a manual run is recorded as `manual` and still clamped; enable and disable
@@ -99,10 +113,12 @@ provider overrides, which belong with the agent.
 
 ## Definition of done
 
-- [ ] All 26 criteria have tests, and they pass
-- [ ] `vendor/bin/pest` green
-- [ ] `vendor/bin/phpstan analyse` clean at level 8
-- [ ] `vendor/bin/pint --test` clean
-- [ ] `docs/development/progress.md`, `docs/roadmap.md`, `docs/architecture/database-model.md`,
+- [x] All 26 criteria have tests, and they pass
+- [x] `vendor/bin/pest` green — 925 passed, 3,151 assertions
+- [x] `vendor/bin/phpstan analyse` clean at level 8
+- [x] `vendor/bin/pint --test` clean
+- [x] `docs/development/progress.md`, `docs/roadmap.md`, `docs/architecture/database-model.md`,
       `docs/architecture/overview.md`, `docs/guides/automations.md` and `CHANGELOG.md` updated
-- [ ] **A human drives the page in a host application** — the walkthrough item open since Phase 1 (Q9)
+- [ ] **A human drives the page in a host application** — the walkthrough item open since Phase 1 (Q9).
+      Every assertion here is a Livewire or unit test; nobody has yet watched a real cron fire a real
+      automation against a real deployment.

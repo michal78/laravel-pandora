@@ -5,6 +5,98 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-06 — Phase 4: Automation 🔨 (26 of 26 criteria verified)
+
+**What changed about the product.** Every phase before this one runs because a person pressed
+something. This is the first that runs because a clock did, and that changes what "correct" means: a
+chat page that renders twice is annoying, an automation that fires twice refunds the customer twice.
+
+Two properties set the acceptance bar, and everything else followed from them.
+
+**An occurrence fires exactly once.** The guard is an INSERT, not a check. Each occurrence's
+idempotency key is derived deterministically from `(automation, occurrence timestamp)`, carries a
+unique index with the automation, and the insert *is* the claim. Two schedulers noticing the 09:00
+occurrence compute the same key, both try to insert, and the database picks the winner before either
+has evaluated a condition or spent a token.
+
+The version everybody writes first — `if ($automation->last_run_at < $due)` — is a check-then-act
+race whose window is a database round trip, and it fails precisely under the load that made somebody
+run two schedulers. The same guard covers a queue retry (the key travels on the job payload rather
+than being recomputed) and a duplicated webhook delivery (the key is the signature).
+
+**An automation can never widen what its agent may do.** The effective level is the lower of the
+two, and it is computed on `AutonomyLevel::narrowerOf()` because four paths need it — the scheduler,
+the event listener, the webhook and the manual run button — and the one that reimplemented it
+wrongly would have been the interesting one. Without the clamp, the Automations page is a privilege
+escalation surface: anyone who could schedule an `observe_only` agent could schedule it to act.
+
+**The thing this phase quietly fixed.** ADR-0009's autonomy levels have been stored on every agent
+since Phase 1 and enforced nowhere. `ToolGatekeeper` now carries an autonomy layer, and every run
+records the level it ran at (null meaning "a human is watching", which is meaningful rather than
+missing). It lives in the gatekeeper rather than in `ToolPolicy` deliberately: a policy is the layer
+a host REPLACES, and a host binding its own must not silently lose the leash.
+
+**Delivered.**
+
+- 5 migrations: `automations`, `automation_runs`, `webhook_deliveries`, `observations`, plus
+  `autonomy_level` and `automation_id` on `runs`
+- `Automation`, `AutomationRun`, `WebhookDelivery`, `Observation` models; 5 enums
+- `NextRun` (cron/interval/one-off in the automation's own timezone, DST-correct),
+  `AutomationScheduler` (one tick, claims and advances), `AutomationDispatcher` (claim → agent →
+  condition → concurrency → autonomy → run), `AutonomyBudget`, `ConditionRegistry`,
+  `EventTriggerRegistry`, `ObservationManager`, `WebhookSignature`, `WebhookReceiver`
+- `RunAutomation` job; `pandora:automation:tick` / `:list` / `:run`; the scheduler entry registered
+  by the service provider so a host adds nothing to its own Kernel
+- `Pandora::on(Event::class)->when()->map()->autonomy()->run('agent')`
+- `AutomationsIndex`, `AutomationDetail` (5 tabs), the agent's Automations tab, sidebar entry
+- `propose_follow_up` built-in tool and the promotion flow
+- `docs/guides/automations.md`
+
+**Decisions worth recording.**
+
+- *The automation IS the webhook endpoint.* The Phase 0 sketch had a separate
+  `pandora_webhook_endpoints` table. An endpoint that is not an automation points at nothing, and
+  nobody needs two endpoints for one automation. `database-model.md` updated to say so.
+- *Timestamp tolerance is not replay protection.* The window has to survive clock skew, and inside it
+  the same request can be sent freely. Replay is refused by a unique `(automation, signature)`
+  insert — the only defence that holds behind a load balancer where no process sees every delivery.
+- *A refused occurrence is still a row.* "It never fired" and "it fired and declined" are different
+  incidents, and a silence is indistinguishable from a scheduler that died last Tuesday.
+- *Conditions are named in the row and defined in config.* Same rule as tools. A callable read out of
+  a database row is remote code execution with extra steps, and an automations page is exactly the
+  surface an attacker would want it on. An unregistered name refuses rather than guessing.
+- *Listeners only for classes something names.* A wildcard listener on `*` would make Pandora a tax
+  on every event the host dispatches, forever, including the ones it dispatches in a loop.
+- *`skip` is the default for both misfire and concurrency.* Both alternatives fail quietly and
+  cumulatively: 360 stale runs after a six-hour outage, or workers accumulating until the queue stops
+  moving with no symptom beyond "everything got slow".
+- *An agent proposes; a person decides.* `propose_follow_up` is `low` risk because it changes
+  nothing, which is what lets an `observe_only` agent use it — watch, and tell me. Promotion produces
+  a DISABLED one-off at `observe_only`, because approving an idea is not approving the schedule and
+  is not approving the agent acting on it.
+- *The editor refuses an uncomputable schedule.* Storing an unparseable cron expression produces a
+  null `next_run_at` and an automation that simply never runs, with nothing in any log to notice.
+- *The page names `schedule:run`.* By far the most common "automation problem" is that nobody added
+  the cron line. It is invisible from inside the application, so the page and `pandora:status` both
+  say so rather than leaving somebody to debug a correct cron expression.
+
+**Verified.**
+
+```
+vendor/bin/pest        -> Tests: 925 passed (3,151 assertions)
+vendor/bin/phpstan     -> [OK] No errors  (level 8, checkModelProperties on)
+vendor/bin/pint --test -> passed
+```
+
+158 of those tests are the automation and automation-UI files. All 26 acceptance criteria in
+`docs/development/phase-4-acceptance.md` are ticked against a named passing test.
+
+**Outstanding.** The host walkthrough (Q9), open since Phase 1 and now with a new instance: every
+assertion here is a Livewire or unit test, and nobody has yet watched a real cron fire a real
+automation against a real deployment. The database matrix beyond SQLite remains open from Phase 2.
+
+---
+
 ## 2026-08-05 — Phase 3.5: the Agents page 🔨 (20 of 20 criteria verified)
 
 **Why this phase exists.** It was not on the roadmap. Reviewing what Phase 4 needed turned up a gap:

@@ -12,7 +12,7 @@
 | 2 | Tools and approvals | 🔨 34/36 acceptance criteria verified; database matrix and host walkthrough outstanding |
 | 3 | Providers and routing | 🔨 39/40 acceptance criteria verified; database matrix outstanding |
 | 3.5 | Agents page | 🔨 20/20 acceptance criteria verified; host walkthrough outstanding (Q9) |
-| 4 | Automation | 🔨 |
+| 4 | Automation | 🔨 26/26 acceptance criteria verified; host walkthrough outstanding (Q9) |
 | 5 | Memory and context | ⬜ |
 | 6 | Multi-agent and MCP | ⬜ |
 | 7 | Channels and extensions | ⬜ |
@@ -231,6 +231,11 @@ See `docs/development/phase-4-acceptance.md` — 26 criteria mapped to automated
 load-bearing ones: two schedulers firing simultaneously produce exactly one run; an automation
 exhausting its autonomy budget disables itself and notifies an admin; a replayed webhook is
 rejected; and an automation can never raise the autonomy of the agent it binds to.
+
+**Status:** all 26 criteria verified by automated test. ADR-0009's autonomy levels are also now
+*enforced* rather than merely stored — `ToolGatekeeper` gained an autonomy layer, and every run
+records the level it ran at. The host walkthrough (Q9) is outstanding, as it is for Phases 1, 2 and
+3.5: nobody has yet watched a real cron fire a real automation against a real deployment.
 
 ---
 

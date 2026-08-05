@@ -7,6 +7,7 @@ namespace Pandora\Pandora\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
 use Pandora\Pandora\Agents\AgentRegistry;
+use Pandora\Pandora\Automation\Automation;
 use Pandora\Pandora\Conversations\Conversation;
 use Pandora\Pandora\Pandora;
 use Pandora\Pandora\Providers\ProviderManager;
@@ -76,6 +77,47 @@ final class StatusCommand extends Command
                 );
             }
         }
+
+        $this->newLine();
+        $this->components->info('Automation');
+
+        $enabled = Automation::query()->where('enabled', true)->count();
+
+        $this->components->twoColumnDetail(
+            '<fg=gray>Enabled automations</>',
+            $enabled === 0 ? '<fg=gray>none</>' : (string) $enabled,
+        );
+
+        /** @var Automation|null $next */
+        $next = Automation::query()
+            ->where('enabled', true)
+            ->whereNotNull('next_run_at')
+            ->orderBy('next_run_at')
+            ->first();
+
+        // The two facts that answer "why hasn't anything run": whether
+        // anything is scheduled, and whether the scheduler has ever been
+        // heard from. A cron entry nobody added is by far the likeliest
+        // cause, and it is invisible from inside the application.
+        $this->components->twoColumnDetail(
+            '<fg=gray>Next occurrence</>',
+            $next === null || $next->next_run_at === null
+                ? '<fg=gray>nothing scheduled</>'
+                // In the automation's own zone, because that is the one the
+                // person who configured it was thinking in.
+                : $next->next_run_at->setTimezone($next->timezone)->toDateTimeString().' '.$next->timezone,
+        );
+
+        /** @var Automation|null $lastFired */
+        $lastFired = Automation::query()->whereNotNull('last_run_at')->latest('last_run_at')->first();
+
+        $this->components->twoColumnDetail(
+            '<fg=gray>Last fired</>',
+            $lastFired?->last_run_at?->diffForHumans()
+                ?? ($enabled > 0
+                    ? '<fg=yellow>never -- is `schedule:run` running every minute?</>'
+                    : '<fg=gray>never</>'),
+        );
 
         $this->newLine();
         $this->components->info('Runs');
