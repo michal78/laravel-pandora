@@ -5,22 +5,18 @@ Resolved items move to the bottom with their resolution.
 
 ---
 
-## Q1 — Package location inside `vendor/` ⚠ **needs a decision**
+## Q1 — Package location inside `vendor/` ✅ **resolved**
 
-**Raised:** 2026-08-05 · **Blocks:** nothing yet; risks data loss at any time
+**Raised:** 2026-08-05 · **Resolved:** 2026-08-05
 
-The package is being developed at `/home/michal/development/laravel-test/vendor/michal78/laravel-pandora`
-as instructed. `composer install`, `composer update` or `composer dump-autoload --no-dev` in the host
-application can delete the entire directory without warning.
+The package was developed at `/home/michal/development/laravel-test/vendor/michal78/laravel-pandora`,
+where `composer install` could delete it without warning.
 
-Mitigation in place: git is initialised on `master`, so work is recoverable from `.git` — unless the
-whole directory is removed, which composer will do.
-
-**Recommendation:** move the source to `/home/michal/development/laravel-pandora` and consume it via a
-`path` repository with `"options": {"symlink": true}` — exactly the pattern already used for
-`michal78/wisp`. This is a two-minute change, does not alter any code, and removes the risk entirely.
-
-**Status:** proceeding at the specified location. Awaiting owner preference.
+**Resolution:** moved to `/home/michal/development/laravel-pandora` and consumed through a `path`
+repository with `"options": {"symlink": true}`, the pattern already used for `michal78/wisp`. The
+host's `compose.yaml` mounts the same absolute path into the Sail container so Composer can resolve
+it from inside. The temporary PSR-4 shim in the host's `autoload` block is gone: Pandora is now an
+ordinary Composer dependency, installed and auto-discovered like any other.
 
 ---
 
@@ -105,22 +101,29 @@ notification channel to build on.
 
 ---
 
-## Q9 — Host-application verification cannot run in this environment ⚠
+## Q9 — Host-application verification ✅ **resolved, and it found three defects**
 
-**Raised:** 2026-08-05 · **Blocks:** Phase 1 acceptance criterion 14 only
+**Raised:** 2026-08-05 · **Resolved:** 2026-08-05
 
-`laravel-test` requires PHP ^8.4 and runs via Laravel Sail. This WSL distro has no Docker
-integration (`docker` is not on PATH) and local PHP is 8.3.6, so the host application cannot boot
-here at all — with or without Pandora.
+Docker Desktop was running after all. Pandora was installed into `laravel-test` — Laravel 13.19,
+PHP 8.5.8, MySQL 8.4, Redis queue and cache, `BROADCAST_CONNECTION=log` (no Reverb) — and the
+walkthrough was performed against it.
 
-What this does **not** affect: the package suite runs a real Laravel 13 application under Orchestra
-Testbench on PHP 8.3 and covers all 22 acceptance criteria in automated form, including the
-installer, the Livewire chat page, streaming, mid-stream reload reconstruction and cancellation.
+Verified live: `pandora:install`, all nine migrations on MySQL 8.4, `pandora:status`,
+`pandora:agent:list`, a synchronous console run, a queued run drained by a real
+`php artisan queue:work` worker, and every control center page rendering for an authenticated user
+while redirecting a guest.
 
-What remains genuinely unverified: a live `php artisan queue:work` worker, a live Reverb server,
-and a real provider endpoint. These are exactly the parts an integration environment exists to
-prove, and they should not be assumed working.
+The exercise justified itself immediately. Three defects that the package suite structurally could
+not see were found and fixed (commit `09d96ac`):
 
-**To close:** enable Docker Desktop WSL integration, then `./vendor/bin/sail up -d`,
-`sail artisan migrate`, `sail artisan queue:work`, `sail artisan reverb:start`, and walk the
-11-step manual checklist in `phase-1-acceptance.md`.
+1. `run()` did not wait, because only the first job was dispatched synchronously and the suite's
+   `sync` queue connection hid the leak.
+2. The control center layout read its stylesheet with `__DIR__` from a compiled Blade view — a 500
+   on every page of a real installation, invisible to `Livewire::test()`, which renders no layout.
+3. `symfony/uid` was pinned to `^7.0`, so the package would not install alongside Laravel 13.
+
+**Still not verified:** a live Reverb server (the host broadcasts to `log`, so the UI is running on
+its polling fallback — which is precisely the degraded mode acceptance criterion 22 requires to
+remain correct), and a real paid provider endpoint. The DB matrix now covers SQLite and MySQL 8.4;
+PostgreSQL and MariaDB remain CI-only.

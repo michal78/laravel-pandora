@@ -116,3 +116,86 @@ php artisan pandora:agent:list
 The placeholder namespace is `Pandora\Pandora\`. To change it, edit two keys in `composer.json`
 (`autoload.psr-4` and `extra.laravel`), run a project-wide replace of `Pandora\Pandora` and
 `composer dump-autoload`. No namespace string is hard-coded in config, views or migrations.
+
+---
+
+## Verified installation: a worked example
+
+Pandora was installed into a real Laravel 13 application to prove these instructions. The
+environment, for reference:
+
+| | |
+|---|---|
+| Laravel | 13.19 |
+| PHP | 8.5.8 (Sail container) |
+| Database | MySQL 8.4 |
+| Queue / cache | Redis |
+| Broadcasting | `log` — no Reverb, so the UI runs on its polling fallback |
+
+### Local path installation
+
+While developing the package alongside an application, consume it through a Composer `path`
+repository rather than copying it into `vendor/`:
+
+```jsonc
+// composer.json
+"repositories": [
+    {
+        "name": "laravel-pandora",
+        "type": "path",
+        "url": "/absolute/path/to/laravel-pandora",
+        "options": { "symlink": true }
+    }
+],
+"require": {
+    "michal78/laravel-pandora": "@dev"
+}
+```
+
+Under Laravel Sail the package must also be visible **inside** the container, or Composer cannot
+resolve the path. Mount it at the same absolute path in `compose.yaml`:
+
+```yaml
+services:
+    laravel.test:
+        volumes:
+            - '.:/var/www/html'
+            - '/absolute/path/to/laravel-pandora:/absolute/path/to/laravel-pandora'
+```
+
+Then `sail up -d` to apply the mount and `sail composer update michal78/laravel-pandora`.
+
+### The sequence
+
+```bash
+sail composer update michal78/laravel-pandora
+sail artisan pandora:install
+sail artisan migrate
+sail artisan pandora:status
+```
+
+Register an agent class in `config/pandora.php` under `agents.definitions`, then confirm it:
+
+```bash
+sail artisan pandora:agent:list
+sail artisan pandora:agent:run echo "Hello" --trace
+```
+
+### Seeing streaming without a provider key
+
+The built-in `fake` provider echoes the last user message when its script is exhausted, so a fresh
+installation works before any credentials exist. It streams instantly by default, which is what
+tests want but makes the browser look static. Pace it:
+
+```dotenv
+PANDORA_FAKE_CHUNK_DELAY_MS=60
+```
+
+### A worker is required
+
+The chat UI dispatches runs to the queue — a web request is never held open for a run. Nothing will
+appear to happen until a worker is running:
+
+```bash
+sail artisan queue:work
+```

@@ -82,15 +82,26 @@ implements any of these is out of spec, not ahead of schedule.
 
 ## Definition of done
 
-- [x] All 22 criteria have tests, and they pass (119 tests, 739 assertions)
+- [x] All 22 criteria have tests, and they pass (127 tests, 761 assertions)
 - [x] `vendor/bin/pest` green
 - [x] `vendor/bin/phpstan analyse` clean at level 8
 - [x] `vendor/bin/pint --test` clean
 - [x] End-to-end walkthrough demonstrated with real output (`Feature/DemoWalkthroughTest`)
 - [x] README quick start matches the demonstrated flow
 - [x] Committed to `master` as a focused milestone commit
-- [ ] **Manual host-application verification — blocked by Q9, see above**
-- [ ] **MySQL / MariaDB / PostgreSQL suite run — CI matrix defined, not yet executed**
+- [x] **Manual host-application verification, steps 1-6 and 11** — installed into `laravel-test`
+      (Laravel 13.19, PHP 8.5.8, MySQL 8.4, Redis queue, no Reverb): install, migrations, agent
+      registration, status, a synchronous run, a queued run drained by a live worker, and every
+      control center page rendering for an authenticated user. Three defects found and fixed
+      (Q9, commit `09d96ac`)
+- [ ] **Manual host-application verification, steps 7-10** — the browser interaction itself:
+      sending a message, watching it stream, reloading mid-stream, cancelling a run. Automated
+      equivalents pass; a human has not yet driven the UI
+- [ ] **Database matrix** — SQLite and MySQL 8.4 verified; PostgreSQL and MariaDB remain CI-only
+- [ ] **Live Reverb verification** — the host broadcasts to `log`, so only the polling fallback has
+      been exercised. Criterion 22 requires that fallback to be correct, and it is; the Reverb path
+      itself is still only covered by `Realtime` tests
 
-Phase 1 is therefore **not** marked complete. Two items remain, both requiring infrastructure this
-environment does not have.
+Phase 1 is **substantially complete**. What is left is breadth of infrastructure — two more database
+engines and a live websocket server — not unfinished behaviour. Neither is marked done until it has
+actually been run.
