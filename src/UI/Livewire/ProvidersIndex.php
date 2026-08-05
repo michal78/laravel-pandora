@@ -18,18 +18,24 @@ use Pandora\Pandora\UI\PandoraGate;
  * What this deployment can talk to, whether it is answering, and what it
  * charges.
  *
- * Gated on `pandora.providers.manage` rather than plain access: the page names
- * every model an agent may route to and every credential scope that exists,
- * which together describe the deployment's whole reach.
+ * Two levels, like the Tools page. Anyone with `pandora.access` may see which
+ * providers exist, whether they are answering and which models are available:
+ * that is operational information, and a control center that refuses to tell
+ * you why chat is broken is not much of a control center.
  *
- * No credential VALUE is loaded, anywhere. The page shows a fingerprint and a
- * last-four hint -- enough to tell two keys apart, never enough to use one.
+ * `pandora.providers.manage` adds the parts that describe the deployment's
+ * commercial and security posture -- which credentials are installed, at which
+ * scopes, and what each model costs.
+ *
+ * No credential VALUE is loaded at either level. What an authorized operator
+ * sees is a fingerprint: enough to tell two keys apart, never enough to use
+ * one.
  */
 final class ProvidersIndex extends Component
 {
     public function mount(): void
     {
-        PandoraGate::authorize('providers.manage');
+        PandoraGate::authorize('access');
     }
 
     public function render(
@@ -38,8 +44,15 @@ final class ProvidersIndex extends Component
         ModelCatalog $catalog,
         CredentialManager $credentials,
     ): View {
+        $canManage = PandoraGate::allows('providers.manage');
+
         $models = $catalog->all()->groupBy('provider_key');
-        $stored = $credentials->stored()->groupBy('provider_key');
+
+        // Not loaded at all without the ability, rather than loaded and
+        // hidden in the markup.
+        $stored = $canManage
+            ? $credentials->stored()->groupBy('provider_key')
+            : collect();
 
         $connections = [];
 
@@ -55,15 +68,17 @@ final class ProvidersIndex extends Component
                 'health' => $health->status($key),
                 'models' => $models->get($key, collect()),
                 'credentials' => $stored->get($key, collect()),
-                // Whether a credential exists at all, which is the question an
-                // operator is actually asking. The value itself is never read.
+                // Whether a credential exists at all, which is the question
+                // anybody debugging a broken provider is actually asking. The
+                // value itself is never read.
                 'has_credential' => $credentials->resolve($key) !== null,
             ];
         }
 
         return view('pandora::livewire.providers-index', [
             'connections' => $connections,
-            'staleModels' => $catalog->withStalePricing(),
+            'canManage' => $canManage,
+            'staleModels' => $canManage ? $catalog->withStalePricing() : collect(),
             'staleAfterDays' => $catalog->staleAfterDays(),
         ])->layout('pandora::layouts.app', ['title' => 'Providers']);
     }

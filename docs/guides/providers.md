@@ -278,6 +278,44 @@ hand against one model.
 The suite ships in `src/`, not `tests/`, precisely so an extension package can
 use it.
 
+## Who can see what
+
+| Page | Needs | Shows |
+|---|---|---|
+| Providers | `pandora.access` | connections, endpoints, health, models |
+| Providers | `pandora.providers.manage` | additionally: installed credentials and their scopes, and prices |
+| Usage | `pandora.usage.view` | calls and tokens |
+| Usage | `pandora.costs.view` | additionally: money |
+
+A fresh installation grants `pandora.access`, `pandora.chat` and
+`pandora.usage.view` to any authenticated user, and denies everything else.
+Knowing how many tokens the application spent cannot cause harm; knowing what
+they cost can.
+
+Take control by defining gates of the same name — Pandora never overrides one
+your application has already defined:
+
+```php
+Gate::define('pandora.providers.manage', fn (User $user) => $user->isAdmin());
+Gate::define('pandora.costs.view', fn (User $user) => $user->isAdmin());
+```
+
+The sidebar hides links the current user may not open. That is a convenience,
+not the boundary: every page authorizes on mount as well.
+
+## Clearing it out
+
+```bash
+php artisan pandora:flush              # conversations, runs, traces, usage
+php artisan pandora:flush --audit      # ...and the audit log
+php artisan pandora:flush --all        # ...and agents, credentials, catalog
+php artisan pandora:flush --tenant=acme
+```
+
+The default deletes what an agent *did*, not what the deployment *is*: agents,
+credentials, the model catalog and settings survive, because losing those turns
+"clear the chats" into "set the whole thing up again".
+
 ## Related
 
 - `docs/architecture/provider-model.md` — the design, and why

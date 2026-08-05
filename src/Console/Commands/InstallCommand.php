@@ -58,25 +58,57 @@ final class InstallCommand extends Command
 
     private function publishMigrations(): void
     {
-        // Match on the suffix: published migrations are timestamp-prefixed, so
-        // comparing names would republish them on every run.
-        $existing = collect(File::glob(database_path('migrations/*_create_pandora_*_table.php')));
+        if ($this->option('force')) {
+            $this->callSilently('vendor:publish', [
+                '--tag' => 'pandora-migrations',
+                '--force' => true,
+            ]);
 
-        if ($existing->isNotEmpty() && ! $this->option('force')) {
-            $this->components->twoColumnDetail(
-                'migrations',
-                "<fg=yellow>{$existing->count()} already present</>",
-            );
+            $this->components->twoColumnDetail('migrations', '<fg=green>republished</>');
 
             return;
         }
 
-        $this->callSilently('vendor:publish', [
-            '--tag' => 'pandora-migrations',
-            '--force' => (bool) $this->option('force'),
-        ]);
+        // Publish the ones this application does NOT already have, rather than
+        // skipping the whole step because some are present. An upgrade that
+        // adds a table would otherwise leave the host on the old schema, and
+        // the first symptom would be a missing-table error in a page nobody
+        // associates with a package update.
+        //
+        // Matched on the suffix, because a published migration may carry a
+        // different timestamp prefix from the packaged one.
+        $existing = collect(File::glob(database_path('migrations/*_create_pandora_*_table.php')))
+            ->map(fn (string $path): string => $this->migrationSuffix($path))
+            ->all();
 
-        $this->components->twoColumnDetail('migrations', '<fg=green>published</>');
+        $missing = collect(File::glob(dirname(__DIR__, 3).'/database/migrations/*.php'))
+            ->reject(fn (string $path): bool => in_array($this->migrationSuffix($path), $existing, true));
+
+        if ($missing->isEmpty()) {
+            $this->components->twoColumnDetail('migrations', '<fg=gray>up to date</>');
+
+            return;
+        }
+
+        foreach ($missing as $path) {
+            File::copy($path, database_path('migrations/'.basename($path)));
+        }
+
+        $this->components->twoColumnDetail(
+            'migrations',
+            $existing === []
+                ? '<fg=green>published</>'
+                : "<fg=green>{$missing->count()} new migration(s) published</>",
+        );
+    }
+
+    /**
+     * The part of a migration filename that identifies WHAT it creates, with
+     * the timestamp prefix removed.
+     */
+    private function migrationSuffix(string $path): string
+    {
+        return (string) preg_replace('/^\d[\d_]*_/', '', basename($path));
     }
 
     private function runMigrations(): void

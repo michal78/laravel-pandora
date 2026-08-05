@@ -31,6 +31,8 @@ it('creates every expected table', function (): void {
     foreach ([
         'agents', 'conversations', 'sessions', 'conversation_participants',
         'messages', 'runs', 'run_steps', 'settings', 'audit_logs',
+        'tool_executions', 'approvals',
+        'provider_credentials', 'models', 'provider_health', 'usage_records',
     ] as $table) {
         expect(Schema::hasTable($prefix.$table))->toBeTrue("missing table {$prefix}{$table}");
     }
@@ -48,7 +50,69 @@ it('registers the artisan commands', function (): void {
     expect($commands)->toContain('pandora:install')
         ->toContain('pandora:status')
         ->toContain('pandora:agent:list')
-        ->toContain('pandora:agent:run');
+        ->toContain('pandora:agent:run')
+        ->toContain('pandora:tool:list')
+        ->toContain('pandora:provider:test')
+        ->toContain('pandora:model:sync')
+        ->toContain('pandora:flush');
+});
+
+it('publishes the migrations an existing installation is missing', function (): void {
+    // The failure this prevents: a package upgrade adds a table, the host has
+    // published migrations already, and the installer skips the whole step
+    // because "some are present". The first symptom is a missing-table error
+    // in a page nobody associates with a package update.
+    $directory = database_path('migrations');
+    File::ensureDirectoryExists($directory);
+
+    $packaged = collect(File::glob(dirname(__DIR__, 2).'/database/migrations/*.php'));
+
+    // Pretend an older Pandora was installed: the first two tables only.
+    $preexisting = $packaged->take(2)->map(function (string $path) use ($directory): string {
+        $destination = $directory.'/'.basename($path);
+        File::copy($path, $destination);
+
+        return $destination;
+    });
+
+    $written = [];
+
+    try {
+        $this->artisan('pandora:install', ['--no-migrate' => true])->assertSuccessful();
+
+        foreach ($packaged as $path) {
+            $destination = $directory.'/'.basename($path);
+            $written[] = $destination;
+
+            expect(File::exists($destination))->toBeTrue('missing '.basename($path));
+        }
+    } finally {
+        foreach (array_unique([...$written, ...$preexisting->all()]) as $path) {
+            File::delete($path);
+        }
+    }
+});
+
+it('leaves a migration the host has already customised alone', function (): void {
+    $directory = database_path('migrations');
+    File::ensureDirectoryExists($directory);
+
+    $packaged = (string) collect(File::glob(dirname(__DIR__, 2).'/database/migrations/*.php'))->first();
+    $destination = $directory.'/'.basename($packaged);
+
+    File::put($destination, '<?php // edited by the host');
+
+    try {
+        $this->artisan('pandora:install', ['--no-migrate' => true])->assertSuccessful();
+
+        // Without --force, an installer that overwrote this would discard a
+        // schema change the application depends on.
+        expect(File::get($destination))->toBe('<?php // edited by the host');
+    } finally {
+        foreach (File::glob($directory.'/*_create_pandora_*_table.php') as $path) {
+            File::delete($path);
+        }
+    }
 });
 
 it('runs the installer without creating an agent', function (): void {

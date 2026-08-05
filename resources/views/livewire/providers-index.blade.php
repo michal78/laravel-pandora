@@ -46,7 +46,7 @@
                                     <x-pandora::badge tone="warning">None</x-pandora::badge>
                                 @endif
 
-                                @foreach ($connection['credentials'] as $credential)
+                                @foreach ($canManage ? $connection['credentials'] : [] as $credential)
                                     <div class="pd-faint pd-mono">
                                         {{ $credential->source()->label() }}
                                         &middot; v{{ $credential->version }}
@@ -97,9 +97,13 @@
                                     <td class="pd-muted">{{ $model->supports_tools ? 'yes' : '—' }}</td>
                                     <td class="pd-muted">{{ $model->supports_vision ? 'yes' : '—' }}</td>
                                     <td class="pd-muted">
-                                        {{ $this->priceOf($model) }}
-                                        @if ($model->pricingIsStale($staleAfterDays))
-                                            <x-pandora::badge tone="warning">Stale</x-pandora::badge>
+                                        @if ($canManage)
+                                            {{ $this->priceOf($model) }}
+                                            @if ($model->pricingIsStale($staleAfterDays))
+                                                <x-pandora::badge tone="warning">Stale</x-pandora::badge>
+                                            @endif
+                                        @else
+                                            <span class="pd-faint">&mdash;</span>
                                         @endif
                                     </td>
                                 </tr>

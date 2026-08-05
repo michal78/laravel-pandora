@@ -76,15 +76,19 @@
 
             <nav class="pd-nav" aria-label="Main">
                 @php
-                    $nav = [
-                        ['route' => 'pandora.dashboard', 'label' => 'Dashboard', 'glyph' => '◈'],
-                        ['route' => 'pandora.chat',      'label' => 'Chat',      'glyph' => '◑'],
-                        ['route' => 'pandora.runs',      'label' => 'Runs',      'glyph' => '◇'],
-                        ['route' => 'pandora.tools',     'label' => 'Tools',     'glyph' => '◧'],
-                        ['route' => 'pandora.approvals', 'label' => 'Approvals', 'glyph' => '◉'],
-                        ['route' => 'pandora.providers', 'label' => 'Providers', 'glyph' => '◍'],
-                        ['route' => 'pandora.usage',     'label' => 'Usage',     'glyph' => '◫'],
-                    ];
+                    // `ability` is what the page itself checks. Filtering here
+                    // is not the boundary -- every page authorizes on mount --
+                    // but a sidebar offering links that answer 403 teaches
+                    // people to ignore authorization errors.
+                    $nav = collect([
+                        ['route' => 'pandora.dashboard', 'label' => 'Dashboard', 'glyph' => '◈', 'ability' => 'access'],
+                        ['route' => 'pandora.chat',      'label' => 'Chat',      'glyph' => '◑', 'ability' => 'chat'],
+                        ['route' => 'pandora.runs',      'label' => 'Runs',      'glyph' => '◇', 'ability' => 'access'],
+                        ['route' => 'pandora.tools',     'label' => 'Tools',     'glyph' => '◧', 'ability' => 'access'],
+                        ['route' => 'pandora.approvals', 'label' => 'Approvals', 'glyph' => '◉', 'ability' => 'access'],
+                        ['route' => 'pandora.providers', 'label' => 'Providers', 'glyph' => '◍', 'ability' => 'access'],
+                        ['route' => 'pandora.usage',     'label' => 'Usage',     'glyph' => '◫', 'ability' => 'usage.view'],
+                    ])->filter(fn (array $item): bool => \Pandora\Pandora\UI\PandoraGate::allows($item['ability']));
                 @endphp
 
                 @foreach ($nav as $item)

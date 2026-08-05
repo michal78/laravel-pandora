@@ -1,11 +1,11 @@
 # Phase 3 — Acceptance Test Plan
 
-> **Status as of 2026-08-05: 39 of 40 criteria verified.** The exception is
+> **Status as of 2026-08-05: 40 of 41 criteria verified.** The exception is
 > breadth rather than behaviour — the database matrix beyond SQLite, which is
 > CI-only, and is tracked on the Phase 2 sheet for the same reason.
 >
 > ```
-> vendor/bin/pest        -> Tests: 710 passed (2,413 assertions)
+> vendor/bin/pest        -> Tests: 728 passed (2,509 assertions)
 > vendor/bin/phpstan     -> [OK] No errors  (level 8, checkModelProperties on)
 > vendor/bin/pint --test -> passed
 > ```
@@ -83,8 +83,9 @@ per-tenant and per-agent resolution, rotation · Providers and Usage UI pages ·
 | 33 | ✅ Rotation keeps the previous version valid for its grace window and invalid after it | `Providers/CredentialRotationTest` |
 | 34 | ✅ **A tenant cannot resolve another tenant's credential** | `Security/CredentialIsolationTest` |
 | 35 | ✅ **A secret never appears in a log, run step, broadcast, exception message, audit entry or serialised job payload** | `Security/SecretLeakTest` |
-| 36 | ✅ The Providers page shows configuration and health but never a credential value, and is denied without `pandora.providers.manage` | `UI/ProvidersPageTest` |
+| 36 | ✅ The Providers page shows configuration and health to any user with `pandora.access`, hides credentials and prices without `pandora.providers.manage`, and never renders a credential value at either level | `UI/ProvidersPageTest` |
 | 37 | ✅ The Usage page is gated by `pandora.usage.view`, and costs additionally by `pandora.costs.view` | `UI/UsagePageTest` |
+| 41 | ✅ The sidebar offers no link that answers 403, and a fresh install grants the read-only abilities but not `costs.view` | `UI/NavigationTest` |
 | 38 | ✅ `pandora:provider:test` reports a real round trip, and reports failure clearly without printing the key | `Feature/ProviderTestCommandTest` |
 | 39 | ✅ Architecture rules hold: no vendor symbol outside its own adapter directory, no adapter depends on the router | `Architecture/ModuleBoundaryTest` |
 | 40 | ✅ The full suite passes, PHPStan level 8 is clean, Pint reports no diff | run locally, output quoted in `progress.md` |
@@ -105,8 +106,8 @@ here. Cost-, capability- or latency-optimising routing remains out of v1 (ADR-00
 
 ## Definition of done
 
-- [x] All 40 criteria have tests, and they pass
-- [x] `vendor/bin/pest` green — 710 passed, 2,413 assertions
+- [x] All 41 criteria have tests, and they pass
+- [x] `vendor/bin/pest` green — 728 passed, 2,509 assertions
 - [x] `vendor/bin/phpstan analyse` clean at level 8
 - [x] `vendor/bin/pint --test` clean
 - [x] `docs/guides/providers.md` written
@@ -115,3 +116,6 @@ here. Cost-, capability- or latency-optimising routing remains out of v1 (ADR-00
 - [ ] **Database matrix** — SQLite verified; MySQL, MariaDB and PostgreSQL remain CI-only. The four
       new tables use only portable types and short index names, and the portability rules are
       asserted on whichever engine is running, but that is an argument plus a guard, not a run.
+      *Partially answered since:* all four tables were created on MySQL 8 in a real host application
+      during the Phase 3 follow-up, so the types and index names are known to be acceptable to
+      InnoDB. The full suite has still not been run against it.

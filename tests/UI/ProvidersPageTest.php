@@ -13,6 +13,10 @@ use Pandora\Pandora\UI\Livewire\ProvidersIndex;
 /**
  * Phase 3 acceptance criterion 36 -- the page shows configuration and health,
  * and never a credential value.
+ *
+ * Two levels: anyone with access may see which providers exist and whether
+ * they are answering, because that is what somebody debugging a broken chat
+ * needs. Credentials and prices need `pandora.providers.manage`.
  */
 beforeEach(function (): void {
     config()->set('pandora.providers.connections', [
@@ -26,6 +30,7 @@ beforeEach(function (): void {
 
     app()->forgetInstance(ProviderManager::class);
 
+    Gate::define('pandora.access', static fn (): bool => true);
     Gate::define('pandora.providers.manage', static fn (): bool => true);
 });
 
@@ -39,11 +44,44 @@ it('renders every configured connection for an authorized user', function (): vo
         ->assertSee('https://api.openai.test/v1');
 });
 
-it('denies a user without pandora.providers.manage', function (): void {
-    Gate::define('pandora.providers.manage', static fn (): bool => false);
+it('denies a user without pandora.access', function (): void {
+    Gate::define('pandora.access', static fn (): bool => false);
     $this->actingAsUser();
 
     Livewire::test(ProvidersIndex::class)->assertForbidden();
+});
+
+it('shows health to an ordinary user, without credentials or prices', function (): void {
+    // Somebody debugging a broken chat needs to know whether the provider is
+    // answering. They do not need to know what it costs.
+    Gate::define('pandora.providers.manage', static fn (): bool => false);
+
+    config()->set('pandora.providers.health.failure_threshold', 1);
+    app(ProviderHealthMonitor::class)->recordFailure('openai', 'Connection refused');
+
+    app(ModelCatalog::class)->seedFromConfig([[
+        'provider' => 'openai',
+        'key' => 'gpt-4o-mini',
+        'input_price' => 0.15,
+        'output_price' => 0.60,
+        'pricing_source' => 'https://example.test/pricing',
+        'pricing_date' => now()->toDateString(),
+    ]]);
+
+    $credential = app(CredentialManager::class)->issue('openai', 'sk-stored-and-secret');
+
+    $this->actingAsUser();
+
+    $rendered = Livewire::test(ProvidersIndex::class)
+        ->assertOk()
+        ->assertSee('openai')
+        ->assertSee('Degraded')
+        ->assertSee('gpt-4o-mini')
+        ->html();
+
+    expect($rendered)->not->toContain($credential->fingerprint)
+        ->and($rendered)->not->toContain('0.15')
+        ->and($rendered)->not->toContain('sk-stored-and-secret');
 });
 
 it('never renders a credential value', function (): void {

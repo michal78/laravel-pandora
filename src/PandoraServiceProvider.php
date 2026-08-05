@@ -10,6 +10,7 @@ use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
+use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +22,7 @@ use Pandora\Pandora\Approvals\ApprovalManager;
 use Pandora\Pandora\Audit\AuditLogger;
 use Pandora\Pandora\Console\Commands\AgentListCommand;
 use Pandora\Pandora\Console\Commands\AgentRunCommand;
+use Pandora\Pandora\Console\Commands\FlushCommand;
 use Pandora\Pandora\Console\Commands\InstallCommand;
 use Pandora\Pandora\Console\Commands\ModelSyncCommand;
 use Pandora\Pandora\Console\Commands\ProviderTestCommand;
@@ -338,6 +340,12 @@ final class PandoraServiceProvider extends ServiceProvider
         });
 
         // Bind the Pandora connection into the services that take one.
+        // The flush command needs the concrete Connection: schema inspection
+        // is not on the interface.
+        $this->app->when(FlushCommand::class)
+            ->needs(Connection::class)
+            ->give(static fn (Container $app): Connection => $app->make('pandora.db'));
+
         foreach ([
             RunStateMachine::class,
             RunStepRecorder::class,
@@ -413,6 +421,7 @@ final class PandoraServiceProvider extends ServiceProvider
             ToolListCommand::class,
             ModelSyncCommand::class,
             ProviderTestCommand::class,
+            FlushCommand::class,
         ]);
     }
 
@@ -432,7 +441,13 @@ final class PandoraServiceProvider extends ServiceProvider
         /** @var array<string, string> $abilities */
         $abilities = $this->app->make(Config::class)->get('pandora.abilities', []);
 
-        $permissive = ['access', 'chat'];
+        // Deny-by-default for everything administrative. `usage.view` is the
+        // exception: knowing how many tokens the application spent is not an
+        // administrative act and cannot cause harm, whereas knowing what they
+        // COST is commercially sensitive -- so `costs.view` stays denied.
+        // Without this, a fresh installation shows a page every user is
+        // refused, which teaches people to ignore authorization errors.
+        $permissive = ['access', 'chat', 'usage.view'];
 
         foreach ($abilities as $key => $ability) {
             if ($gate->has($ability)) {

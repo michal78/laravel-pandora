@@ -101,7 +101,25 @@ All notable changes to this project are documented here. The format follows
     scope, enforced **before** the request rather than after the response.
   - Providers and Usage control-center pages, `pandora:provider:test`, and
     `docs/guides/providers.md`.
+  - `pandora:flush` for clearing conversations, runs, traces and usage — keeping agents,
+    credentials, the model catalog and settings, because losing those turns "clear the chats"
+    into "set the whole thing up again". `--audit`, `--all` and `--tenant=` widen or narrow it.
 
+
+### Fixed
+- `pandora:install` publishes the migrations an existing installation is MISSING, instead of
+  skipping the step because some are already present. An upgrade that added a table previously left
+  the host on the old schema, and the first symptom was a missing-table error in a page nobody
+  associates with a package update. A migration the host has edited is still never overwritten
+  without `--force`.
+- The Providers page no longer answers 403 to an ordinary user. Which providers exist and whether
+  they are answering is what somebody debugging a broken chat needs; credentials and prices still
+  require `pandora.providers.manage`.
+- The sidebar hides links the current user may not open. A control center whose own navigation is
+  half forbidden teaches people to ignore authorization errors.
+- `pandora.usage.view` is granted by default alongside `access` and `chat`. Knowing how many tokens
+  were spent cannot cause harm; `pandora.costs.view` stays denied because knowing what they cost
+  can.
 
 ### Security
 - Tenant isolation, session isolation, broadcast authorization and secret redaction are enforced and
@@ -124,7 +142,7 @@ All notable changes to this project are documented here. The format follows
   log. Only the copy that will be executed keeps its real values.
 
 ### Notes
-- 711 tests / 2,418 assertions passing; PHPStan level 8 clean; Pint clean.
+- 728 tests / 2,509 assertions passing; PHPStan level 8 clean; Pint clean.
 - Memory, automations, skills, MCP and messaging channels are not implemented —
   see `docs/roadmap.md`.
 - Bedrock, Azure OpenAI, Mistral, Groq, xAI, Together and DeepSeek remain official extensions rather
