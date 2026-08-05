@@ -136,6 +136,62 @@ final class AgentRegistry
     }
 
     /**
+     * The attributes a class definition owns for this agent, and which an
+     * operator therefore must not edit.
+     *
+     * The control center needs this to render honestly. Without it the editor
+     * would happily accept a change to a class-managed field, save it, and let
+     * the next deploy revert it — reported months later as "Pandora lost my
+     * settings", with nothing in the logs to explain it.
+     *
+     * `name` and `slug` are always included for a class-defined agent even
+     * though a blueprint need not set them: `syncDefinition()` writes `name`
+     * unconditionally, and the slug is the identity the definition is matched
+     * by — editing it would orphan the row and mint a duplicate on next sync.
+     *
+     * A database-defined agent owns everything, so this is empty.
+     *
+     * @return list<string>
+     */
+    public function managedKeysFor(Agent $agent): array
+    {
+        $definitionClass = $agent->definition_class;
+
+        if ($definitionClass === null) {
+            return [];
+        }
+
+        // A definition can be deleted or renamed while its row survives. That
+        // agent is no longer class-managed by anything, so its fields become
+        // editable rather than permanently frozen by a class that is gone.
+        if (! class_exists($definitionClass) || ! is_a($definitionClass, AgentDefinition::class, true)) {
+            return [];
+        }
+
+        /** @var AgentDefinition $definition */
+        $definition = $this->container->make($definitionClass);
+
+        $managed = $definition->define(AgentBlueprint::for($agent->slug))->managedKeys();
+
+        return array_values(array_unique([...$managed, 'name', 'slug']));
+    }
+
+    /**
+     * Whether a definition class is still installed for a class-defined agent.
+     *
+     * Distinguishes "authoritative elsewhere" from "orphaned", which are very
+     * different things to tell an operator.
+     */
+    public function definitionIsInstalled(Agent $agent): bool
+    {
+        $definitionClass = $agent->definition_class;
+
+        return $definitionClass !== null
+            && class_exists($definitionClass)
+            && is_a($definitionClass, AgentDefinition::class, true);
+    }
+
+    /**
      * @param class-string<AgentDefinition> $definitionClass
      */
     private function syncDefinition(string $slug, string $definitionClass): Agent
