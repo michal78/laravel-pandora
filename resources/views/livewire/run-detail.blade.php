@@ -90,6 +90,32 @@
 {{ $step->error_message }}</div>
                             @endif
 
+                            {{--
+                                An argument diff is shown OPEN, not hidden behind
+                                a disclosure: a policy that silently rewrote what
+                                the model asked for is exactly the thing a person
+                                reading a trace needs to see without looking.
+                            --}}
+                            @if (! empty($step->payload['argument_diff']))
+                                <div class="pd-stack" style="margin-top: var(--pd-space-2)">
+                                    <h4 class="pd-h4">Arguments changed by policy</h4>
+                                    <table class="pd-table pd-table-tight">
+                                        <thead>
+                                            <tr><th>Field</th><th>Requested</th><th>Ran as</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($step->payload['argument_diff'] as $change)
+                                                <tr>
+                                                    <td class="pd-mono">{{ $change['field'] }}</td>
+                                                    <td class="pd-mono pd-diff-from">{{ json_encode($change['from']) }}</td>
+                                                    <td class="pd-mono pd-diff-to">{{ json_encode($change['to']) }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+
                             @if ($step->payload)
                                 <details class="pd-details">
                                     <summary>Payload</summary>

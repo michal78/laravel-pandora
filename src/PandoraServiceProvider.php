@@ -55,10 +55,12 @@ use Pandora\Pandora\Tools\ToolGatekeeper;
 use Pandora\Pandora\Tools\ToolRegistry;
 use Pandora\Pandora\UI\Assets;
 use Pandora\Pandora\UI\Http\AssetController;
+use Pandora\Pandora\UI\Livewire\ApprovalsIndex;
 use Pandora\Pandora\UI\Livewire\Chat;
 use Pandora\Pandora\UI\Livewire\Dashboard;
 use Pandora\Pandora\UI\Livewire\RunDetail;
 use Pandora\Pandora\UI\Livewire\RunsIndex;
+use Pandora\Pandora\UI\Livewire\ToolsIndex;
 use Pandora\Pandora\UI\PandoraGate;
 
 /**
@@ -480,5 +482,7 @@ final class PandoraServiceProvider extends ServiceProvider
         Livewire::component('pandora.dashboard', Dashboard::class);
         Livewire::component('pandora.run-detail', RunDetail::class);
         Livewire::component('pandora.runs-index', RunsIndex::class);
+        Livewire::component('pandora.tools-index', ToolsIndex::class);
+        Livewire::component('pandora.approvals-index', ApprovalsIndex::class);
     }
 }

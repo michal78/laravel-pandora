@@ -568,6 +568,45 @@ button { font: inherit; cursor: pointer; }
 .pd-table tbody tr:last-child td { border-bottom: 0; }
 .pd-table tbody tr:hover { background: var(--pd-surface-alt); }
 .pd-table-wrap { overflow-x: auto; }
+.pd-table-tight td,
+.pd-table-tight th { padding: var(--pd-space-2) var(--pd-space-3); }
+
+/* ------------------------------------------------- tools and approvals */
+
+.pd-h4 {
+    font-size: 12px; font-weight: var(--pd-weight-heading);
+    color: var(--pd-text-muted); margin: 0 0 var(--pd-space-2);
+    text-transform: uppercase; letter-spacing: 0.04em;
+}
+
+.pd-code {
+    font-family: var(--pd-mono); font-size: 12px; line-height: 1.6;
+    background: var(--pd-surface-alt); border: 1px solid var(--pd-border);
+    border-radius: var(--pd-radius-sm); padding: var(--pd-space-3);
+    margin: 0; overflow-x: auto; white-space: pre;
+}
+
+/*
+ * An argument diff is a security surface, not decoration: an approver has to
+ * be able to see at a glance what a policy changed. Colour alone never
+ * carries it -- the columns are labelled, and the marks below are readable
+ * without perceiving hue.
+ */
+.pd-diff-from { color: var(--pd-danger); text-decoration: line-through; }
+.pd-diff-to { color: var(--pd-success); }
+.pd-diff-from::before { content: '− '; }
+.pd-diff-to::before { content: '+ '; }
+
+/* A tool or approval card inside the conversation. */
+.pd-tool-card {
+    border: 1px solid var(--pd-border); border-radius: var(--pd-radius);
+    background: var(--pd-surface-alt); padding: var(--pd-space-3) var(--pd-space-4);
+    display: flex; flex-direction: column; gap: var(--pd-space-2);
+    font-size: 13px;
+}
+.pd-tool-card-head { display: flex; align-items: center; gap: var(--pd-space-2); flex-wrap: wrap; }
+.pd-tool-card-title { font-weight: var(--pd-weight-label); }
+.pd-tool-card-awaiting { border-color: color-mix(in srgb, var(--pd-warning) 45%, transparent); }
 
 .pd-mono { font-family: var(--pd-mono); font-size: 12px; }
 .pd-muted { color: var(--pd-text-muted); }

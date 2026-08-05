@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Pandora\Pandora\UI\Livewire\ApprovalsIndex;
 use Pandora\Pandora\UI\Livewire\Chat;
 use Pandora\Pandora\UI\Livewire\Dashboard;
 use Pandora\Pandora\UI\Livewire\RunDetail;
 use Pandora\Pandora\UI\Livewire\RunsIndex;
+use Pandora\Pandora\UI\Livewire\ToolsIndex;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,3 +25,5 @@ Route::get('/', Dashboard::class)->name('dashboard');
 Route::get('/chat/{conversation?}', Chat::class)->name('chat');
 Route::get('/runs', RunsIndex::class)->name('runs');
 Route::get('/runs/{run}', RunDetail::class)->name('runs.show');
+Route::get('/tools', ToolsIndex::class)->name('tools');
+Route::get('/approvals', ApprovalsIndex::class)->name('approvals');

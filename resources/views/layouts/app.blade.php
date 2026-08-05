@@ -80,6 +80,8 @@
                         ['route' => 'pandora.dashboard', 'label' => 'Dashboard', 'glyph' => '◈'],
                         ['route' => 'pandora.chat',      'label' => 'Chat',      'glyph' => '◑'],
                         ['route' => 'pandora.runs',      'label' => 'Runs',      'glyph' => '◇'],
+                        ['route' => 'pandora.tools',     'label' => 'Tools',     'glyph' => '◧'],
+                        ['route' => 'pandora.approvals', 'label' => 'Approvals', 'glyph' => '◉'],
                     ];
                 @endphp
 

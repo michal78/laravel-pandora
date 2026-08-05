@@ -78,7 +78,46 @@
                 @php
                     $isUser = $message->role === \Pandora\Pandora\Messages\Enums\MessageRole::User;
                     $isError = $message->type === \Pandora\Pandora\Messages\Enums\MessageType::Error;
+                    $isTool = $message->role === \Pandora\Pandora\Messages\Enums\MessageRole::Tool;
                 @endphp
+
+                {{--
+                    A tool result is not conversation, so it does not look like
+                    one. It is shown because a person watching an agent work
+                    should be able to see what it touched -- and its content is
+                    UNTRUSTED, so it is escaped like everything else.
+                --}}
+                @if ($isTool)
+                    @php($execution = $toolExecutions[$message->tool_call_id] ?? null)
+
+                    <div class="pd-tool-card" wire:key="msg-{{ $message->getKey() }}">
+                        <div class="pd-tool-card-head">
+                            <span class="pd-faint" aria-hidden="true">◧</span>
+                            <span class="pd-tool-card-title pd-mono">
+                                {{ $execution?->tool_name ?? ($message->metadata['tool'] ?? 'tool') }}
+                            </span>
+                            @if ($execution !== null)
+                                <x-pandora::badge :tone="$execution->status->tone()">
+                                    {{ $execution->status->label() }}
+                                </x-pandora::badge>
+                                @if ($execution->arguments_modified)
+                                    <x-pandora::badge tone="warning">Arguments changed</x-pandora::badge>
+                                @endif
+                            @endif
+                        </div>
+
+                        <div class="pd-msg-content">{{ $message->content }}</div>
+
+                        @if ($canViewToolIo && $execution?->sanitized_arguments)
+                            <details class="pd-details">
+                                <summary>Arguments</summary>
+                                <div class="pd-payload">{{ json_encode($execution->sanitized_arguments, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</div>
+                            </details>
+                        @endif
+                    </div>
+
+                    @continue
+                @endif
 
                 <div class="pd-msg {{ $isUser ? 'pd-msg-user' : '' }} {{ $isError ? 'pd-msg-error' : '' }}"
                      wire:key="msg-{{ $message->getKey() }}">
@@ -100,6 +139,61 @@
                     Ask the agent something. The run is queued, executed by a worker, and streamed back here.
                 </x-pandora::empty-state>
             @endforelse
+
+            {{--
+                Anything this conversation is waiting on a human for. Shown at
+                the foot of the thread rather than inline, because it is the
+                thing to act on and it should not scroll away among results.
+            --}}
+            @if ($approvalError !== null)
+                <div class="pd-notice pd-notice-warning" role="status">{{ $approvalError }}</div>
+            @endif
+
+            @foreach ($pendingApprovals as $approval)
+                <div class="pd-tool-card pd-tool-card-awaiting" wire:key="approval-{{ $approval->getKey() }}">
+                    <div class="pd-tool-card-head">
+                        <span class="pd-faint" aria-hidden="true">◉</span>
+                        <span class="pd-tool-card-title">{{ $approval->summary }}</span>
+                        <x-pandora::badge :tone="$approval->risk_level->tone()">
+                            {{ $approval->risk_level->label() }} risk
+                        </x-pandora::badge>
+                    </div>
+
+                    @if (! empty($approval->proposed_modifications))
+                        <table class="pd-table pd-table-tight">
+                            <thead>
+                                <tr><th>Field</th><th>Requested</th><th>Will run as</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($approval->proposed_modifications as $change)
+                                    <tr>
+                                        <td class="pd-mono">{{ $change['field'] }}</td>
+                                        <td class="pd-mono pd-diff-from">{{ json_encode($change['from']) }}</td>
+                                        <td class="pd-mono pd-diff-to">{{ json_encode($change['to']) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
+
+                    @if ($canResolveApprovals)
+                        <div class="pd-row">
+                            <button type="button" class="pd-btn pd-btn-primary pd-btn-sm"
+                                    wire:click="approve('{{ $approval->getKey() }}')">
+                                Approve
+                            </button>
+                            <button type="button" class="pd-btn pd-btn-danger pd-btn-sm"
+                                    wire:click="denyApproval('{{ $approval->getKey() }}')">
+                                Deny
+                            </button>
+                        </div>
+                    @else
+                        <p class="pd-faint">
+                            Waiting for someone who can approve this. Nothing runs until they decide.
+                        </p>
+                    @endif
+                </div>
+            @endforeach
         </div>
 
         <div class="pd-chat-foot">

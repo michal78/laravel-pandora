@@ -13,14 +13,20 @@ use Livewire\Component;
 use Pandora\Pandora\Agents\Agent;
 use Pandora\Pandora\Agents\AgentRegistry;
 use Pandora\Pandora\Agents\AgentRunner;
+use Pandora\Pandora\Approvals\Approval;
+use Pandora\Pandora\Approvals\ApprovalManager;
 use Pandora\Pandora\Conversations\Conversation;
 use Pandora\Pandora\Conversations\ConversationManager;
 use Pandora\Pandora\Core\Actor\ActorContext;
+use Pandora\Pandora\Core\Actor\ActorManager;
+use Pandora\Pandora\Exceptions\ApprovalNotPending;
+use Pandora\Pandora\Exceptions\AuthorizationDenied;
 use Pandora\Pandora\Messages\Message;
 use Pandora\Pandora\Runs\Enums\RunState;
 use Pandora\Pandora\Runs\Enums\TriggerType;
 use Pandora\Pandora\Runs\Run;
 use Pandora\Pandora\Runs\RunCanceller;
+use Pandora\Pandora\Tools\ToolExecution;
 use Pandora\Pandora\UI\PandoraGate;
 
 /**
@@ -38,6 +44,9 @@ final class Chat extends Component
     public string $conversationId = '';
 
     public string $agentSlug = '';
+
+    /** Set when an approval could not be resolved, and shown in the thread. */
+    public ?string $approvalError = null;
 
     public string $composer = '';
 
@@ -123,6 +132,46 @@ final class Chat extends Component
         }
 
         return $conversation->messages()->visible()->get();
+    }
+
+    /**
+     * The tool executions behind this conversation's tool messages, keyed by
+     * the provider's call id so a card can find its own.
+     *
+     * @return Collection<string, ToolExecution>
+     */
+    public function toolExecutions(): Collection
+    {
+        $conversation = $this->conversation();
+
+        if ($conversation === null) {
+            return collect();
+        }
+
+        return ToolExecution::query()
+            ->whereIn('run_id', $conversation->runs()->select('id'))
+            ->get()
+            ->keyBy('tool_call_id');
+    }
+
+    /**
+     * Decisions this conversation is waiting on.
+     *
+     * @return Collection<int, Approval>
+     */
+    public function pendingApprovals(): Collection
+    {
+        $conversation = $this->conversation();
+
+        if ($conversation === null) {
+            return collect();
+        }
+
+        return Approval::query()
+            ->whereIn('run_id', $conversation->runs()->select('id'))
+            ->pending()
+            ->orderBy('created_at')
+            ->get();
     }
 
     public function activeRun(): ?Run
@@ -290,6 +339,38 @@ final class Chat extends Component
             && $run->actor_id === $actor->id;
     }
 
+    /**
+     * Approve or deny from the thread itself.
+     *
+     * The manager authorizes again and consumes the approval transactionally;
+     * this component is a convenience, never the boundary.
+     */
+    public function approve(string $approvalId): void
+    {
+        $this->resolveApproval($approvalId, approved: true);
+    }
+
+    public function denyApproval(string $approvalId): void
+    {
+        $this->resolveApproval($approvalId, approved: false);
+    }
+
+    private function resolveApproval(string $approvalId, bool $approved): void
+    {
+        $manager = app(ApprovalManager::class);
+        $actor = app(ActorManager::class)->current();
+
+        try {
+            $approved
+                ? $manager->approve($approvalId, $actor)
+                : $manager->deny($approvalId, $actor);
+        } catch (ApprovalNotPending|AuthorizationDenied $e) {
+            // Someone else decided first, or this person may not. Both are
+            // ordinary outcomes in a shared inbox, not error pages.
+            $this->approvalError = $e->userMessage();
+        }
+    }
+
     public function render(): View
     {
         $conversation = $this->conversation();
@@ -299,6 +380,10 @@ final class Chat extends Component
             'conversationList' => $this->conversations(),
             'conversation' => $conversation,
             'messages' => $this->messages(),
+            'toolExecutions' => $this->toolExecutions(),
+            'pendingApprovals' => $this->pendingApprovals(),
+            'canResolveApprovals' => PandoraGate::allows('approvals.resolve'),
+            'canViewToolIo' => PandoraGate::allows('tools.io.view'),
             'run' => $this->activeRun(),
             'pollIntervalMs' => (int) config('pandora.realtime.poll_interval_ms', 2500),
             'realtimeEnabled' => (bool) config('pandora.realtime.enabled', true),
