@@ -13,4 +13,6 @@ uses(TestCase::class)->in(
     'Providers',
     'UI',
     'Database',
+    'Tools',
+    'Approvals',
 );
