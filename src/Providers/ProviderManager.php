@@ -114,6 +114,12 @@ final class ProviderManager
             // can actually see streaming in the browser. Zero in tests.
             'fake' => (new Adapters\FakeProvider($key))
                 ->withChunkDelay(((int) ($config['chunk_delay_ms'] ?? 0)) * 1000),
+            'anthropic' => new Adapters\AnthropicProvider(
+                key: $key,
+                config: $config,
+                http: $this->container->make(Factory::class),
+                credentials: $this->credentials,
+            ),
             'openai-compatible' => new Adapters\OpenAiCompatibleProvider(
                 key: $key,
                 config: $config,

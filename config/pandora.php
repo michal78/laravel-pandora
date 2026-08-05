@@ -175,6 +175,19 @@ return [
                 'connect_timeout' => 10,
             ],
 
+            'anthropic' => [
+                'adapter' => 'anthropic',
+                'base_url' => env('PANDORA_ANTHROPIC_BASE_URL', 'https://api.anthropic.com/v1'),
+                'api_key' => env('PANDORA_ANTHROPIC_API_KEY'),
+                'version' => env('PANDORA_ANTHROPIC_VERSION', '2023-06-01'),
+
+                // The Messages API requires max_tokens on every request, so a
+                // default belongs here rather than being guessed at call time.
+                'max_tokens' => (int) env('PANDORA_ANTHROPIC_MAX_TOKENS', 4096),
+                'timeout' => 120,
+                'connect_timeout' => 10,
+            ],
+
             'ollama' => [
                 'adapter' => 'openai-compatible',
                 'base_url' => env('PANDORA_OLLAMA_BASE_URL', 'http://localhost:11434/v1'),
