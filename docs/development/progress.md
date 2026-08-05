@@ -5,6 +5,82 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-05 — Phase 3.5: the Agents page 🔨 (20 of 20 criteria verified)
+
+**Why this phase exists.** It was not on the roadmap. Reviewing what Phase 4 needed turned up a gap:
+`docs/architecture/overview.md` specifies sixteen control-center page groups, `Agents` is one of
+them, Phase 1 deferred "the remaining 14 UI page groups", and no later phase ever claimed this one —
+Phases 4 to 7 each name only their own. The entity the product is named for was on course to reach
+Phase 8 with `pandora:agent:list` as the only way to look at one.
+
+Phase 4 is where that turns from untidy into incoherent. Every automation binds to an agent and
+inherits its `autonomy_level`, `token_budget` and `cost_budget_minor`; an Automations editor whose
+agent picker points at rows nobody can open would have dragged half this page into Phase 4 unplanned.
+Inserted here instead, and the seven tabs whose subsystems do not exist yet are now line items on the
+phases that build them rather than a lump inherited by Phase 8.
+
+**Delivered.** No new tables and no new domain code — the `agents` table has carried all of this
+since Phase 1, and Phases 2 and 3 built the behaviour behind it. This is the surface.
+
+- `AgentsIndex` — roster with source, model, autonomy, status, run counts; search and source filters;
+  create, gated on `pandora.agents.manage`
+- `AgentDetail` — six live tabs (Overview · Instructions · Models · Limits & Autonomy · Runs · Usage)
+  and seven stubs naming the phase that fills each
+- `AgentRegistry::managedKeysFor()` and `definitionIsInstalled()`
+- Audit: `agent.created`, `agent.updated` (tab, changed keys, before and after), `agent.deleted`
+- `pd-tabs` and `pd-locked` styles; sidebar entry; `/agents` and `/agents/{agent}` routes
+- `docs/development/phase-3.5-acceptance.md` — 20 criteria
+
+**The decision the phase turned on.** `definition_class` is nullable, so one page serves two kinds of
+agent, and a class definition is authoritative for the fields it sets. The obvious implementation —
+let the form write anything — produces an edit that looks saved until the next deploy silently
+reverts it. That defect surfaces months later as "Pandora lost my settings", with nothing in the logs
+to explain it.
+
+So the editor reads `managedKeys()` from the blueprint, renders exactly those fields as stated values
+naming the class that owns them, and **refuses** a write to one rather than accepting it. Three
+details fell out of building it, none of which were obvious from the outside:
+
+1. `syncDefinition()` writes `name` unconditionally, whether or not the blueprint sets it. So `name`
+   is authoritative for every class-defined agent, and `managedKeys()` alone would have understated
+   the locked set by one field — the most visible one.
+2. The slug has to be locked too. It is the identity a definition is matched by, so an edit would
+   orphan the row and mint a duplicate at the next sync.
+3. A definition can be deleted while its row survives. `managedKeysFor()` returns nothing in that
+   case, so the fields become editable rather than frozen forever by a class that no longer exists.
+
+The refusal rejects the **whole** save, not the offending field. A partial save would show the
+operator their incidental change accepted and the one they cared about silently missing, which is a
+worse failure than either alternative. Asserted in
+`it refuses the whole save rather than the offending field alone`.
+
+**Also decided.** New agents are created disabled, at `observe_only`, with no tools — an agent that
+could act the moment it was named turns a typo into an incident. Class-defined agents cannot be
+created or deleted here; the next sync would undo both. Instructions are gated on
+`pandora.prompts.view` for read *and* write, since you cannot safely edit what you may not read.
+Saving is per tab, because a form submitting every attribute makes every audit entry look like a
+change to everything.
+
+**Verification.**
+
+```
+vendor/bin/pest        -> Tests: 763 passed (2,640 assertions)   [was 728]
+vendor/bin/phpstan     -> [OK] No errors  (level 8)
+vendor/bin/pint --test -> passed
+```
+
+34 of the 35 new tests are in `tests/UI/AgentsIndexTest.php` and `tests/UI/AgentDetailTest.php`.
+Criterion 6 (`agents.manage` denied on a fresh install) is asserted in `tests/UI/NavigationTest.php`
+instead, because both new files grant the ability in `beforeEach` in order to exercise the page at
+all — a file that overrides a default cannot also be the file that proves it.
+
+**Outstanding.** The host walkthrough (Q9) — every assertion here is a Livewire test, and nobody has
+clicked Edit in a browser against a real deployment. Same item as Phases 1 and 2.
+
+**Next.** Phase 4 — Automation.
+
+---
+
 ## 2026-08-05 — Phase 3: Providers and routing 🔨 (39 of 40 criteria verified)
 
 **Delivered.** A choice of minds, a bill, and a credential that is genuinely hard to leak.

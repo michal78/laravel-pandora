@@ -157,7 +157,8 @@ php artisan pandora:agent:run support "Where is order 1234?" --trace
 ```
 
 Full walkthrough: [installation](docs/guides/installation.md) ·
-[quick start](docs/guides/quick-start.md) · [tools](docs/guides/tools.md)
+[quick start](docs/guides/quick-start.md) · [agents](docs/guides/agents.md) ·
+[tools](docs/guides/tools.md) · [providers](docs/guides/providers.md)
 
 ## Documentation
 
@@ -175,11 +176,14 @@ Full walkthrough: [installation](docs/guides/installation.md) ·
 **Decisions** — [ADRs](docs/adr/) — 13 decisions, each with the alternatives and why they lost
 
 **Guides** — [installation](docs/guides/installation.md) ·
-[quick start](docs/guides/quick-start.md) · [tools](docs/guides/tools.md)
+[quick start](docs/guides/quick-start.md) · [agents](docs/guides/agents.md) ·
+[tools](docs/guides/tools.md) · [providers](docs/guides/providers.md)
 
 **Delivery** — [roadmap](docs/roadmap.md) ·
 [Phase 1 acceptance plan](docs/development/phase-1-acceptance.md) ·
 [Phase 2 acceptance plan](docs/development/phase-2-acceptance.md) ·
+[Phase 3 acceptance plan](docs/development/phase-3-acceptance.md) ·
+[Phase 3.5 acceptance plan](docs/development/phase-3.5-acceptance.md) ·
 [progress log](docs/development/progress.md) ·
 [open questions](docs/development/open-questions.md)
 

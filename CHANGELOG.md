@@ -105,6 +105,22 @@ All notable changes to this project are documented here. The format follows
     credentials, the model catalog and settings, because losing those turns "clear the chats"
     into "set the whole thing up again". `--audit`, `--all` and `--tenant=` widen or narrow it.
 
+- **Phase 3.5 — The Agents page.** The control center can now show you the thing the product is
+  named for, and let you change it:
+  - Agents index — source (class- or database-defined), model, autonomy level, status and run count,
+    with search and source filters. A class definition deployed since your last visit appears
+    without a manual sync.
+  - Agent detail with six live tabs — Overview, Instructions, Models, Limits & Autonomy, Runs and
+    Usage — plus seven tabs stubbed with the phase that fills them, so an operator who cannot find
+    where tools are granted learns the page is coming rather than concluding it cannot be done.
+  - Creating and editing database-defined agents, behind `pandora.agents.manage` (denied by default).
+    New agents start disabled, at `observe_only`, with no tools.
+  - **Class-defined agents are honest about what you cannot change here.** The fields a definition
+    owns are shown as stated values naming their class, and a write to one is refused rather than
+    accepted — an accepted write would look saved until the next deploy silently reverted it. The
+    refusal rejects the whole save, never part of it.
+  - `agent.created`, `agent.updated` (carrying the changed keys with before and after values) and
+    `agent.deleted` audit actions.
 
 ### Fixed
 - `pandora:install` publishes the migrations an existing installation is MISSING, instead of
