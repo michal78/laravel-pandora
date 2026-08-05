@@ -12,6 +12,7 @@ use Pandora\Pandora\Contracts\StreamingProvider;
 use Pandora\Pandora\Exceptions\InvalidConfiguration;
 use Pandora\Pandora\Exceptions\Provider\ContextOverflow;
 use Pandora\Pandora\Exceptions\Provider\ProviderAuthenticationFailed;
+use Pandora\Pandora\Exceptions\Provider\ProviderQuotaExhausted;
 use Pandora\Pandora\Exceptions\Provider\ProviderRateLimited;
 use Pandora\Pandora\Exceptions\Provider\ProviderRejectedRequest;
 use Pandora\Pandora\Exceptions\Provider\ProviderTimeout;
@@ -276,6 +277,13 @@ final class OpenAiCompatibleProvider implements StreamingProvider
         }
 
         if ($status === 429) {
+            // A 429 means two unrelated things. "Slow down" is worth retrying;
+            // "you have no credit" never is, and backing off three times only
+            // delays a failure a human has to resolve.
+            if ($this->looksLikeExhaustedQuota($body, $message)) {
+                return new ProviderQuotaExhausted($message, $this->key, $request->model);
+            }
+
             $retryAfter = $response->header('Retry-After');
 
             return (new ProviderRateLimited($message, $this->key, $request->model))
@@ -297,6 +305,35 @@ final class OpenAiCompatibleProvider implements StreamingProvider
         }
 
         return new ProviderRejectedRequest($message, $this->key, $request->model);
+    }
+
+    /**
+     * Distinguish an exhausted balance from a genuine rate limit.
+     *
+     * The error `type`/`code` is the reliable signal where a server sends one;
+     * the prose is a fallback for the many OpenAI-compatible servers that do
+     * not. Both are matched against the raw body so a server that reports the
+     * code without a human-readable message is still classified correctly.
+     */
+    private function looksLikeExhaustedQuota(string $body, string $message): bool
+    {
+        $haystack = mb_strtolower($body.' '.$message);
+
+        foreach ([
+            'insufficient_quota',
+            'insufficient_user_quota',
+            'exceeded your current quota',
+            'no credits remaining',
+            'credit balance is too low',
+            'billing_hard_limit_reached',
+            'quota exceeded',
+        ] as $needle) {
+            if (str_contains($haystack, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function looksLikeContextOverflow(string $message): bool

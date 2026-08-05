@@ -10,6 +10,7 @@ uses(TestCase::class)->in(
     'Security',
     'Realtime',
     'Queue',
+    'Providers',
     'UI',
     'Database',
 );
