@@ -13,6 +13,7 @@ use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
 use Pandora\Pandora\Messages\Enums\MessageRole;
 use Pandora\Pandora\Messages\Enums\MessageType;
 use Pandora\Pandora\Messages\Enums\StreamingState;
+use Pandora\Pandora\Providers\Data\ToolCall;
 use Pandora\Pandora\Runs\Run;
 use Pandora\Pandora\Support\Concerns\PandoraModel;
 
@@ -96,5 +97,31 @@ final class Message extends Model
     public function isStreaming(): bool
     {
         return $this->streaming_state === StreamingState::Streaming;
+    }
+
+    /**
+     * The tool calls an assistant message requested.
+     *
+     * Stored under `structured.tool_calls` rather than in their own table:
+     * they are part of the message, they are always read with it, and a
+     * separate table would buy a join and nothing else.
+     *
+     * @return list<ToolCall>
+     */
+    public function toolCalls(): array
+    {
+        /** @var list<array{id?: string, name?: string, arguments?: array<string, mixed>}> $calls */
+        $calls = $this->structured['tool_calls'] ?? [];
+
+        return array_map(static fn (array $call): ToolCall => new ToolCall(
+            id: (string) ($call['id'] ?? ''),
+            name: (string) ($call['name'] ?? ''),
+            arguments: $call['arguments'] ?? [],
+        ), $calls);
+    }
+
+    public function requestsTools(): bool
+    {
+        return ($this->structured['tool_calls'] ?? []) !== [];
     }
 }

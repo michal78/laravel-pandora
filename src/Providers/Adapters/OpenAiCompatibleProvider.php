@@ -25,6 +25,7 @@ use Pandora\Pandora\Providers\Data\ProviderCapabilities;
 use Pandora\Pandora\Providers\Data\ProviderHealth;
 use Pandora\Pandora\Providers\Data\StreamDelta;
 use Pandora\Pandora\Providers\Data\ToolCall;
+use Pandora\Pandora\Providers\Data\ToolDefinition;
 use Pandora\Pandora\Providers\Data\UsageData;
 
 /**
@@ -208,11 +209,25 @@ final class OpenAiCompatibleProvider implements StreamingProvider
         $payload = [
             'model' => $request->model,
             'messages' => array_map(
-                static fn (ChatMessage $m): array => $m->jsonSerialize(),
+                fn (ChatMessage $m): array => $this->message($m),
                 $request->messages,
             ),
             'stream' => $stream,
         ];
+
+        if ($request->tools !== []) {
+            $payload['tools'] = array_map(
+                static fn (ToolDefinition $t): array => [
+                    'type' => 'function',
+                    'function' => [
+                        'name' => $t->name,
+                        'description' => $t->description,
+                        'parameters' => $t->schema,
+                    ],
+                ],
+                $request->tools,
+            );
+        }
 
         if ($stream) {
             // Ask for usage on the final chunk; servers that do not understand
@@ -229,6 +244,43 @@ final class OpenAiCompatibleProvider implements StreamingProvider
         }
 
         return $payload + $request->options;
+    }
+
+    /**
+     * One message in the vendor's shape.
+     *
+     * Tool-call serialisation lives here rather than on the DTO: the wire
+     * format is OpenAI's, and a DTO that knew it would stop being neutral.
+     *
+     * @return array<string, mixed>
+     */
+    private function message(ChatMessage $message): array
+    {
+        $payload = array_filter([
+            'role' => $message->role->value,
+            'content' => $message->content,
+            'tool_call_id' => $message->toolCallId,
+            'name' => $message->name,
+        ], static fn (mixed $value): bool => $value !== null);
+
+        if ($message->toolCalls !== []) {
+            // An assistant turn that requested tools may legitimately carry no
+            // text; the key must still be present and null.
+            $payload['content'] = $message->content === '' ? null : $message->content;
+            $payload['tool_calls'] = array_map(
+                static fn (ToolCall $call): array => [
+                    'id' => $call->id,
+                    'type' => 'function',
+                    'function' => [
+                        'name' => $call->name,
+                        'arguments' => json_encode($call->arguments, JSON_THROW_ON_ERROR),
+                    ],
+                ],
+                $message->toolCalls,
+            );
+        }
+
+        return $payload;
     }
 
     /**

@@ -21,6 +21,14 @@ final class InvalidConfiguration extends PandoraException
         return new self("Provider [{$provider}] has no API key configured. Set the relevant environment variable.");
     }
 
+    /**
+     * A configuration mistake that does not warrant its own factory.
+     */
+    public static function make(string $message): self
+    {
+        return new self($message);
+    }
+
     public function userMessage(): string
     {
         return 'Pandora is not configured correctly. Please contact an administrator.';

@@ -88,6 +88,52 @@ final class AgentBlueprint
         return $this;
     }
 
+    /**
+     * The tools this agent may request — authorization layer 2.
+     *
+     * Names, `name@version` references, aliases, or `group:name` for a whole
+     * group. An agent with no allowlist can request NO tools: a support agent
+     * must be given a shell deliberately, never by omission.
+     *
+     * @param list<string> $tools
+     */
+    public function tools(array $tools): self
+    {
+        $this->attributes['tool_policy'] = [
+            'allow' => $tools,
+            'deny' => $this->toolPolicy()['deny'] ?? [],
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Tools this agent may never request, whatever the allowlist says. Denial
+     * wins, so a group allowlist can be granted with one member carved out.
+     *
+     * @param list<string> $tools
+     */
+    public function denyTools(array $tools): self
+    {
+        $this->attributes['tool_policy'] = [
+            'allow' => $this->toolPolicy()['allow'] ?? [],
+            'deny' => $tools,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * @return array{allow?: list<string>, deny?: list<string>}
+     */
+    private function toolPolicy(): array
+    {
+        /** @var array{allow?: list<string>, deny?: list<string>} $policy */
+        $policy = $this->attributes['tool_policy'] ?? [];
+
+        return $policy;
+    }
+
     public function maxIterations(int $iterations): self
     {
         $this->attributes['max_iterations'] = $iterations;

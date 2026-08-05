@@ -14,6 +14,9 @@ final readonly class ChatRequest
     /**
      * @param list<ChatMessage> $messages
      * @param array<string, mixed> $options
+     * @param list<ToolDefinition> $tools What the model may ASK for. Nothing here
+     *                                    grants anything: every call is still
+     *                                    authorized when it arrives.
      */
     public function __construct(
         public string $model,
@@ -22,6 +25,7 @@ final readonly class ChatRequest
         public ?int $maxTokens = null,
         public ?float $temperature = null,
         public bool $stream = false,
+        public array $tools = [],
     ) {}
 
     public function withStreaming(bool $stream = true): self
@@ -33,6 +37,23 @@ final readonly class ChatRequest
             $this->maxTokens,
             $this->temperature,
             $stream,
+            $this->tools,
+        );
+    }
+
+    /**
+     * @param list<ToolDefinition> $tools
+     */
+    public function withTools(array $tools): self
+    {
+        return new self(
+            $this->model,
+            $this->messages,
+            $this->options,
+            $this->maxTokens,
+            $this->temperature,
+            $this->stream,
+            $tools,
         );
     }
 
@@ -59,6 +80,10 @@ final readonly class ChatRequest
                 'chars' => mb_strlen($m->content),
             ], $this->messages),
             'options' => array_keys($this->options),
+            'tools' => array_map(
+                static fn (ToolDefinition $t): string => $t->name,
+                $this->tools,
+            ),
         ];
     }
 }

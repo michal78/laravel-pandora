@@ -214,6 +214,82 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Tools
+    |--------------------------------------------------------------------------
+    |
+    | A tool is where an agent touches your application, so registration is
+    | deployment configuration: tools come from this file or from a discovery
+    | path, never from the database and never from a model.
+    |
+    | Registration does not grant anything. A tool listed here is merely
+    | INSTALLED; an agent still needs it in its allowlist, the tenant must
+    | permit it, the policy must allow it, and the tool's own authorize() must
+    | pass against the acting user. See docs/architecture/security-model.md.
+    |
+    */
+
+    'tools' => [
+
+        'registered' => [
+            // App\Tools\LookupOrder::class,
+        ],
+
+        'discovery' => [
+            'enabled' => env('PANDORA_TOOL_DISCOVERY', false),
+            'path' => app_path('Tools'),
+        ],
+
+        // Built-in tools. Each is low risk by construction; they are listed
+        // separately so a deployment can drop the lot with one line.
+        'builtin' => [
+            'enabled' => env('PANDORA_BUILTIN_TOOLS', true),
+        ],
+
+        // Tools available to every agent without being named in its allowlist.
+        // Deliberately empty: implicit access is how a support agent ends up
+        // with a shell nobody remembers granting.
+        'always_available' => [],
+
+        // Per-tenant restrictions -- authorization layer 3. Keyed by tenant id;
+        // a tenant absent from this list is unrestricted, a tenant present may
+        // use only what it names.
+        'tenants' => [
+            // 'tenant-id' => ['allow' => ['lookup_order'], 'deny' => []],
+        ],
+
+        // How many identical calls a run may make before the duplicate guard
+        // refuses. Catches the loop where a model re-asks the same question
+        // because it did not like the answer.
+        'duplicate_threshold' => 1,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Approvals
+    |--------------------------------------------------------------------------
+    |
+    | High and critical risk tools pause the run for a human decision. The run
+    | holds no worker while it waits, so a pause costs nothing and an expiry
+    | window can be generous.
+    |
+    */
+
+    'approvals' => [
+        'expires_after_minutes' => 60 * 24,
+
+        // Risk levels requiring approval regardless of any policy that would
+        // otherwise allow them. A policy may demand MORE than this; nothing
+        // short of an explicit `allow` outcome may demand less.
+        'required_for' => ['high', 'critical'],
+
+        // Whether `remembered` scope is offered at all. Remembering an
+        // approval trades safety for convenience; some deployments should not
+        // have the option.
+        'allow_remembered' => env('PANDORA_ALLOW_REMEMBERED_APPROVALS', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Context
     |--------------------------------------------------------------------------
     |

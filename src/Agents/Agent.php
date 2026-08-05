@@ -129,4 +129,34 @@ final class Agent extends Model
     {
         return $this->definition_class !== null;
     }
+
+    /**
+     * Tool references this agent may request — authorization layer 2.
+     *
+     * An empty allowlist means NO tools, never all of them. An agent that can
+     * reach a tool must have been given it on purpose.
+     *
+     * @return list<string>
+     */
+    public function allowedTools(): array
+    {
+        /** @var list<string> $allowed */
+        $allowed = $this->tool_policy['allow'] ?? [];
+
+        return $allowed;
+    }
+
+    /**
+     * Tool references this agent may never request. Denial beats the
+     * allowlist, so a whole group can be granted with one member carved out.
+     *
+     * @return list<string>
+     */
+    public function deniedTools(): array
+    {
+        /** @var list<string> $denied */
+        $denied = $this->tool_policy['deny'] ?? [];
+
+        return $denied;
+    }
 }

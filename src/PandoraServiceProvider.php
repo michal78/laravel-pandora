@@ -21,6 +21,7 @@ use Pandora\Pandora\Console\Commands\AgentListCommand;
 use Pandora\Pandora\Console\Commands\AgentRunCommand;
 use Pandora\Pandora\Console\Commands\InstallCommand;
 use Pandora\Pandora\Console\Commands\StatusCommand;
+use Pandora\Pandora\Console\Commands\ToolListCommand;
 use Pandora\Pandora\Context\ContextBuilder;
 use Pandora\Pandora\Contracts\ActorResolver;
 use Pandora\Pandora\Contracts\AgentDefinition;
@@ -40,6 +41,10 @@ use Pandora\Pandora\Runs\RunStateMachine;
 use Pandora\Pandora\Runs\RunStepRecorder;
 use Pandora\Pandora\Support\CorrelationId;
 use Pandora\Pandora\Support\Redactor;
+use Pandora\Pandora\Tools\Schema\RuleSchemaGenerator;
+use Pandora\Pandora\Tools\Tool;
+use Pandora\Pandora\Tools\ToolDiscovery;
+use Pandora\Pandora\Tools\ToolRegistry;
 use Pandora\Pandora\UI\Assets;
 use Pandora\Pandora\UI\Http\AssetController;
 use Pandora\Pandora\UI\Livewire\Chat;
@@ -70,6 +75,7 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->registerTenancy();
         $this->registerProviders();
         $this->registerAgents();
+        $this->registerTools();
         $this->registerRuntime();
 
         $this->app->singleton(Pandora::class, static fn (Container $app): Pandora => new Pandora($app));
@@ -81,6 +87,7 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->registerCommands();
         $this->registerGates();
         $this->registerConfiguredAgents();
+        $this->registerConfiguredTools();
         $this->registerRoutesAndUi();
     }
 
@@ -177,6 +184,19 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->app->singleton(AgentRunner::class, static fn (Container $app): AgentRunner => new AgentRunner(
             $app,
             $app->make(AgentRegistry::class),
+        ));
+    }
+
+    private function registerTools(): void
+    {
+        $this->app->singleton(RuleSchemaGenerator::class);
+
+        // A singleton because registration is a boot-time act: a fresh
+        // registry per resolution would mean a tool registered in boot() is
+        // invisible to the run that needs it.
+        $this->app->singleton(ToolRegistry::class, static fn (Container $app): ToolRegistry => new ToolRegistry(
+            $app,
+            $app->make(RuleSchemaGenerator::class),
         ));
     }
 
@@ -278,6 +298,7 @@ final class PandoraServiceProvider extends ServiceProvider
             StatusCommand::class,
             AgentListCommand::class,
             AgentRunCommand::class,
+            ToolListCommand::class,
         ]);
     }
 
@@ -310,6 +331,34 @@ final class PandoraServiceProvider extends ServiceProvider
         }
 
         PandoraGate::useAbilities($abilities);
+    }
+
+    /**
+     * Register the tools this deployment has installed.
+     *
+     * Deliberately in boot() rather than register(): discovery touches the
+     * filesystem, and schema generation runs the validator, neither of which
+     * belongs in a container binding.
+     */
+    private function registerConfiguredTools(): void
+    {
+        /** @var Config $config */
+        $config = $this->app->make(Config::class);
+
+        /** @var list<class-string<Tool>> $tools */
+        $tools = $config->get('pandora.tools.registered', []);
+
+        if ($config->get('pandora.tools.discovery.enabled') === true) {
+            /** @var string $path */
+            $path = $config->get('pandora.tools.discovery.path', '');
+            $tools = [...$tools, ...ToolDiscovery::in($path)];
+        }
+
+        if ($tools === []) {
+            return;
+        }
+
+        $this->app->make(ToolRegistry::class)->registerMany($tools);
     }
 
     private function registerConfiguredAgents(): void
