@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 use Pandora\Pandora\Contracts\ContextProvider;
 use Pandora\Pandora\Exceptions\PandoraException;
+use Pandora\Pandora\Jobs\ExecuteToolCall;
 use Pandora\Pandora\Realtime\Events\PandoraBroadcastEvent;
 use Pandora\Pandora\Runs\RunStateMachine;
+use Pandora\Pandora\Tools\BuiltIn\BuiltInTools;
+use Pandora\Pandora\Tools\Tool;
+use Pandora\Pandora\Tools\ToolGatekeeper;
 
 /**
  * Acceptance guarantee 21 -- architectural invariants.
@@ -184,7 +188,9 @@ it('keeps HTTP and Livewire out of the execution domain', function (): void {
     foreach (pandoraSourceClasses() as $class => $path) {
         $inDomain = str_starts_with($class, 'Pandora\Pandora\Runs\\')
             || str_starts_with($class, 'Pandora\Pandora\Providers\\')
-            || str_starts_with($class, 'Pandora\Pandora\Context\\');
+            || str_starts_with($class, 'Pandora\Pandora\Context\\')
+            || str_starts_with($class, 'Pandora\Pandora\Tools\\')
+            || str_starts_with($class, 'Pandora\Pandora\Approvals\\');
 
         if (! $inDomain) {
             continue;
@@ -216,6 +222,65 @@ it('has exactly one component permitted to transition run state', function (): v
 
         // Direct assignment to a run's state outside the state machine.
         if (preg_match('/\$run->state\s*=[^=]/', $source) === 1) {
+            $offenders[] = $class;
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('keeps every tool behind the Tool base class', function (): void {
+    // The base class is where validation, schema generation and the deny-by-
+    // default authorize() live. A "tool" that skipped it would skip those.
+    foreach (array_keys(pandoraSourceClasses()) as $class) {
+        if (! str_starts_with($class, 'Pandora\Pandora\Tools\BuiltIn\\')) {
+            continue;
+        }
+
+        if ($class === BuiltInTools::class) {
+            continue;
+        }
+
+        expect(is_subclass_of($class, Tool::class))
+            ->toBeTrue("{$class} must extend Tool");
+    }
+});
+
+it('lets nothing but the gatekeeper decide a tool call', function (): void {
+    // Every layer runs, in order, in one place. A second call site is a second
+    // chance to forget one.
+    $offenders = [];
+
+    foreach (pandoraSourceClasses() as $class => $path) {
+        if ($class === ToolGatekeeper::class) {
+            continue;
+        }
+
+        $source = (string) file_get_contents($path);
+
+        // Calling a tool's authorize() outside the gatekeeper means some other
+        // component decided a call was permitted on its own.
+        if (preg_match('/->authorize\(\s*\$input/', $source) === 1
+            && ! str_starts_with($class, 'Pandora\Pandora\Tools\BuiltIn\\')) {
+            $offenders[] = $class;
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('executes a tool from exactly one place', function (): void {
+    // handle() is reached through ExecuteToolCall and nowhere else, which is
+    // what makes idempotency and re-authorization unavoidable rather than
+    // conventional.
+    $offenders = [];
+
+    foreach (pandoraSourceClasses() as $class => $path) {
+        if ($class === ExecuteToolCall::class || str_starts_with($class, 'Pandora\Pandora\Tools\\')) {
+            continue;
+        }
+
+        if (preg_match('/->handle\(\s*\$input\s*,/', (string) file_get_contents($path)) === 1) {
             $offenders[] = $class;
         }
     }

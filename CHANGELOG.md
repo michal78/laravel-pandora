@@ -51,13 +51,44 @@ All notable changes to this project are documented here. The format follows
     `prefers-reduced-motion: reduce` support.
   - `docs/visual-identity.md` documents how a host overrides the brand safely.
 
+- **Phase 2 — Tools and approvals.** An agent can now touch the application, under five
+  independent layers of authorization:
+  - `Tool` base class with typed input, Laravel validation rules, declared risk level, versioning,
+    aliases, groups and deprecation. The JSON schema shown to the model is **generated** from the
+    same rules that validate what it sends, so the advertised interface and the enforced one cannot
+    drift; a rule that cannot be expressed fails at registration rather than mid-conversation.
+  - `ToolRegistry` (config or opt-in discovery — never the database, never a model), resolving by
+    name, alias and `name@version`.
+  - The five layers: registry → agent allowlist → tenant restriction → `ToolPolicy` →
+    `Tool::authorize()`, the last checked against the **acting user**. Argument validation runs
+    before the policy and again after any argument modification.
+  - `ToolPolicy` with all five outcomes. Argument modification is applied, diffed, audited and shown
+    on the approval card — never silent.
+  - `pandora_tool_executions` and `pandora_approvals`; `ExecuteToolCall` and `ResumeApprovedRun`
+    jobs; idempotency keys over canonicalised arguments; duplicate-call detection; fan-in so N
+    parallel calls produce exactly one continuation.
+  - Approvals with `once` / `run` / `remembered` scopes, expiry, comments, and transactional
+    single consumption. A run waiting for a human holds no job.
+  - `AskUser` and the `waiting_for_user` resume path via `Pandora::reply()`.
+  - Eight built-in tools, each an allowlist over something the deployment configured. Registering
+    installs them; each agent must still be granted each one.
+  - Tools and Approvals pages, tool and approval cards in chat, argument diffs rendered openly in
+    the run trace, `pandora:tool:list`.
+  - `docs/guides/tools.md` and `docs/development/phase-2-acceptance.md`.
+
 ### Security
 - Tenant isolation, session isolation, broadcast authorization and secret redaction are enforced and
   covered by dedicated tests in `tests/Security/`.
 - Run steps and audit logs are immutable at the model layer, not by convention.
+- An agent cannot do what the person it acts for could not: tool authorization is checked against
+  the actor, and a system actor carrying no `Authorizable` is refused rather than waved through.
+- Approval resolution is race-safe (threat T14), and an approved call is re-validated and
+  re-authorized at execution time, not only when it was decided.
+- Tool arguments and results are redacted in run steps, broadcasts, approval cards and the audit
+  log. Only the copy that will be executed keeps its real values.
 
 ### Notes
-- 119 tests / 739 assertions passing; PHPStan level 8 clean; Pint clean.
-- Tools, approvals, memory, automations, skills, MCP and messaging channels are not implemented —
+- 431 tests / 1,580 assertions passing; PHPStan level 8 clean; Pint clean.
+- Memory, automations, skills, MCP and messaging channels are not implemented —
   see `docs/roadmap.md`.
 - The license is provisional pending owner confirmation — see `LICENSE.md`.

@@ -5,6 +5,73 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-05 — Phase 2: Tools and approvals 🔨 (34 of 36 criteria verified)
+
+**Delivered.** An agent can now touch the application, under five independent layers of
+authorization, and a run can wait days for a human without consuming anything.
+
+- Tools: `Tool` base class, `ToolInput`, `ToolResult`, `ToolContext`, `RiskLevel`,
+  `RuleSchemaGenerator`, `ToolRegistry`, `ToolDiscovery`, `pandora:tool:list`
+- Authorization: `ToolGatekeeper` (five layers), `ToolPolicy` contract with five outcomes,
+  `RiskBasedToolPolicy` default, `ToolDecision`, `ArgumentDiff`, `AuthorizationLayer`
+- Execution: `pandora_tool_executions`, `ToolExecution`, `ToolCallCoordinator`, `ExecuteToolCall`
+- Approvals: `pandora_approvals`, `Approval`, `ApprovalManager`, `ResumeApprovedRun`,
+  scopes/expiry/comments, `ApprovalNotPending` and `ApprovalExpired`
+- Ask-user: `ToolResult::awaitingUser()`, `ResumeRunWithUserReply`, `Pandora::reply()`
+- Providers: `ToolDefinition`, tools on `ChatRequest`, tool calls and results on `ChatMessage`,
+  OpenAI request-side serialisation
+- Built-ins: `ask_user`, `request_approval`, `inspect_run_status`, `query_records`, `read_config`,
+  `dispatch_job`, `emit_event`, `send_notification`
+- UI: Tools and Approvals pages, tool and approval cards in chat, argument diffs in the trace
+
+**Verified — commands actually run, output quoted.**
+
+```
+vendor/bin/pest        → Tests: 431 passed (1,580 assertions)
+vendor/bin/phpstan     → [OK] No errors            (level 8, checkModelProperties on)
+vendor/bin/pint --test → passed
+```
+
+**Six real defects found and fixed by the tests.**
+
+1. Tool jobs dispatched while `ContinueAgentRun` still held the run lock could not fan back in:
+   they found the run locked and quietly did nothing, stalling it. On a `sync` queue connection
+   that is a certainty rather than a race. Handoff is now deferred until after the lock is
+   released.
+2. A run resuming from `waiting_for_tool` tried to complete directly from that state, which the
+   state machine rightly refuses. It now returns to `running` first — which is also what the UI
+   should show for a whole turn that was otherwise mislabelled.
+3. `ApprovalManager` dispatched `ResumeApprovedRun` with no actor, so a resumed call executed as
+   nobody and re-authorization was meaningless. The resumed call acts for the **run's** actor,
+   never the approver's.
+4. A denied call wrote no tool result, leaving the model's request unanswered. Providers reject
+   that, and the model never learned why it was refused. A refusal is a result.
+5. `RecentMessagesProvider` excluded the current run's own messages and read only user and
+   assistant roles — between them, the model could see neither its own tool request nor any
+   result. It now replays both, and drops orphans in either direction when the recency window
+   cuts a loop in half.
+6. Argument modification lost its reason when it also triggered an approval, so a human approving
+   a clamped refund would have discovered the clamp only by reading the diff.
+
+**One design decision worth recording.** `PolicyDecision::allow()` deliberately does **not** waive
+the approval a tool's risk level demands. A policy with nothing to say about a critical tool must
+not thereby wave it through; lowering that floor takes `allowWithoutApproval()`, written out on
+purpose.
+
+**Not verified.** Two items, both breadth rather than behaviour, and neither is claimed:
+
+- The database matrix beyond SQLite. The two new tables use only portable types and short index
+  names, but that is an argument, not a run.
+- A human driving the new pages in a host application: granting a tool, watching a call pause,
+  approving it and seeing the run resume. Every step has an automated equivalent that passes;
+  none of them is a person using the product.
+
+**Not in Phase 2, by design:** memory, automations, skills, MCP, delegation, workspaces, channels
+beyond web, multi-provider routing, cost accounting. `DelegateToAgent` is Phase 6 and was
+deliberately not added as a built-in tool here, however tempting the symmetry.
+
+---
+
 ## 2026-08-05 — Phase 1: Kernel vertical slice 🔨 (code complete, host verification blocked)
 
 **Delivered.** A complete path from a chat message to a streamed, traced, cancellable, audited run.

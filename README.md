@@ -5,19 +5,21 @@
 Pandora lets your application expose its own actions to LLM-driven agents under explicit, auditable
 policy — and ships a Livewire control center for operating them.
 
-> ## ⚠ Pre-release — Phase 1 (kernel vertical slice)
+> ## ⚠ Pre-release — Phase 2 (tools and approvals)
 >
 > **What works today:** define an agent, start a conversation, dispatch a queued run, stream it over
 > Reverb, persist an immutable trace, reload without losing anything, cancel it, and inspect it in
-> the control center. Verified by 119 tests (739 assertions), PHPStan level 8, Pint.
+> the control center — and now give the agent **tools**, under five layers of authorization, with
+> human approval gates on the risky ones. Verified by 431 tests (1,580 assertions), PHPStan level 8,
+> Pint.
 >
-> **What does not exist yet:** tools, approvals, memory, automations, skills, MCP and messaging
-> channels. Those are Phases 2–7 — see [`docs/roadmap.md`](docs/roadmap.md). The examples further
-> down that use tools describe the *design of record*, not shipped code, and are marked as such.
+> **What does not exist yet:** memory, automations, skills, MCP and messaging channels. Those are
+> Phases 3–7 — see [`docs/roadmap.md`](docs/roadmap.md).
 >
-> Two acceptance items remain open, both needing infrastructure this machine lacks: the manual
-> walkthrough against a live worker + Reverb, and the MySQL/MariaDB/PostgreSQL matrix. See
-> [`docs/development/phase-1-acceptance.md`](docs/development/phase-1-acceptance.md).
+> Open acceptance items, all needing infrastructure this machine lacks: the manual walkthrough
+> against a live worker + Reverb, and the MySQL/MariaDB/PostgreSQL matrix. See
+> [`docs/development/phase-1-acceptance.md`](docs/development/phase-1-acceptance.md) and
+> [`docs/development/phase-2-acceptance.md`](docs/development/phase-2-acceptance.md).
 >
 > The license is **provisional** pending owner confirmation — see [`LICENSE.md`](LICENSE.md).
 
@@ -40,35 +42,57 @@ audited unit of work** — closer to a job with a state machine than to a chat r
 
 ## The idea in one screen
 
-> The tool below is **Phase 2 design**, shown because it is the point of the whole architecture.
-> The run that follows it works today.
-
 Expose an application action. It is an ordinary PHP class, with ordinary Laravel authorization:
 
 ```php
 final class IssueRefund extends Tool
 {
+    public function name(): string
+    {
+        return 'issue_refund';
+    }
+
     public function description(): string
     {
         return 'Issue a refund for an existing order.';
     }
 
-    public function risk(): Risk
+    public function rules(): array
     {
-        return Risk::High;          // → requires human approval by default
+        // The JSON schema shown to the model is generated from these, so the
+        // interface it is told about and the one enforced cannot drift.
+        return [
+            'order_id' => 'required|string|exists:orders,id',
+            'amount_minor' => 'required|integer|min:1|max:100000',
+        ];
     }
 
-    public function authorize(ToolInput $input): bool
+    public function risk(): RiskLevel
+    {
+        return RiskLevel::High;     // → requires human approval by default
+    }
+
+    public function authorize(ToolInput $input, ToolContext $context): bool
     {
         // The *acting user's* policy. An agent can never exceed the person it acts for.
-        return $this->actor()->can('refund', $input->order());
+        return Gate::forUser($context->user())
+            ->allows('refund', Order::find($input->string('order_id')));
     }
 
-    public function handle(ToolInput $input): ToolResult
+    public function handle(ToolInput $input, ToolContext $context): ToolResult
     {
-        return ToolResult::ok($this->refunds->issue($input->order(), $input->amount()));
+        $this->refunds->issue($input->string('order_id'), $input->integer('amount_minor'));
+
+        return ToolResult::success('Refund issued.');
     }
 }
+```
+
+Register it, then grant it — registering installs a tool; each agent must still be given it:
+
+```php
+// config/pandora.php
+'tools' => ['registered' => [App\Tools\IssueRefund::class]],
 ```
 
 Give it to an agent, and run it:
@@ -133,7 +157,7 @@ php artisan pandora:agent:run support "Where is order 1234?" --trace
 ```
 
 Full walkthrough: [installation](docs/guides/installation.md) ·
-[quick start](docs/guides/quick-start.md)
+[quick start](docs/guides/quick-start.md) · [tools](docs/guides/tools.md)
 
 ## Documentation
 
@@ -151,10 +175,11 @@ Full walkthrough: [installation](docs/guides/installation.md) ·
 **Decisions** — [ADRs](docs/adr/) — 13 decisions, each with the alternatives and why they lost
 
 **Guides** — [installation](docs/guides/installation.md) ·
-[quick start](docs/guides/quick-start.md)
+[quick start](docs/guides/quick-start.md) · [tools](docs/guides/tools.md)
 
 **Delivery** — [roadmap](docs/roadmap.md) ·
 [Phase 1 acceptance plan](docs/development/phase-1-acceptance.md) ·
+[Phase 2 acceptance plan](docs/development/phase-2-acceptance.md) ·
 [progress log](docs/development/progress.md) ·
 [open questions](docs/development/open-questions.md)
 

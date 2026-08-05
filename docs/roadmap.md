@@ -9,7 +9,7 @@
 |---|---|---|
 | 0 | Discovery and architecture | ✅ |
 | 1 | Kernel vertical slice | 🔨 21/22 acceptance criteria verified; host walkthrough blocked (Q9) |
-| 2 | Tools and approvals | ⬜ |
+| 2 | Tools and approvals | 🔨 34/36 acceptance criteria verified; database matrix and host walkthrough outstanding |
 | 3 | Providers and routing | ⬜ |
 | 4 | Automation | ⬜ |
 | 5 | Memory and context | ⬜ |
@@ -77,7 +77,7 @@ See `docs/development/phase-1-acceptance.md` — 14 criteria mapped to automated
 
 ---
 
-## Phase 2 — Tools and approvals ⬜
+## Phase 2 — Tools and approvals 🔨
 
 Tool contract + typed input DTOs + schema generation from validation rules · registry (config,
 provider, discovery) with groups, aliases, versioning, deprecation · the five authorization layers ·
@@ -91,6 +91,10 @@ Eloquent query, config read, dispatch job, emit event, send notification).
 **Acceptance:** an approval-gated tool pauses a run, survives a worker restart while paused, resumes
 on approval, is denied correctly, and is fully audited. Tenant and actor authorization are proven by
 security tests. Argument modification appears as a diff in the UI and in the audit log.
+
+**Status:** 34 of 36 criteria in `docs/development/phase-2-acceptance.md` are verified by automated
+test. The two outstanding are breadth rather than behaviour: the database matrix beyond SQLite, and
+a human driving the new pages in a host application.
 
 ---
 
