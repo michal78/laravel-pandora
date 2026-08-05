@@ -102,3 +102,25 @@ contracts; pgvector, Qdrant and others are extensions. Recorded in the parity ma
 **Leaning: Slack.** Best-documented API, strongest fit with business applications (Pandora's target),
 native interactive components that map cleanly onto approval cards, and an existing Laravel
 notification channel to build on.
+
+---
+
+## Q9 — Host-application verification cannot run in this environment ⚠
+
+**Raised:** 2026-08-05 · **Blocks:** Phase 1 acceptance criterion 14 only
+
+`laravel-test` requires PHP ^8.4 and runs via Laravel Sail. This WSL distro has no Docker
+integration (`docker` is not on PATH) and local PHP is 8.3.6, so the host application cannot boot
+here at all — with or without Pandora.
+
+What this does **not** affect: the package suite runs a real Laravel 13 application under Orchestra
+Testbench on PHP 8.3 and covers all 22 acceptance criteria in automated form, including the
+installer, the Livewire chat page, streaming, mid-stream reload reconstruction and cancellation.
+
+What remains genuinely unverified: a live `php artisan queue:work` worker, a live Reverb server,
+and a real provider endpoint. These are exactly the parts an integration environment exists to
+prove, and they should not be assumed working.
+
+**To close:** enable Docker Desktop WSL integration, then `./vendor/bin/sail up -d`,
+`sail artisan migrate`, `sail artisan queue:work`, `sail artisan reverb:start`, and walk the
+11-step manual checklist in `phase-1-acceptance.md`.

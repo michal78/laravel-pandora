@@ -8,7 +8,7 @@
 | Phase | Title | Status |
 |---|---|---|
 | 0 | Discovery and architecture | ✅ |
-| 1 | Kernel vertical slice | 🔨 |
+| 1 | Kernel vertical slice | 🔨 21/22 acceptance criteria verified; host walkthrough blocked (Q9) |
 | 2 | Tools and approvals | ⬜ |
 | 3 | Providers and routing | ⬜ |
 | 4 | Automation | ⬜ |

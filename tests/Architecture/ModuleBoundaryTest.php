@@ -1,0 +1,232 @@
+<?php
+
+declare(strict_types=1);
+
+use Pandora\Pandora\Contracts\ContextProvider;
+use Pandora\Pandora\Exceptions\PandoraException;
+use Pandora\Pandora\Realtime\Events\PandoraBroadcastEvent;
+use Pandora\Pandora\Runs\RunStateMachine;
+
+/**
+ * Acceptance guarantee 21 -- architectural invariants.
+ *
+ * These rules are stated in the documentation; enforcing them here is what
+ * keeps them true as the codebase grows rather than aspirational.
+ *
+ * Implemented with plain reflection over the source tree instead of Pest's
+ * arch plugin: that plugin cannot build its file index in this package's
+ * nested-vendor layout (see docs/development/open-questions.md, Q1). Reflection
+ * checks the same properties and works everywhere.
+ */
+
+/**
+ * Every PHP file under src/, as [class => path].
+ *
+ * @return array<class-string, string>
+ */
+function pandoraSourceClasses(): array
+{
+    static $classes = null;
+
+    if ($classes !== null) {
+        return $classes;
+    }
+
+    $root = dirname(__DIR__, 2).'/src';
+    $classes = [];
+
+    /** @var iterable<SplFileInfo> $files */
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
+
+    foreach ($files as $file) {
+        if ($file->getExtension() !== 'php') {
+            continue;
+        }
+
+        $relative = substr($file->getPathname(), strlen($root) + 1, -4);
+        $class = 'Pandora\\Pandora\\'.str_replace('/', '\\', $relative);
+
+        if (class_exists($class) || interface_exists($class) || enum_exists($class) || trait_exists($class)) {
+            $classes[$class] = $file->getPathname();
+        }
+    }
+
+    ksort($classes);
+
+    return $classes;
+}
+
+it('finds the source tree', function (): void {
+    expect(pandoraSourceClasses())->not->toBeEmpty();
+});
+
+it('declares strict types in every source file', function (): void {
+    $offenders = [];
+
+    foreach (pandoraSourceClasses() as $class => $path) {
+        if (! str_contains((string) file_get_contents($path), 'declare(strict_types=1)')) {
+            $offenders[] = $class;
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('leaves no debugging statements behind', function (): void {
+    $offenders = [];
+
+    foreach (pandoraSourceClasses() as $class => $path) {
+        $source = (string) file_get_contents($path);
+
+        foreach (['dd', 'dump', 'var_dump', 'print_r', 'ray'] as $function) {
+            // Require a real call site: not preceded by a word character
+            // (so `array(` does not match `ray(`), a `->`, or a `::`.
+            if (preg_match('/(?<![\w>:$])'.$function.'\s*\(/', $source) === 1) {
+                $offenders[] = "{$class} calls {$function}()";
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('confines vendor SDK types to their own adapter directory', function (): void {
+    // The rule that stops a vendor's minor release becoming a breaking change
+    // for every host application.
+    $offenders = [];
+
+    foreach (pandoraSourceClasses() as $class => $path) {
+        if (str_contains($class, 'Providers\\Adapters')) {
+            continue;
+        }
+
+        $source = (string) file_get_contents($path);
+
+        foreach (['use OpenAI', 'use Anthropic', 'use Google\\Cloud', 'use GuzzleHttp'] as $needle) {
+            if (str_contains($source, $needle)) {
+                $offenders[] = "{$class} references {$needle}";
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('keeps everything in Contracts an interface', function (): void {
+    foreach (array_keys(pandoraSourceClasses()) as $class) {
+        if (str_starts_with($class, 'Pandora\Pandora\Contracts\\')) {
+            expect(interface_exists($class))->toBeTrue("{$class} must be an interface");
+        }
+    }
+});
+
+it('keeps everything in an Enums namespace an enum', function (): void {
+    foreach (array_keys(pandoraSourceClasses()) as $class) {
+        if (str_contains($class, '\\Enums\\')) {
+            expect(enum_exists($class))->toBeTrue("{$class} must be an enum");
+        }
+    }
+});
+
+it('makes every provider data object readonly', function (): void {
+    foreach (array_keys(pandoraSourceClasses()) as $class) {
+        if (! str_starts_with($class, 'Pandora\Pandora\Providers\Data\\') || enum_exists($class)) {
+            continue;
+        }
+
+        expect((new ReflectionClass($class))->isReadOnly())
+            ->toBeTrue("{$class} must be readonly -- DTOs are immutable");
+    }
+});
+
+it('routes every broadcast through the redacting base class', function (): void {
+    // There is no code path that can emit an unredacted payload, because
+    // redaction lives in the base class's broadcastWith().
+    foreach (array_keys(pandoraSourceClasses()) as $class) {
+        if ($class === PandoraBroadcastEvent::class) {
+            continue;
+        }
+
+        if (str_starts_with($class, 'Pandora\Pandora\Realtime\Events\\')) {
+            expect(is_subclass_of($class, PandoraBroadcastEvent::class))
+                ->toBeTrue("{$class} must extend PandoraBroadcastEvent");
+        }
+    }
+});
+
+it('derives every exception from the Pandora hierarchy', function (): void {
+    foreach (array_keys(pandoraSourceClasses()) as $class) {
+        if (! str_starts_with($class, 'Pandora\Pandora\Exceptions\\')) {
+            continue;
+        }
+
+        if ($class === PandoraException::class) {
+            continue;
+        }
+
+        expect(is_subclass_of($class, PandoraException::class))
+            ->toBeTrue("{$class} must extend PandoraException so it can be classified");
+    }
+});
+
+it('keeps context providers behind their contract', function (): void {
+    foreach (array_keys(pandoraSourceClasses()) as $class) {
+        if (str_starts_with($class, 'Pandora\Pandora\Context\Providers\\')) {
+            expect(is_subclass_of($class, ContextProvider::class))
+                ->toBeTrue("{$class} must implement ContextProvider");
+        }
+    }
+});
+
+it('keeps HTTP and Livewire out of the execution domain', function (): void {
+    $offenders = [];
+
+    foreach (pandoraSourceClasses() as $class => $path) {
+        $inDomain = str_starts_with($class, 'Pandora\Pandora\Runs\\')
+            || str_starts_with($class, 'Pandora\Pandora\Providers\\')
+            || str_starts_with($class, 'Pandora\Pandora\Context\\');
+
+        if (! $inDomain) {
+            continue;
+        }
+
+        $source = (string) file_get_contents($path);
+
+        foreach (['use Livewire\\', 'use Illuminate\\Http\\Request'] as $needle) {
+            if (str_contains($source, $needle)) {
+                $offenders[] = "{$class} references {$needle}";
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('has exactly one component permitted to transition run state', function (): void {
+    // The invariant that keeps run state coherent: nothing outside the state
+    // machine may write the `state` column.
+    $offenders = [];
+
+    foreach (pandoraSourceClasses() as $class => $path) {
+        if ($class === RunStateMachine::class) {
+            continue;
+        }
+
+        $source = (string) file_get_contents($path);
+
+        // Direct assignment to a run's state outside the state machine.
+        if (preg_match('/\$run->state\s*=[^=]/', $source) === 1) {
+            $offenders[] = $class;
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('ships no god object', function (): void {
+    foreach (['AgentService', 'PandoraManager', 'PandoraService'] as $forbidden) {
+        foreach (array_keys(pandoraSourceClasses()) as $class) {
+            expect(class_basename($class))->not->toBe($forbidden);
+        }
+    }
+});

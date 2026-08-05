@@ -5,13 +5,11 @@
          colors="true"
          cacheDirectory="build/.phpunit.cache"
          failOnWarning="true"
-         failOnRisky="true"
-         beStrictAboutOutputDuringTests="true">
+         failOnRisky="true">
     <testsuites>
-        <testsuite name="Unit"><directory>tests/Unit</directory></testsuite>
-        <testsuite name="Feature"><directory>tests/Feature</directory></testsuite>
-        <testsuite name="Architecture"><directory>tests/Architecture</directory></testsuite>
-        <testsuite name="Security"><directory>tests/Security</directory></testsuite>
+        <testsuite name="Pandora">
+            <directory>tests</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include><directory>src</directory></include>

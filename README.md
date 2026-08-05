@@ -5,12 +5,19 @@
 Pandora lets your application expose its own actions to LLM-driven agents under explicit, auditable
 policy — and ships a Livewire control center for operating them.
 
-> ## ⚠ Pre-release — Phase 1 in progress
+> ## ⚠ Pre-release — Phase 1 (kernel vertical slice)
 >
-> **Phase 0 (discovery and architecture) is complete.** Phase 1 (the kernel vertical slice) is being
-> implemented now. **There is no working runtime yet.** Nothing below describes shipped
-> functionality; it describes the design of record. See [`docs/roadmap.md`](docs/roadmap.md) for
-> honest status and [`docs/development/progress.md`](docs/development/progress.md) for the log.
+> **What works today:** define an agent, start a conversation, dispatch a queued run, stream it over
+> Reverb, persist an immutable trace, reload without losing anything, cancel it, and inspect it in
+> the control center. Verified by 119 tests (739 assertions), PHPStan level 8, Pint.
+>
+> **What does not exist yet:** tools, approvals, memory, automations, skills, MCP and messaging
+> channels. Those are Phases 2–7 — see [`docs/roadmap.md`](docs/roadmap.md). The examples further
+> down that use tools describe the *design of record*, not shipped code, and are marked as such.
+>
+> Two acceptance items remain open, both needing infrastructure this machine lacks: the manual
+> walkthrough against a live worker + Reverb, and the MySQL/MariaDB/PostgreSQL matrix. See
+> [`docs/development/phase-1-acceptance.md`](docs/development/phase-1-acceptance.md).
 >
 > The license is **provisional** pending owner confirmation — see [`LICENSE.md`](LICENSE.md).
 
@@ -32,6 +39,9 @@ of the framework you already run on. An agent run is a **durable, queued, resuma
 audited unit of work** — closer to a job with a state machine than to a chat request.
 
 ## The idea in one screen
+
+> The tool below is **Phase 2 design**, shown because it is the point of the whole architecture.
+> The run that follows it works today.
 
 Expose an application action. It is an ordinary PHP class, with ordinary Laravel authorization:
 
@@ -97,10 +107,33 @@ Optional: Livewire 4 (control center) · Reverb (streaming) · Redis/Horizon · 
 ```bash
 composer require michal78/laravel-pandora
 php artisan pandora:install
+php artisan queue:work
 ```
 
 The installer is idempotent, publishes config and migrations, explains Reverb / queue / scheduler
 setup, and **deliberately creates no default agent.**
+
+Then define an agent and run it:
+
+```php
+final class SupportAgent implements AgentDefinition
+{
+    public function define(AgentBlueprint $agent): AgentBlueprint
+    {
+        return $agent
+            ->name('Support')
+            ->instructions('Help customers resolve support issues.')
+            ->model('openai', 'gpt-4o-mini');
+    }
+}
+```
+
+```bash
+php artisan pandora:agent:run support "Where is order 1234?" --trace
+```
+
+Full walkthrough: [installation](docs/guides/installation.md) ·
+[quick start](docs/guides/quick-start.md)
 
 ## Documentation
 
@@ -116,6 +149,9 @@ setup, and **deliberately creates no default agent.**
 [realtime model](docs/architecture/realtime-model.md)
 
 **Decisions** — [ADRs](docs/adr/) — 13 decisions, each with the alternatives and why they lost
+
+**Guides** — [installation](docs/guides/installation.md) ·
+[quick start](docs/guides/quick-start.md)
 
 **Delivery** — [roadmap](docs/roadmap.md) ·
 [Phase 1 acceptance plan](docs/development/phase-1-acceptance.md) ·
