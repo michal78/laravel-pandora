@@ -1,6 +1,7 @@
 # Provider Model
 
-> Status: Phase 0 (discovery).
+> Status: implemented in Phase 3. Sections 1–10 describe shipped behaviour;
+> the extension adapters listed in section 6 remain future work.
 
 ## 1. Rule
 
@@ -91,10 +92,15 @@ Classification is the adapter's responsibility and is covered by the shared cont
 
 ## 6. Adapters
 
-**Core:** `OpenAiCompatible` (the workhorse — OpenAI, Ollama, OpenRouter, vLLM, llama.cpp, LM Studio,
-anything speaking the shape) and `Anthropic`.
+**Core (shipped in Phase 3):** `OpenAiCompatible` (the workhorse — OpenAI, Ollama, OpenRouter, vLLM,
+llama.cpp, LM Studio, anything speaking the shape), `Anthropic` and `Gemini`.
 
-**Official extensions:** Gemini, Azure OpenAI, Bedrock, Mistral, Groq, xAI, Together, DeepSeek.
+Gemini moved from extension to core during Phase 3: it is the third genuinely
+distinct dialect, and building it was what forced the contract suite to stop
+assuming every vendor issues tool-call ids. That assumption would otherwise
+have been baked in and inherited by every adapter written afterwards.
+
+**Official extensions:** Azure OpenAI, Bedrock, Mistral, Groq, xAI, Together, DeepSeek.
 
 **Testing:** `FakeProvider`, `FakeStreamingProvider`, `FakeEmbeddingProvider`.
 
@@ -113,8 +119,13 @@ mid-stream. A new adapter is "done" when the shared suite passes.
 Resolution order — first match wins:
 
 ```
-per-agent credential → per-tenant credential → configured provider credential → environment
+per-agent credential → per-tenant credential → deployment credential → config/pandora.php
 ```
+
+There is no separate environment step. `config/pandora.php` is where the
+environment is read, and it is the only place it *can* be read: `env()` returns
+null once a deployment caches its config, so a resolver that consulted the
+environment directly would work in every test and fail in production.
 
 Resolved lazily inside the adapter at HTTP-call time. Never on a job payload, never in context, never
 in a step, never broadcast, never in an API resource. Rotation is supported by versioned credential

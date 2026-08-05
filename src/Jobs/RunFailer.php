@@ -14,6 +14,7 @@ use Pandora\Pandora\Runs\Enums\RunStepType;
 use Pandora\Pandora\Runs\Run;
 use Pandora\Pandora\Runs\RunStateMachine;
 use Pandora\Pandora\Runs\RunStepRecorder;
+use Pandora\Pandora\Support\Redactor;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -33,6 +34,7 @@ final class RunFailer
         private readonly MessageWriter $messages,
         private readonly AuditLogger $audit,
         private readonly LoggerInterface $logger,
+        private readonly Redactor $redactor,
     ) {}
 
     public function fail(Run $run, \Throwable $exception): void
@@ -52,7 +54,10 @@ final class RunFailer
         $this->logger->error('Pandora run failed', [
             'run_id' => $run->getKey(),
             'exception' => $exception::class,
-            'message' => $exception->getMessage(),
+            // Redacted even here. This log is the most useful artefact we
+            // produce for an unclassified failure, and it is also the one most
+            // likely to be shipped to a third-party service.
+            'message' => $this->redactor->redactText($exception->getMessage()),
             'classified' => $isPandora,
         ]);
 

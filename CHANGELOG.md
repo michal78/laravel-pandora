@@ -76,9 +76,45 @@ All notable changes to this project are documented here. The format follows
     the run trace, `pandora:tool:list`.
   - `docs/guides/tools.md` and `docs/development/phase-2-acceptance.md`.
 
+- **Phase 3 — Providers and routing.** A choice of minds, a bill, and a credential that is
+  genuinely hard to leak:
+  - `AnthropicProvider` and `GeminiProvider`, both against Laravel's HTTP client with no vendor SDK,
+    joining `OpenAiCompatibleProvider`. Ollama and OpenRouter are proven through the latter with
+    their own error bodies rather than assumed compatible.
+  - **One shared contract suite** — `src/Testing/ProviderContractTests` — that every adapter must
+    pass, run entirely against recorded fixtures. It ships in `src/` on purpose, so an extension
+    package can implement `ProviderFixtures` and prove its own adapter with it.
+  - Encrypted, versioned credentials resolved per-agent → per-tenant → deployment → configuration,
+    with rotation that leaves the previous key valid for a grace window. A resolved credential
+    cannot be serialised, and masks itself in every debugging and encoding path.
+  - `pandora_models` catalog with capabilities, context limits and pricing. A price must state its
+    source and date or it is refused; stale pricing is flagged rather than quietly trusted; an
+    unpriced model records `null` cost, never zero. `pandora:model:sync`.
+  - `DeterministicModelRouter` (ADR-0006) with tenant restrictions applied before routing, fallback
+    chains, capability filtering, and every hop recorded on the run trace. Failover distinguishes
+    outages from rate limits from context overflows from malformed requests, and an exhausted chain
+    fails with the last provider's reason.
+  - Provider health probes with hysteresis — a run of failures to degrade, one success to recover —
+    consumed by the router and the Providers page.
+  - `pandora_usage_records`, one row per model call, with cost in micro units stamped with the
+    pricing source and date it used. Budgets at run, conversation, agent, tenant and deployment
+    scope, enforced **before** the request rather than after the response.
+  - Providers and Usage control-center pages, `pandora:provider:test`, and
+    `docs/guides/providers.md`.
+
+
 ### Security
 - Tenant isolation, session isolation, broadcast authorization and secret redaction are enforced and
   covered by dedicated tests in `tests/Security/`.
+- **A provider credential never leaves the adapter.** It is resolved inside the method that builds
+  the HTTP request and dropped when that returns: never on a job payload, never in a run step, never
+  in a broadcast, never in an audit entry, never in a log. `tests/Security/SecretLeakTest` drives a
+  real run and then reads every durable artefact looking for the key.
+- Terminal error messages are redacted where they are written rather than at each call site, because
+  providers echo credentials back in their own error text.
+- One tenant cannot resolve another tenant's credential, and a fallback chain cannot route out of a
+  tenant's permitted model list.
+- No test in the suite can reach a network: stray HTTP requests throw.
 - Run steps and audit logs are immutable at the model layer, not by convention.
 - An agent cannot do what the person it acts for could not: tool authorization is checked against
   the actor, and a system actor carrying no `Authorizable` is refused rather than waved through.
@@ -88,7 +124,9 @@ All notable changes to this project are documented here. The format follows
   log. Only the copy that will be executed keeps its real values.
 
 ### Notes
-- 431 tests / 1,580 assertions passing; PHPStan level 8 clean; Pint clean.
+- 711 tests / 2,418 assertions passing; PHPStan level 8 clean; Pint clean.
 - Memory, automations, skills, MCP and messaging channels are not implemented —
   see `docs/roadmap.md`.
+- Bedrock, Azure OpenAI, Mistral, Groq, xAI, Together and DeepSeek remain official extensions rather
+  than core adapters.
 - The license is provisional pending owner confirmation — see `LICENSE.md`.

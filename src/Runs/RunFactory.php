@@ -65,8 +65,16 @@ final class RunFactory
                 'idempotency_key' => $idempotencyKey,
                 'actor_type' => $actor?->type,
                 'actor_id' => $actor?->id,
-                'provider_key' => $conversation?->provider_override ?? $agent->default_provider,
-                'model_key' => $conversation?->model_override ?? $agent->default_model,
+                // Deliberately NOT stamped from the agent or the conversation.
+                // These columns mean "the model this run is pinned to", and
+                // the router reads them as a run-level override. Pre-filling
+                // them with the agent's default would make every run look
+                // pinned, put the agent and conversation precedence levels out
+                // of reach, and label every routing decision wrongly on the
+                // trace. An explicit override set by the caller, and the model
+                // each call actually used, are written afterwards.
+                'provider_key' => null,
+                'model_key' => null,
                 'input' => $input,
                 'currency' => $agent->currency ?? 'USD',
                 // Stamped now so an agent edit cannot extend a live run.

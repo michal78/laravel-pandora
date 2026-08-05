@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use Pandora\Pandora\Contracts\ContextProvider;
+use Pandora\Pandora\Contracts\Provider;
 use Pandora\Pandora\Exceptions\PandoraException;
+use Pandora\Pandora\Jobs\ContinueAgentRun;
 use Pandora\Pandora\Jobs\ExecuteToolCall;
 use Pandora\Pandora\Realtime\Events\PandoraBroadcastEvent;
 use Pandora\Pandora\Runs\RunStateMachine;
@@ -294,4 +296,88 @@ it('ships no god object', function (): void {
             expect(class_basename($class))->not->toBe($forbidden);
         }
     }
+});
+
+it('keeps every adapter behind the Provider contract', function (): void {
+    foreach (array_keys(pandoraSourceClasses()) as $class) {
+        if (! str_starts_with($class, 'Pandora\Pandora\Providers\Adapters\\')
+            || str_contains($class, '\\Concerns\\')) {
+            continue;
+        }
+
+        expect(is_subclass_of($class, Provider::class))
+            ->toBeTrue("{$class} must implement Provider");
+    }
+});
+
+it('confines an adapter to translation', function (): void {
+    // An adapter translates between one vendor and Pandora's DTOs. One that
+    // knew about routing, the catalog or a run would be making decisions that
+    // belong above it, and the next adapter would have to make them again.
+    $offenders = [];
+
+    foreach (pandoraSourceClasses() as $class => $path) {
+        if (! str_starts_with($class, 'Pandora\Pandora\Providers\Adapters\\')) {
+            continue;
+        }
+
+        $source = (string) file_get_contents($path);
+
+        foreach ([
+            'Providers\\Routing\\',
+            'Providers\\Catalog\\ModelCatalog',
+            'Providers\\Health\\',
+            'Pandora\\Runs\\',
+            'Pandora\\Usage\\',
+        ] as $needle) {
+            if (str_contains($source, $needle)) {
+                $offenders[] = "{$class} references {$needle}";
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('reads a credential secret in exactly the places that send one', function (): void {
+    // `secret()` is a method rather than a property precisely so this rule can
+    // exist: every read is one greppable call, and the only legitimate readers
+    // are the adapters that put it in a header.
+    $permitted = [
+        'Pandora\Pandora\Providers\Credentials\Credential',
+        'Pandora\Pandora\Providers\Credentials\ProviderCredential',
+    ];
+
+    $offenders = [];
+
+    foreach (pandoraSourceClasses() as $class => $path) {
+        if (in_array($class, $permitted, true)
+            || str_starts_with($class, 'Pandora\Pandora\Providers\Adapters\\')) {
+            continue;
+        }
+
+        if (str_contains((string) file_get_contents($path), '->secret()')) {
+            $offenders[] = $class;
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('records usage from exactly one place', function (): void {
+    // A second call site is a second chance to record a call twice, or not at
+    // all, and the bill is where that shows up.
+    $offenders = [];
+
+    foreach (pandoraSourceClasses() as $class => $path) {
+        if ($class === ContinueAgentRun::class || str_starts_with($class, 'Pandora\Pandora\Usage\\')) {
+            continue;
+        }
+
+        if (preg_match('/UsageRecorder\s+\$/', (string) file_get_contents($path)) === 1) {
+            $offenders[] = $class;
+        }
+    }
+
+    expect($offenders)->toBe([]);
 });

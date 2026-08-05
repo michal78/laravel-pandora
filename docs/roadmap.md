@@ -10,7 +10,7 @@
 | 0 | Discovery and architecture | ✅ |
 | 1 | Kernel vertical slice | 🔨 21/22 acceptance criteria verified; host walkthrough blocked (Q9) |
 | 2 | Tools and approvals | 🔨 34/36 acceptance criteria verified; database matrix and host walkthrough outstanding |
-| 3 | Providers and routing | ⬜ |
+| 3 | Providers and routing | 🔨 39/40 acceptance criteria verified; database matrix outstanding |
 | 4 | Automation | ⬜ |
 | 5 | Memory and context | ⬜ |
 | 6 | Multi-agent and MCP | ⬜ |
@@ -98,17 +98,27 @@ a human driving the new pages in a host application.
 
 ---
 
-## Phase 3 — Providers and routing ⬜
+## Phase 3 — Providers and routing 🔨
 
-Anthropic adapter · Gemini / OpenRouter / Ollama · provider contract test suite · `Model` catalog with
-capabilities and pricing · `DeterministicModelRouter` with fallback chains · provider health probes ·
-usage normalisation · cost estimation with pricing source and date · budgets across all scopes ·
-credential encryption, per-tenant and per-agent resolution, rotation · Providers and Usage UI pages ·
-`pandora:provider:test`.
+Anthropic adapter · Gemini adapter · OpenRouter and Ollama through the OpenAI-compatible adapter ·
+shared provider contract test suite · `Model` catalog with capabilities and pricing ·
+`DeterministicModelRouter` with fallback chains · provider health probes · usage normalisation ·
+cost estimation with pricing source and date · budgets across all scopes · credential encryption,
+per-tenant and per-agent resolution, rotation · Providers and Usage UI pages ·
+`pandora:provider:test` · `pandora:model:sync`.
 
 **Acceptance:** every adapter passes the identical contract suite. Failover on outage, rate limit and
 context overflow are each tested. Budget breaches stop execution. No test touches a paid API. Secrets
 never appear in any log, trace, broadcast or API response — asserted, not assumed.
+
+**Status:** 39 of 40 criteria in `docs/development/phase-3-acceptance.md` are verified by automated
+test. The one outstanding is the database matrix beyond SQLite, which is CI-only breadth rather than
+behaviour — the same item still open for Phase 2.
+
+Gemini moved from official extension to core during this phase. It is the third genuinely distinct
+dialect, and it is the one that issues no tool-call ids at all; building it was what forced the
+contract suite to stop assuming every vendor does. Left until later, that assumption would have been
+inherited by every adapter written in the meantime.
 
 ---
 

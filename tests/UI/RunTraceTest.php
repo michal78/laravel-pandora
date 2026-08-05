@@ -143,3 +143,23 @@ it('shows a denied call in the trace with the layer that refused it', function (
         ->assertSee('Tool requested')
         ->assertSee('agent');
 });
+
+/**
+ * Phase 3 acceptance criterion 22 — a routing hop is visible in the trace.
+ */
+it('renders which model was chosen, and why, before the request that used it', function (): void {
+    $this->fakeProvider()->willRespondWith('Answered.');
+
+    $run = $this->runToolAgent('Hello');
+
+    $html = Livewire::test(RunDetail::class, ['run' => (string) $run->getKey()])
+        ->assertOk()
+        ->assertSee('Model routed')
+        // The label carries the destination and the reason for it: "why is
+        // this run on gpt-4o-mini?" is a question asked at the worst moment.
+        ->assertSee('fake/fake-model')
+        ->assertSee('Agent default')
+        ->html();
+
+    expect(strpos($html, 'Model routed'))->toBeLessThan(strpos($html, 'Model request'));
+});

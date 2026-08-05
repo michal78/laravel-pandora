@@ -5,6 +5,91 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-05 — Phase 3: Providers and routing 🔨 (39 of 40 criteria verified)
+
+**Delivered.** A choice of minds, a bill, and a credential that is genuinely hard to leak.
+
+- Credentials: `pandora_provider_credentials`, `Credential` DTO, `CredentialSource`,
+  `CredentialResolver` contract, `DatabaseCredentialResolver`, `CredentialManager` with issue,
+  rotate and revoke
+- Contract suite: `src/Testing/ProviderContractTests.php` + `ProviderFixtures`, run against four
+  adapters
+- Adapters: `AnthropicProvider`, `GeminiProvider`, `ClassifiesProviderFailures` shared by all three
+  HTTP adapters; Ollama and OpenRouter proven through the OpenAI-compatible one
+- Catalog: `pandora_models`, `CatalogModel`, `ModelCatalog`, `ModelDescriptor`, `CostEstimate`,
+  `ModelCatalogProvider` contract, `pandora:model:sync`
+- Routing: `ModelRouter` contract, `DeterministicModelRouter`, `RoutingRequest`, `RoutingDecision`,
+  `RoutingSource`, `NoModelAvailable`, and the failover loop in `ContinueAgentRun`
+- Health: `pandora_provider_health`, `ProviderHealthRecord`, `ProviderHealthMonitor`,
+  `ProbeProviderHealth`
+- Usage and budgets: `pandora_usage_records`, `UsageRecord`, `UsageRecorder`, `BudgetGuard`,
+  `BudgetScope`
+- UI and console: Providers page, Usage page, `pandora:provider:test`
+
+**Five defects found by the tests, all real:**
+
+1. `Collection::sortBy()` given an array of closures calls each one as a *comparator*, not as a key
+   extractor. Credential resolution silently picked the wrong version. Rewritten as an explicit
+   comparator.
+2. A 200 response whose body would not parse produced an empty completion rather than an error. A
+   truncated transfer is a broken response, not an empty answer; it now raises `ProviderUnavailable`
+   so it retries and can fail over.
+3. `pandora:provider:test` printed the provider's raw error message — and OpenAI echoes the API key
+   back in that message on a 401. Redacted on the way out.
+4. The same leak on the durable path: a provider's message reached `runs.error_message` and the
+   application log. Redaction moved into `RunStateMachine` and `RunFailer`, which are the single
+   write points, so no call site can forget it.
+5. `RunFactory` stamped the agent's default provider and model onto every new run. The columns mean
+   "this run is pinned", so every run looked pinned: the agent and configured-default precedence
+   levels were unreachable and every routing decision was labelled wrongly on the trace. Now null
+   until something genuinely overrides, or the first call resolves one.
+
+**Decisions worth recording.**
+
+*Gemini moved from official extension to core.* It is the third genuinely distinct dialect and the
+only one that issues no tool-call ids at all. Building it forced the contract suite to stop assuming
+every vendor does — an assumption that would otherwise have been inherited by every adapter written
+afterwards. The adapter synthesises `name#index` ids and resolves them back on the way out, so
+nothing above it knows Gemini is different.
+
+*The contract suite ships in `src/`, not `tests/`.* An extension package writing its own adapter can
+implement `ProviderFixtures` and run our suite against it, which is the only way "a new adapter is
+done when the shared suite passes" means anything outside this repository.
+
+*Prices must state a source and a date, or they are refused.* Six months later nobody can tell
+whether an unattributed price was ever right. Past the staleness window the estimate is still
+produced and flagged, in the UI and on every record.
+
+*An unpriced model records `null`, never zero* — and therefore contributes nothing to a cost budget.
+Inventing a figure would stop runs on the strength of a number nobody entered. Token budgets are the
+right tool where prices are unknown, and `BudgetEnforcementTest` says so.
+
+*Cost is carried in micro units.* A thousand calls at 0.045 cents each is real money; rounded to
+cents at the point of measurement it is nothing.
+
+*No test may reach a network.* `preventStrayRequests` is armed for the whole suite in `TestCase`,
+so a forgotten fake throws instead of sending a real request with a real key.
+`tests/Providers/NoLiveCallsTest` proves the guard is actually on.
+
+**Verification.**
+
+```
+vendor/bin/pest        -> Tests: 711 passed (2,418 assertions)
+vendor/bin/phpstan     -> [OK] No errors  (level 8, checkModelProperties on)
+vendor/bin/pint --test -> passed
+```
+
+**Outstanding.** The database matrix beyond SQLite, which is CI-only and shared with Phase 2. The
+four new tables use only portable types and short index names, and `tests/Database/PortabilityTest`
+asserts those rules on whichever engine is running — but that is a guard plus an argument, not a run
+on MySQL.
+
+**Not in Phase 3, by design:** memory, automations, skills, MCP, delegation, workspaces, channels
+beyond web. Bedrock, Azure, Mistral, Groq, xAI, Together and DeepSeek remain official extensions
+rather than core. Cost-, capability- or latency-optimising routing stays out of v1 (ADR-0006).
+
+---
+
 ## 2026-08-05 — Phase 2: Tools and approvals 🔨 (34 of 36 criteria verified)
 
 **Delivered.** An agent can now touch the application, under five independent layers of

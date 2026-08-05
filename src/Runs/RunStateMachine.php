@@ -9,6 +9,7 @@ use Illuminate\Database\ConnectionInterface;
 use Pandora\Pandora\Exceptions\InvalidRunTransition;
 use Pandora\Pandora\Runs\Enums\RunState;
 use Pandora\Pandora\Runs\Events\RunStateChanged;
+use Pandora\Pandora\Support\Redactor;
 
 /**
  * The only component permitted to change a run's state.
@@ -58,6 +59,7 @@ final class RunStateMachine
     public function __construct(
         private readonly ConnectionInterface $connection,
         private readonly Dispatcher $events,
+        private readonly Redactor $redactor,
     ) {}
 
     public function canTransition(RunState $from, RunState $to): bool
@@ -90,7 +92,7 @@ final class RunStateMachine
                 throw InvalidRunTransition::between($from, $to, (string) $fresh->getKey());
             }
 
-            $fresh->fill($attributes + $this->timestampsFor($to));
+            $fresh->fill($this->safe($attributes) + $this->timestampsFor($to));
             $fresh->state = $to;
             $fresh->save();
 
@@ -101,6 +103,28 @@ final class RunStateMachine
 
             return $fresh;
         });
+    }
+
+    /**
+     * A terminal error message is built from a PROVIDER's response, and
+     * providers echo credentials back in their error text -- OpenAI does
+     * exactly that on a 401. Redacting here rather than at every call site
+     * means there is no path by which one reaches the runs table.
+     *
+     * @param array<string, mixed> $attributes
+     * @return array<string, mixed>
+     */
+    private function safe(array $attributes): array
+    {
+        if (is_string($attributes['error_message'] ?? null)) {
+            $attributes['error_message'] = $this->redactor->redactText($attributes['error_message']);
+        }
+
+        if (is_string($attributes['output'] ?? null)) {
+            $attributes['output'] = $this->redactor->redactText($attributes['output']);
+        }
+
+        return $attributes;
     }
 
     /**
