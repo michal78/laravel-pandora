@@ -33,6 +33,7 @@ function pandoraTables(): array
         'agents', 'conversations', 'sessions', 'conversation_participants',
         'messages', 'runs', 'run_steps', 'settings', 'audit_logs',
         'tool_executions', 'approvals', 'provider_credentials', 'models', 'provider_health', 'usage_records',
+        'automations', 'automation_runs', 'webhook_deliveries', 'observations',
     ];
 }
 

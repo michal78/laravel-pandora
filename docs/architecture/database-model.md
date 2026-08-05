@@ -144,18 +144,36 @@ Skill: `id` · `tenant_id?` · `name` · `slug` · `version` · `author?` · `de
 
 ### Automation
 
-**`pandora_automations`** — P4
+**`pandora_automations`** — **P4**
 `id` · `tenant_id?` · `agent_id` · `name` · `slug` · `description?` · `trigger_type` (one_off /
 cron / interval / event / webhook / heartbeat) · `cron_expression?` · `interval_seconds?` ·
 `run_at?` · `timezone` · `event_class?` · `condition` json? · `prompt?` · `context` json ·
 `delivery` json · `concurrency_policy` · `misfire_policy` · `retry_policy` json ·
-`autonomy_level` · `enabled` · `last_run_at?` · `next_run_at?` · `last_run_id?` ·
-`consecutive_failures` · `metadata` json · timestamps
-Index `(enabled, next_run_at)` — the scheduler's only query. Unique `(tenant_id, slug)`.
+`autonomy_level` · `autonomy_budget_runs?` · `autonomy_budget_window_seconds` ·
+`webhook_secret?` (encrypted) · `enabled` · `last_run_at?` · `next_run_at?` · `last_run_id?` ·
+`consecutive_failures` · `disabled_at?` · `disabled_reason?` · `metadata` json · timestamps ·
+soft deletes
+Index `(enabled, next_run_at)` — the scheduler's only query. Index `(enabled, event_class)` — the
+event dispatcher's. Unique `(tenant_id, slug)`.
 
-**`pandora_automation_runs`** — P4
-`id` · `automation_id` · `run_id?` · `scheduled_for` · `status` · `idempotency_key` · `error?` ·
-timestamps. Unique `(automation_id, idempotency_key)` — the double-fire guard.
+`webhook_secret` is on this row rather than in a separate `pandora_webhook_endpoints` table, which
+the Phase 0 sketch had proposed. An endpoint that is not an automation points at nothing, and nobody
+needs two endpoints for one automation. The automation **is** the endpoint.
+
+**`pandora_automation_runs`** — **P4**
+`id` · `tenant_id?` · `automation_id` · `run_id?` · `scheduled_for` · `status` (claimed /
+dispatched / skipped / refused / failed) · `reason?` · `idempotency_key` · `error?` ·
+`metadata` json · timestamps. Unique `(automation_id, idempotency_key)` — the double-fire guard.
+
+The insert **is** the claim. A refused or skipped occurrence is still written, because a silence
+cannot be told apart from a scheduler that stopped running a week ago.
+
+**`pandora_observations`** — **P4**
+`id` · `tenant_id?` · `agent_id` · `run_id?` · `title` · `proposal` · `rationale?` ·
+`suggested_cron?` · `status` (pending / promoted / dismissed / expired) · `automation_id?` ·
+`resolved_by_type?` · `resolved_by_id?` · `resolved_at?` · `comment?` · `expires_at?` ·
+`metadata` json · timestamps
+The goal queue. Deliberately inert: nothing leaves `pending` without a human.
 
 ### Integration
 
@@ -168,8 +186,14 @@ Server: transport, endpoint, credential, enabled, health, last discovery.
 Tool: server, name, namespaced name, schema json, schema hash, approved, approved_at.
 A changed `schema_hash` clears `approved` — a silently-mutated remote schema must be re-approved.
 
-**`pandora_webhook_endpoints`** / **`pandora_webhook_deliveries`** — P4
-Signed secret, replay nonce, idempotency key, delivery status.
+**`pandora_webhook_deliveries`** — **P4**
+`id` · `tenant_id?` · `automation_id` · `run_id?` · `signature` · `status` (accepted / rejected) ·
+`reason?` · `source_ip?` · `payload_bytes` · `payload` json (redacted) · timestamps
+Unique `(automation_id, signature)` — the replay nonce. Timestamp tolerance alone is not a replay
+defence: the window has to survive clock skew, and inside it a request can be resent freely.
+Rejections are stored too — a stream of them is the earliest sign of a one-sided secret rotation.
+
+`pandora_webhook_endpoints` from the Phase 0 sketch was not built; see `pandora_automations` above.
 
 ### Accounting and audit
 

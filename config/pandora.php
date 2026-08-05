@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use Pandora\Pandora\Automation\Notifications\AutomationDisabled;
 use Pandora\Pandora\Context\Providers\EnvironmentContextProvider;
 use Pandora\Pandora\Context\Providers\RecentMessagesProvider;
 use Pandora\Pandora\Context\Providers\SystemInstructionsProvider;
@@ -482,6 +483,114 @@ return [
         // approval trades safety for convenience; some deployments should not
         // have the option.
         'allow_remembered' => env('PANDORA_ALLOW_REMEMBERED_APPROVALS', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Automation
+    |--------------------------------------------------------------------------
+    |
+    | Everything that starts a run without a human in the moment. See ADR-0009:
+    | the capability is real and useful, and it is leashed on purpose.
+    |
+    | One Laravel scheduler entry drives all of it. Add nothing to your own
+    | Kernel -- registering `pandora:automation:tick` is what `enabled` below
+    | does, and a second entry would double every occurrence's chance of
+    | racing (it would still fire once, but you would be paying to find out).
+    |
+    */
+
+    'automation' => [
+
+        'enabled' => env('PANDORA_AUTOMATION_ENABLED', true),
+
+        // Whether Pandora registers its own every-minute scheduler entry.
+        // Turn this off only if you drive `pandora:automation:tick` yourself.
+        'schedule' => [
+            'enabled' => env('PANDORA_AUTOMATION_SCHEDULE', true),
+        ],
+
+        // How many due automations one tick claims. A cap, not a target: it
+        // bounds the work a single minute can create when a backlog exists.
+        'batch_size' => 100,
+
+        'misfire' => [
+            // The ceiling on `run_all`. An unbounded catch-up after a six-hour
+            // outage is the outage twice, and the second time it costs money.
+            'max_catch_up' => 12,
+
+            // How far past `next_run_at` still counts as "on time" rather than
+            // a misfire. Wider than one tick, so a slow minute is not an event.
+            'grace_seconds' => 120,
+        ],
+
+        'autonomy' => [
+            // The default budget for a new automation: how many times it may
+            // wake per window. A token budget does not catch an automation
+            // that wakes every minute and returns immediately.
+            'default_budget_runs' => 24,
+            'default_window_seconds' => 86400,
+
+            // Who hears about an automation that disabled itself. Each entry
+            // is a class-string of a Notifiable, or an email address. Empty
+            // means the audit log is the only record -- which is a choice, but
+            // make it on purpose.
+            'notify' => [
+                // 'ops@example.com',
+            ],
+
+            // The notification sent. Bind your own to route it somewhere else.
+            'notification' => AutomationDisabled::class,
+        ],
+
+        'retry' => [
+            // The default retry policy stamped on a new automation.
+            'disable_after_failures' => 5,
+        ],
+
+        /*
+        | Conditional polling.
+        |
+        | An automation names a CONDITION; you decide what that means. Same
+        | rule as tools and jobs: a condition is registered here, class-exact
+        | or a closure defined in this file, and never a callable read out of a
+        | database row -- that is remote code execution with extra steps.
+        |
+        | The closure receives the automation's condition arguments and returns
+        | a boolean. Returning false records a skipped occurrence and creates
+        | no run.
+        |
+        | 'unshipped_orders' => fn (array $arguments): bool =>
+        |     App\Models\Order::whereNull('shipped_at')->exists(),
+        */
+        'conditions' => [],
+
+        'webhooks' => [
+            'enabled' => env('PANDORA_WEBHOOKS_ENABLED', true),
+
+            // Registered under the Pandora route prefix, OUTSIDE the control
+            // center's middleware: an inbound webhook has no session and must
+            // not be asked for one. Authentication is the signature.
+            'path' => 'webhooks',
+            'middleware' => [],
+
+            // How far a delivery's timestamp may be from ours. Generous enough
+            // for clock skew, short enough that a captured request is stale
+            // before it is useful. Replay is refused by the nonce regardless.
+            'tolerance_seconds' => 300,
+
+            // A body larger than this is refused before it is parsed.
+            'max_payload_bytes' => 65536,
+
+            'signature_header' => 'X-Pandora-Signature',
+        ],
+
+        // What a proposed observation is worth before it goes stale. An agent
+        // suggestion nobody looked at for a month is not a decision anyone
+        // should still be making from memory.
+        'observations' => [
+            'expire_after_days' => 30,
+        ],
     ],
 
     /*

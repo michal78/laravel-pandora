@@ -13,7 +13,10 @@
         "illuminate/queue": "^13.0",
         "illuminate/bus": "^13.0",
         "illuminate/console": "^13.0",
+        "illuminate/events": "^13.0",
+        "illuminate/notifications": "^13.0",
         "illuminate/broadcasting": "^13.0",
+        "dragonmantank/cron-expression": "^3.4",
         "symfony/uid": "^7.0|^8.0"
     },
     "require-dev": {
