@@ -1,0 +1,66 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "michal78/laravel-pandora",
+    "description": "Pandora — a Laravel-native agentic framework: agents, tools, approvals, automations, memory and a Livewire control center.",
+    "keywords": ["laravel", "agents", "ai", "llm", "livewire", "reverb", "agentic"],
+    "license": "MIT",
+    "type": "library",
+    "require": {
+        "php": "^8.3",
+        "illuminate/contracts": "^13.0",
+        "illuminate/support": "^13.0",
+        "illuminate/database": "^13.0",
+        "illuminate/queue": "^13.0",
+        "illuminate/bus": "^13.0",
+        "illuminate/console": "^13.0",
+        "illuminate/broadcasting": "^13.0",
+        "symfony/uid": "^7.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0",
+        "larastan/larastan": "^3.9",
+        "laravel/pint": "^1.27",
+        "livewire/livewire": "^4.1",
+        "mockery/mockery": "^1.6"
+    },
+    "suggest": {
+        "livewire/livewire": "Required for the Pandora control center UI.",
+        "laravel/reverb": "Required for realtime streaming of runs, tool calls and approvals.",
+        "guzzlehttp/guzzle": "Required by the HTTP-based provider adapters."
+    },
+    "autoload": {
+        "psr-4": {
+            "Pandora\\Pandora\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Pandora\\Pandora\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Pandora\\Pandora\\PandoraServiceProvider"
+            ],
+            "aliases": {
+                "Pandora": "Pandora\\Pandora\\Facades\\Pandora"
+            }
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "pest",
+        "lint": "pint",
+        "analyse": "phpstan analyse"
+    }
+}

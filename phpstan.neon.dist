@@ -1,0 +1,18 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 8
+
+    paths:
+        - src
+        - database
+
+    tmpDir: build/phpstan
+
+    checkModelProperties: true
+    checkOctaneCompatibility: true
+
+    ignoreErrors:
+        # Eloquent dynamic relations resolved at runtime.
+        - identifier: missingType.generics

@@ -1,0 +1,71 @@
+name: tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  sqlite:
+    name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }} · sqlite
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4']
+        laravel: ['13.*']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, sqlite3, pdo_sqlite
+          coverage: none
+      - name: Install dependencies
+        run: |
+          composer require "laravel/framework:${{ matrix.laravel }}" --no-interaction --no-update
+          composer update --prefer-dist --no-interaction --no-progress
+      - run: vendor/bin/pest --ci
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+
+  databases:
+    name: ${{ matrix.db.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db:
+          - { name: mysql,      image: 'mysql:8.4',      port: 3306, conn: mysql }
+          - { name: mariadb,    image: 'mariadb:11',     port: 3306, conn: mariadb }
+          - { name: postgresql, image: 'postgres:17',    port: 5432, conn: pgsql }
+    services:
+      database:
+        image: ${{ matrix.db.image }}
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: pandora
+          MARIADB_ROOT_PASSWORD: password
+          MARIADB_DATABASE: pandora
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: pandora
+        ports: ['${{ matrix.db.port }}:${{ matrix.db.port }}']
+        options: >-
+          --health-cmd="exit 0" --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo_mysql, pdo_pgsql
+          coverage: none
+      - run: composer update --prefer-dist --no-interaction --no-progress
+      - run: vendor/bin/pest --ci
+        env:
+          DB_CONNECTION: ${{ matrix.db.conn }}
+          DB_HOST: 127.0.0.1
+          DB_PORT: ${{ matrix.db.port }}
+          DB_DATABASE: pandora
+          DB_USERNAME: ${{ matrix.db.conn == 'pgsql' && 'postgres' || 'root' }}
+          DB_PASSWORD: password
