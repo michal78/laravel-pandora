@@ -82,6 +82,8 @@
                         ['route' => 'pandora.runs',      'label' => 'Runs',      'glyph' => '◇'],
                         ['route' => 'pandora.tools',     'label' => 'Tools',     'glyph' => '◧'],
                         ['route' => 'pandora.approvals', 'label' => 'Approvals', 'glyph' => '◉'],
+                        ['route' => 'pandora.providers', 'label' => 'Providers', 'glyph' => '◍'],
+                        ['route' => 'pandora.usage',     'label' => 'Usage',     'glyph' => '◫'],
                     ];
                 @endphp
 

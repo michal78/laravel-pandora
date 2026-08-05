@@ -23,6 +23,7 @@ use Pandora\Pandora\Console\Commands\AgentListCommand;
 use Pandora\Pandora\Console\Commands\AgentRunCommand;
 use Pandora\Pandora\Console\Commands\InstallCommand;
 use Pandora\Pandora\Console\Commands\ModelSyncCommand;
+use Pandora\Pandora\Console\Commands\ProviderTestCommand;
 use Pandora\Pandora\Console\Commands\StatusCommand;
 use Pandora\Pandora\Console\Commands\ToolListCommand;
 use Pandora\Pandora\Context\ContextBuilder;
@@ -66,9 +67,11 @@ use Pandora\Pandora\UI\Http\AssetController;
 use Pandora\Pandora\UI\Livewire\ApprovalsIndex;
 use Pandora\Pandora\UI\Livewire\Chat;
 use Pandora\Pandora\UI\Livewire\Dashboard;
+use Pandora\Pandora\UI\Livewire\ProvidersIndex;
 use Pandora\Pandora\UI\Livewire\RunDetail;
 use Pandora\Pandora\UI\Livewire\RunsIndex;
 use Pandora\Pandora\UI\Livewire\ToolsIndex;
+use Pandora\Pandora\UI\Livewire\UsageIndex;
 use Pandora\Pandora\UI\PandoraGate;
 use Pandora\Pandora\Usage\BudgetGuard;
 use Pandora\Pandora\Usage\UsageRecorder;
@@ -409,6 +412,7 @@ final class PandoraServiceProvider extends ServiceProvider
             AgentRunCommand::class,
             ToolListCommand::class,
             ModelSyncCommand::class,
+            ProviderTestCommand::class,
         ]);
     }
 
@@ -551,5 +555,7 @@ final class PandoraServiceProvider extends ServiceProvider
         Livewire::component('pandora.runs-index', RunsIndex::class);
         Livewire::component('pandora.tools-index', ToolsIndex::class);
         Livewire::component('pandora.approvals-index', ApprovalsIndex::class);
+        Livewire::component('pandora.providers-index', ProvidersIndex::class);
+        Livewire::component('pandora.usage-index', UsageIndex::class);
     }
 }
