@@ -792,6 +792,47 @@ button { font: inherit; cursor: pointer; }
 .pd-gate-card .pd-brand { justify-content: center; padding-bottom: var(--pd-space-5); }
 .pd-gate-title { margin: 0 0 var(--pd-space-2); font-size: 18px; font-weight: var(--pd-weight-heading); }
 
+/* ---------------------------------------------------------------- tabs */
+
+.pd-tabs {
+    display: flex; gap: var(--pd-space-1);
+    overflow-x: auto;
+    border-bottom: 1px solid var(--pd-border);
+    margin-bottom: var(--pd-space-4);
+}
+.pd-tab {
+    padding: var(--pd-space-2) var(--pd-space-3);
+    border: 0; background: transparent;
+    border-bottom: 2px solid transparent;
+    color: var(--pd-text-muted);
+    font: inherit; font-weight: var(--pd-weight-label);
+    white-space: nowrap; cursor: pointer;
+    transition: color var(--pd-transition), border-color var(--pd-transition);
+}
+.pd-tab:hover { color: var(--pd-text); }
+.pd-tab.is-active {
+    color: var(--pd-accent);
+    border-bottom-color: var(--pd-accent);
+    font-weight: var(--pd-weight-heading);
+}
+/* A tab whose phase has not arrived. Visible, so nobody concludes the
+   capability is missing; plainly not ready, so nobody waits for it to load. */
+.pd-tab-pending { color: var(--pd-text-faint); font-weight: var(--pd-weight-label); }
+.pd-tab-pending::after { content: ' ·'; opacity: 0.6; }
+
+/* A field a class definition owns. Reads as settled rather than broken --
+   greyed-out-and-unexplained is what makes an operator file a bug. */
+.pd-locked {
+    display: flex; align-items: baseline; gap: var(--pd-space-2);
+    padding: 8px 12px;
+    border: 1px dashed var(--pd-border-strong);
+    border-radius: var(--pd-radius-btn);
+    background: var(--pd-surface-alt);
+    color: var(--pd-text);
+    min-height: 38px;
+}
+.pd-locked-mark { color: var(--pd-text-faint); flex-shrink: 0; }
+
 /* ---------------------------------------------------------------- misc */
 
 .pd-stack { display: flex; flex-direction: column; gap: var(--pd-space-4); }

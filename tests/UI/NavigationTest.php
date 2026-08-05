@@ -51,6 +51,9 @@ it('grants an authenticated user the read-only abilities by default', function (
         ->and(Gate::forUser($user)->allows('pandora.usage.view'))->toBeTrue()
         ->and(Gate::forUser($user)->allows('pandora.costs.view'))->toBeFalse()
         ->and(Gate::forUser($user)->allows('pandora.providers.manage'))->toBeFalse()
+        // An agent row decides which tools a language model can reach, so
+        // editing one is administrative however ordinary the page looks.
+        ->and(Gate::forUser($user)->allows('pandora.agents.manage'))->toBeFalse()
         ->and(Gate::forUser($user)->allows('pandora.approvals.resolve'))->toBeFalse();
 });
 

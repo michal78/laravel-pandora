@@ -83,6 +83,7 @@
                     $nav = collect([
                         ['route' => 'pandora.dashboard', 'label' => 'Dashboard', 'glyph' => '◈', 'ability' => 'access'],
                         ['route' => 'pandora.chat',      'label' => 'Chat',      'glyph' => '◑', 'ability' => 'chat'],
+                        ['route' => 'pandora.agents',    'label' => 'Agents',    'glyph' => '◆', 'ability' => 'access'],
                         ['route' => 'pandora.runs',      'label' => 'Runs',      'glyph' => '◇', 'ability' => 'access'],
                         ['route' => 'pandora.tools',     'label' => 'Tools',     'glyph' => '◧', 'ability' => 'access'],
                         ['route' => 'pandora.approvals', 'label' => 'Approvals', 'glyph' => '◉', 'ability' => 'access'],

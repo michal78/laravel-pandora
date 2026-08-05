@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Pandora\Pandora\UI\Livewire\AgentDetail;
+use Pandora\Pandora\UI\Livewire\AgentsIndex;
 use Pandora\Pandora\UI\Livewire\ApprovalsIndex;
 use Pandora\Pandora\UI\Livewire\Chat;
 use Pandora\Pandora\UI\Livewire\Dashboard;
@@ -25,6 +27,8 @@ use Pandora\Pandora\UI\Livewire\UsageIndex;
 
 Route::get('/', Dashboard::class)->name('dashboard');
 Route::get('/chat/{conversation?}', Chat::class)->name('chat');
+Route::get('/agents', AgentsIndex::class)->name('agents');
+Route::get('/agents/{agent}', AgentDetail::class)->name('agents.show');
 Route::get('/runs', RunsIndex::class)->name('runs');
 Route::get('/runs/{run}', RunDetail::class)->name('runs.show');
 Route::get('/tools', ToolsIndex::class)->name('tools');
