@@ -34,6 +34,7 @@ final class BuiltInTools
             DispatchJobTool::class,
             EmitEventTool::class,
             SendNotificationTool::class,
+            ProposeFollowUpTool::class,
         ];
     }
 }

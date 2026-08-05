@@ -27,6 +27,7 @@ use Pandora\Pandora\Automation\AutomationScheduler;
 use Pandora\Pandora\Automation\AutonomyBudget;
 use Pandora\Pandora\Automation\ConditionRegistry;
 use Pandora\Pandora\Automation\EventTriggerRegistry;
+use Pandora\Pandora\Automation\ObservationManager;
 use Pandora\Pandora\Automation\Schedule\NextRun;
 use Pandora\Pandora\Automation\Webhooks\WebhookReceiver;
 use Pandora\Pandora\Console\Commands\AgentListCommand;
@@ -353,6 +354,12 @@ final class PandoraServiceProvider extends ServiceProvider
             $app->make(AutomationDispatcher::class),
             $app->make(AuditLogger::class),
             $app->make(Redactor::class),
+            $app->make(Config::class),
+        ));
+
+        $this->app->singleton(ObservationManager::class, static fn (Container $app): ObservationManager => new ObservationManager(
+            $app->make(AuditLogger::class),
+            $app->make(ActorManager::class),
             $app->make(Config::class),
         ));
 
