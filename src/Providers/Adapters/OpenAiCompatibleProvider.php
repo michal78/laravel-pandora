@@ -17,6 +17,7 @@ use Pandora\Pandora\Exceptions\Provider\ProviderRateLimited;
 use Pandora\Pandora\Exceptions\Provider\ProviderRejectedRequest;
 use Pandora\Pandora\Exceptions\Provider\ProviderTimeout;
 use Pandora\Pandora\Exceptions\Provider\ProviderUnavailable;
+use Pandora\Pandora\Providers\Credentials\CredentialManager;
 use Pandora\Pandora\Providers\Data\ChatMessage;
 use Pandora\Pandora\Providers\Data\ChatRequest;
 use Pandora\Pandora\Providers\Data\ChatResponse;
@@ -49,6 +50,7 @@ final class OpenAiCompatibleProvider implements StreamingProvider
         private readonly string $key,
         private readonly array $config,
         private readonly HttpFactory $http,
+        private readonly ?CredentialManager $credentials = null,
     ) {}
 
     public function key(): string
@@ -606,8 +608,12 @@ final class OpenAiCompatibleProvider implements StreamingProvider
             ->acceptJson();
 
         // Resolved here, at call time -- never held on a job payload, never
-        // placed in context, never written to a run step.
-        $apiKey = $this->config['api_key'] ?? null;
+        // placed in context, never written to a run step. The manager walks
+        // agent -> tenant -> deployment -> config -> environment; the raw
+        // config value is the fallback for a manager-less construction.
+        $credential = $this->credentials?->resolve($this->key);
+
+        $apiKey = $credential?->secret() ?? $this->config['api_key'] ?? null;
 
         if (is_string($apiKey) && $apiKey !== '') {
             $request = $request->withToken($apiKey);

@@ -28,6 +28,7 @@ use Pandora\Pandora\Context\ContextBuilder;
 use Pandora\Pandora\Contracts\ActorResolver;
 use Pandora\Pandora\Contracts\AgentDefinition;
 use Pandora\Pandora\Contracts\ContextProvider;
+use Pandora\Pandora\Contracts\CredentialResolver;
 use Pandora\Pandora\Contracts\TenantResolver;
 use Pandora\Pandora\Contracts\ToolPolicy;
 use Pandora\Pandora\Conversations\ConversationManager;
@@ -37,6 +38,8 @@ use Pandora\Pandora\Core\Actor\GuardActorResolver;
 use Pandora\Pandora\Core\Tenancy\NullTenantResolver;
 use Pandora\Pandora\Core\Tenancy\TenantManager;
 use Pandora\Pandora\Messages\MessageWriter;
+use Pandora\Pandora\Providers\Credentials\CredentialManager;
+use Pandora\Pandora\Providers\Credentials\DatabaseCredentialResolver;
 use Pandora\Pandora\Providers\ProviderManager;
 use Pandora\Pandora\Realtime\RunBroadcaster;
 use Pandora\Pandora\Runs\RunFactory;
@@ -174,6 +177,24 @@ final class PandoraServiceProvider extends ServiceProvider
 
     private function registerProviders(): void
     {
+        $this->app->singleton(CredentialResolver::class, static function (Container $app): CredentialResolver {
+            /** @var class-string<CredentialResolver> $class */
+            $class = $app->make(Config::class)->get(
+                'pandora.providers.credentials.resolver',
+                DatabaseCredentialResolver::class,
+            );
+
+            return $app->make($class);
+        });
+
+        $this->app->singleton(CredentialManager::class, static fn (Container $app): CredentialManager => new CredentialManager(
+            $app->make(CredentialResolver::class),
+            $app->make(TenantManager::class),
+            $app->make(ActorManager::class),
+            $app->make(AuditLogger::class),
+            $app->make(Config::class),
+        ));
+
         $this->app->singleton(ProviderManager::class, static function (Container $app): ProviderManager {
             /** @var Config $config */
             $config = $app->make(Config::class);
@@ -183,7 +204,12 @@ final class PandoraServiceProvider extends ServiceProvider
             /** @var string $default */
             $default = $config->get('pandora.providers.default', 'fake');
 
-            return new ProviderManager($app, $connections, $default);
+            return new ProviderManager(
+                $app,
+                $connections,
+                $default,
+                $app->make(CredentialManager::class),
+            );
         });
     }
 

@@ -6,6 +6,7 @@ use Pandora\Pandora\Context\Providers\RecentMessagesProvider;
 use Pandora\Pandora\Context\Providers\SystemInstructionsProvider;
 use Pandora\Pandora\Core\Actor\GuardActorResolver;
 use Pandora\Pandora\Core\Tenancy\NullTenantResolver;
+use Pandora\Pandora\Providers\Credentials\DatabaseCredentialResolver;
 use Pandora\Pandora\Tools\Policies\RiskBasedToolPolicy;
 
 /*
@@ -137,6 +138,22 @@ return [
     'providers' => [
 
         'default' => env('PANDORA_PROVIDER', 'fake'),
+
+        /*
+        | Credential resolution, in order: per-agent, per-tenant, deployment,
+        | this file, the environment. Stored credentials are encrypted with the
+        | application key and are never readable through the control center.
+        |
+        | Bind your own resolver to read from a secrets manager instead.
+        */
+        'credentials' => [
+            'resolver' => DatabaseCredentialResolver::class,
+            'database' => env('PANDORA_DB_CREDENTIALS', true),
+
+            // How long a superseded credential keeps working after a rotation.
+            // Zero would fail every request already in flight.
+            'rotation_grace_minutes' => (int) env('PANDORA_CREDENTIAL_GRACE_MINUTES', 60),
+        ],
 
         'connections' => [
 

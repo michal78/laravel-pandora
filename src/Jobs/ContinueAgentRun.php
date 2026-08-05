@@ -24,6 +24,7 @@ use Pandora\Pandora\Exceptions\PandoraException;
 use Pandora\Pandora\Exceptions\Provider\ProviderException;
 use Pandora\Pandora\Messages\Message;
 use Pandora\Pandora\Messages\MessageWriter;
+use Pandora\Pandora\Providers\Credentials\CredentialManager;
 use Pandora\Pandora\Providers\Data\ChatMessage;
 use Pandora\Pandora\Providers\Data\ChatRequest;
 use Pandora\Pandora\Providers\Data\ChatResponse;
@@ -114,10 +115,11 @@ final class ContinueAgentRun implements ShouldQueue
         ActorManager $actors,
         ToolCallCoordinator $tools,
         ToolGatekeeper $gatekeeper,
+        CredentialManager $credentials,
     ): void {
         $this->withPandoraContext($tenants, $actors, function () use (
             $locks, $states, $broadcaster, $context, $providers, $messages, $steps, $audit,
-            $actors, $tools, $gatekeeper
+            $actors, $tools, $gatekeeper, $credentials
         ): void {
             // 1. Take ownership. Another worker holding it means there is
             //    nothing for us to do -- not an error.
@@ -137,7 +139,7 @@ final class ContinueAgentRun implements ShouldQueue
             try {
                 $this->iterate(
                     $run, $states, $broadcaster, $context, $providers, $messages,
-                    $steps, $audit, $actors, $tools, $gatekeeper,
+                    $steps, $audit, $actors, $tools, $gatekeeper, $credentials,
                 );
             } catch (PandoraException $e) {
                 $this->failRun($run, $e, $states, $broadcaster, $messages, $steps, $audit);
@@ -165,6 +167,7 @@ final class ContinueAgentRun implements ShouldQueue
         ActorManager $actors,
         ToolCallCoordinator $tools,
         ToolGatekeeper $gatekeeper,
+        CredentialManager $credentials,
     ): void {
         // 2. Assert the run may continue.
         if ($run->state->isTerminal()) {
@@ -282,14 +285,17 @@ final class ContinueAgentRun implements ShouldQueue
         $startedAt = hrtime(true);
 
         try {
-            $response = $this->callProvider(
+            // The agent is in scope for the duration of the call, and only
+            // for its duration, so a per-agent credential resolves without
+            // any part of the request carrying one.
+            $response = $credentials->forAgent($agent->id, fn (): ChatResponse => $this->callProvider(
                 $provider,
                 $request,
                 $run,
                 $assistantMessage,
                 $messages,
                 $broadcaster,
-            );
+            ));
         } catch (ProviderException $e) {
             if ($assistantMessage !== null) {
                 $messages->fail($assistantMessage, $e->userMessage());

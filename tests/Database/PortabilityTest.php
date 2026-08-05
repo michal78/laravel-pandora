@@ -32,7 +32,7 @@ function pandoraTables(): array
     return [
         'agents', 'conversations', 'sessions', 'conversation_participants',
         'messages', 'runs', 'run_steps', 'settings', 'audit_logs',
-        'tool_executions', 'approvals',
+        'tool_executions', 'approvals', 'provider_credentials',
     ];
 }
 

@@ -9,6 +9,7 @@ use Illuminate\Http\Client\Factory;
 use Pandora\Pandora\Contracts\ChatProvider;
 use Pandora\Pandora\Contracts\Provider;
 use Pandora\Pandora\Exceptions\InvalidConfiguration;
+use Pandora\Pandora\Providers\Credentials\CredentialManager;
 
 /**
  * Resolves configured providers, caching one instance per connection key.
@@ -31,6 +32,7 @@ final class ProviderManager
         private readonly Container $container,
         private array $connections,
         private readonly string $default,
+        private readonly ?CredentialManager $credentials = null,
     ) {}
 
     /**
@@ -116,6 +118,7 @@ final class ProviderManager
                 key: $key,
                 config: $config,
                 http: $this->container->make(Factory::class),
+                credentials: $this->credentials,
             ),
             default => throw InvalidConfiguration::unknownAdapter($adapter, $key),
         };
