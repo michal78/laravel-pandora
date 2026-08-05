@@ -17,6 +17,7 @@ use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Pandora\Pandora\Agents\AgentRegistry;
 use Pandora\Pandora\Agents\AgentRunner;
+use Pandora\Pandora\Approvals\ApprovalManager;
 use Pandora\Pandora\Audit\AuditLogger;
 use Pandora\Pandora\Console\Commands\AgentListCommand;
 use Pandora\Pandora\Console\Commands\AgentRunCommand;
@@ -37,6 +38,7 @@ use Pandora\Pandora\Core\Tenancy\NullTenantResolver;
 use Pandora\Pandora\Core\Tenancy\TenantManager;
 use Pandora\Pandora\Messages\MessageWriter;
 use Pandora\Pandora\Providers\ProviderManager;
+use Pandora\Pandora\Realtime\RunBroadcaster;
 use Pandora\Pandora\Runs\RunFactory;
 use Pandora\Pandora\Runs\RunLock;
 use Pandora\Pandora\Runs\RunStateMachine;
@@ -46,6 +48,7 @@ use Pandora\Pandora\Support\Redactor;
 use Pandora\Pandora\Tools\Policies\RiskBasedToolPolicy;
 use Pandora\Pandora\Tools\Schema\RuleSchemaGenerator;
 use Pandora\Pandora\Tools\Tool;
+use Pandora\Pandora\Tools\ToolCallCoordinator;
 use Pandora\Pandora\Tools\ToolDiscovery;
 use Pandora\Pandora\Tools\ToolGatekeeper;
 use Pandora\Pandora\Tools\ToolRegistry;
@@ -217,6 +220,23 @@ final class PandoraServiceProvider extends ServiceProvider
             $app->make(ToolPolicy::class),
             $app->make(ValidationFactory::class),
             $app->make(Config::class),
+        ));
+
+        $this->app->singleton(ApprovalManager::class, static fn (Container $app): ApprovalManager => new ApprovalManager(
+            $app->make('pandora.db'),
+            $app->make(AuditLogger::class),
+            $app->make(Config::class),
+        ));
+
+        $this->app->singleton(ToolCallCoordinator::class, static fn (Container $app): ToolCallCoordinator => new ToolCallCoordinator(
+            $app->make(ToolRegistry::class),
+            $app->make(ToolGatekeeper::class),
+            $app->make(ApprovalManager::class),
+            $app->make(RunStepRecorder::class),
+            $app->make(AuditLogger::class),
+            $app->make(Redactor::class),
+            $app->make(MessageWriter::class),
+            $app->make(RunBroadcaster::class),
         ));
     }
 

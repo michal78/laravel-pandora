@@ -9,6 +9,7 @@ use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use Pandora\Pandora\Contracts\ToolPolicy;
 use Pandora\Pandora\Exceptions\ToolInputInvalid;
 use Pandora\Pandora\Providers\Data\ToolCall;
+use Pandora\Pandora\Providers\Data\ToolDefinition;
 use Pandora\Pandora\Tools\Enums\AuthorizationLayer;
 use Pandora\Pandora\Tools\Enums\PolicyOutcome;
 
@@ -176,6 +177,27 @@ final class ToolGatekeeper
         }
 
         return ToolDecision::allow($call, $tool, $input);
+    }
+
+    /**
+     * The tools this agent and tenant may ask for, as a provider sees them.
+     *
+     * Only the argument-independent layers (1-3) can be applied here: a
+     * policy and a tool's authorize() both need a specific call. Advertising
+     * a tool is therefore not a promise it will be permitted -- the model is
+     * told what it may ASK for, and every request is judged on arrival.
+     *
+     * @return list<ToolDefinition>
+     */
+    public function advertise(ToolContext $context): array
+    {
+        $available = array_values(array_filter(
+            $this->registry->all(),
+            fn (Tool $tool): bool => $this->agentAllows($context, $tool)
+                && $this->tenantAllows($context, $tool),
+        ));
+
+        return $this->registry->describe($available);
     }
 
     /**

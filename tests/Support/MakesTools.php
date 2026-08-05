@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Pandora\Pandora\Tests\Support;
 
 use Pandora\Pandora\Agents\Agent;
+use Pandora\Pandora\Agents\AgentRunner;
 use Pandora\Pandora\Core\Actor\ActorContext;
 use Pandora\Pandora\Providers\Data\ToolCall;
+use Pandora\Pandora\Runs\Run;
 use Pandora\Pandora\Tests\Fixtures\TestUser;
+use Pandora\Pandora\Tools\Enums\ToolExecutionStatus;
 use Pandora\Pandora\Tools\Tool;
 use Pandora\Pandora\Tools\ToolContext;
 use Pandora\Pandora\Tools\ToolDecision;
+use Pandora\Pandora\Tools\ToolExecution;
 use Pandora\Pandora\Tools\ToolGatekeeper;
 use Pandora\Pandora\Tools\ToolRegistry;
 
@@ -105,6 +109,50 @@ trait MakesTools
             'reference' => 'ORD-1234',
             'amount_minor' => $amountMinor,
         ]);
+    }
+
+    /**
+     * Run the tool agent to completion, synchronously.
+     */
+    public function runToolAgent(string $input): Run
+    {
+        return app(AgentRunner::class)
+            ->agent($this->agent())
+            ->forUser($this->toolUser())
+            ->inConversation($this->makeConversation($this->agent()))
+            ->run($input);
+    }
+
+    /**
+     * A tool execution row in a chosen state, for testing the parts of the
+     * lifecycle a full run would race past.
+     */
+    public function makeExecution(
+        Run $run,
+        string $toolCallId,
+        ToolExecutionStatus $status,
+        string $toolName = 'counting_tool',
+    ): ToolExecution {
+        /** @var ToolExecution $execution */
+        $execution = ToolExecution::query()->create([
+            'tenant_id' => $run->tenant_id,
+            'run_id' => $run->getKey(),
+            'tool_name' => $toolName,
+            'tool_version' => '1.0',
+            'tool_call_id' => $toolCallId,
+            'arguments' => ['label' => $toolCallId],
+            'sanitized_arguments' => ['label' => $toolCallId],
+            'status' => $status->value,
+            'risk_level' => 'low',
+            'idempotency_key' => ToolExecution::idempotencyKey(
+                (string) $run->getKey(),
+                $toolName,
+                ['label' => $toolCallId],
+            ),
+            'attempt' => 1,
+        ]);
+
+        return $execution;
     }
 
     public function toolUser(): TestUser

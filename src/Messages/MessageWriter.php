@@ -9,6 +9,7 @@ use Pandora\Pandora\Conversations\Conversation;
 use Pandora\Pandora\Messages\Enums\MessageRole;
 use Pandora\Pandora\Messages\Enums\MessageType;
 use Pandora\Pandora\Messages\Enums\StreamingState;
+use Pandora\Pandora\Providers\Data\ToolCall;
 use Pandora\Pandora\Runs\Run;
 
 /**
@@ -76,6 +77,55 @@ final class MessageWriter
             'type' => MessageType::Error->value,
             'content' => $safeMessage,
             'streaming_state' => StreamingState::Failed->value,
+        ]);
+    }
+
+    /**
+     * Record the tool calls an assistant turn requested.
+     *
+     * Stored on the message that requested them so the pair travels together:
+     * every provider that accepts a tool result also demands the request that
+     * produced it, and reconstructing that from the execution rows later would
+     * be guessing at an order the model chose.
+     *
+     * @param list<ToolCall> $toolCalls
+     */
+    public function recordToolCalls(Message $message, array $toolCalls): Message
+    {
+        $message->forceFill([
+            'structured' => ['tool_calls' => array_map(
+                static fn (ToolCall $call): array => $call->jsonSerialize(),
+                $toolCalls,
+            )] + ($message->structured ?? []),
+        ])->save();
+
+        return $message;
+    }
+
+    /**
+     * A tool's result, as a message in the conversation.
+     *
+     * The content is UNTRUSTED -- a database row, a web page, a document --
+     * and is labelled as a tool result precisely so the model can be told,
+     * structurally, that it is data rather than instruction.
+     */
+    public function toolResult(
+        Conversation $conversation,
+        Run $run,
+        string $toolCallId,
+        string $content,
+        string $toolName,
+        bool $failed = false,
+    ): Message {
+        return $this->create($conversation, [
+            'session_id' => $run->session_id,
+            'run_id' => $run->getKey(),
+            'role' => MessageRole::Tool->value,
+            'type' => $failed ? MessageType::Error->value : MessageType::ToolResult->value,
+            'content' => $content,
+            'tool_call_id' => $toolCallId,
+            'streaming_state' => StreamingState::Complete->value,
+            'metadata' => ['tool' => $toolName],
         ]);
     }
 

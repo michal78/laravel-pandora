@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pandora\Pandora\UI;
 
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -34,6 +35,18 @@ final class PandoraGate
     public static function allows(string $key, mixed ...$arguments): bool
     {
         return Gate::allows(self::ability($key), $arguments === [] ? null : $arguments);
+    }
+
+    /**
+     * Check an ability for a SPECIFIC user rather than the logged-in one.
+     *
+     * A queue worker has no authenticated user, and an approval resolved
+     * through the API is decided by whoever holds the token -- neither can
+     * rely on the ambient guard.
+     */
+    public static function forUser(Authorizable $user, string $key, mixed ...$arguments): bool
+    {
+        return Gate::forUser($user)->allows(self::ability($key), $arguments === [] ? null : $arguments);
     }
 
     public static function denies(string $key, mixed ...$arguments): bool

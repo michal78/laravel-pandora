@@ -38,6 +38,9 @@ use Pandora\Pandora\Runs\Run;
 use Pandora\Pandora\Runs\RunLock;
 use Pandora\Pandora\Runs\RunStateMachine;
 use Pandora\Pandora\Runs\RunStepRecorder;
+use Pandora\Pandora\Tools\ToolCallCoordinator;
+use Pandora\Pandora\Tools\ToolContext;
+use Pandora\Pandora\Tools\ToolGatekeeper;
 
 /**
  * ONE iteration of the execution loop.
@@ -62,6 +65,18 @@ final class ContinueAgentRun implements ShouldQueue
     use SerializesModels;
 
     public int $tries = 3;
+
+    /**
+     * Work to hand off once this iteration has released the run lock.
+     *
+     * A tool job that starts while we still hold the lock cannot fan back in
+     * to a continuation -- it would find the run locked and quietly do
+     * nothing, stalling the run. On a `sync` queue connection that is not a
+     * race but a certainty.
+     *
+     * @var list<\Closure(): void>
+     */
+    private array $deferred = [];
 
     public function __construct(
         public readonly string $runId,
@@ -97,9 +112,12 @@ final class ContinueAgentRun implements ShouldQueue
         AuditLogger $audit,
         TenantManager $tenants,
         ActorManager $actors,
+        ToolCallCoordinator $tools,
+        ToolGatekeeper $gatekeeper,
     ): void {
         $this->withPandoraContext($tenants, $actors, function () use (
-            $locks, $states, $broadcaster, $context, $providers, $messages, $steps, $audit
+            $locks, $states, $broadcaster, $context, $providers, $messages, $steps, $audit,
+            $actors, $tools, $gatekeeper
         ): void {
             // 1. Take ownership. Another worker holding it means there is
             //    nothing for us to do -- not an error.
@@ -117,12 +135,21 @@ final class ContinueAgentRun implements ShouldQueue
             }
 
             try {
-                $this->iterate($run, $states, $broadcaster, $context, $providers, $messages, $steps, $audit);
+                $this->iterate(
+                    $run, $states, $broadcaster, $context, $providers, $messages,
+                    $steps, $audit, $actors, $tools, $gatekeeper,
+                );
             } catch (PandoraException $e) {
                 $this->failRun($run, $e, $states, $broadcaster, $messages, $steps, $audit);
             } finally {
                 $locks->release($this->runId, $token);
             }
+
+            foreach ($this->deferred as $handoff) {
+                $handoff();
+            }
+
+            $this->deferred = [];
         });
     }
 
@@ -135,6 +162,9 @@ final class ContinueAgentRun implements ShouldQueue
         MessageWriter $messages,
         RunStepRecorder $steps,
         AuditLogger $audit,
+        ActorManager $actors,
+        ToolCallCoordinator $tools,
+        ToolGatekeeper $gatekeeper,
     ): void {
         // 2. Assert the run may continue.
         if ($run->state->isTerminal()) {
@@ -149,6 +179,16 @@ final class ContinueAgentRun implements ShouldQueue
 
         if (! $run->state->isContinuable()) {
             return;
+        }
+
+        // A run resuming after its tools came back is running again, and says
+        // so before it does anything else. Skipping this would leave the run
+        // finishing from `waiting_for_tool`, which the state machine rightly
+        // refuses, and would show a stale status in the UI for a whole turn.
+        if ($run->state === RunState::WaitingForTool) {
+            $previous = $run->state;
+            $run = $states->transition($run, RunState::Running);
+            $broadcaster->stateChanged($run, $previous);
         }
 
         /** @var Agent $agent */
@@ -196,11 +236,22 @@ final class ContinueAgentRun implements ShouldQueue
 
         $provider = $providers->chat($providerKey);
 
+        // What this agent may ASK for. Advertising a tool grants nothing: the
+        // request is judged in full when it arrives.
+        $toolDefinitions = $gatekeeper->advertise(new ToolContext(
+            run: $run,
+            agent: $agent,
+            session: $session,
+            actor: $actors->current(),
+            toolCallId: '',
+        ));
+
         $request = new ChatRequest(
             model: $modelKey,
             messages: $chatMessages,
             options: $agent->provider_options ?? [],
             stream: $provider instanceof StreamingProvider,
+            tools: $toolDefinitions,
         );
 
         $steps->record(
@@ -280,8 +331,26 @@ final class ContinueAgentRun implements ShouldQueue
             return;
         }
 
-        // 11. Phase 1 always terminates after one turn. Phase 2 branches here
-        //     on $response->toolCalls and dispatches ExecuteToolCall instead.
+        // 11. The tool branch. A response requesting tools is not an answer:
+        //     the calls are decided, recorded and handed off, and the run
+        //     parks until they come back or a human decides.
+        if ($response->toolCalls !== []) {
+            $this->requestTools(
+                $run,
+                $agent,
+                $session,
+                $response,
+                $assistantMessage,
+                $states,
+                $broadcaster,
+                $messages,
+                $tools,
+                $actors,
+            );
+
+            return;
+        }
+
         $steps->record(
             $run,
             RunStepType::FinalResponse,
@@ -305,6 +374,46 @@ final class ContinueAgentRun implements ShouldQueue
                 'duration_ms' => $run->durationMs(),
             ],
         );
+    }
+
+    /**
+     * The model asked for tools.
+     *
+     * The assistant message keeps the calls it made, because every provider
+     * that accepts a tool result also demands the request that produced it.
+     * The run then parks: `waiting_for_approval` if a human owes a decision,
+     * otherwise `waiting_for_tool` while the tool jobs run.
+     */
+    private function requestTools(
+        Run $run,
+        Agent $agent,
+        Session $session,
+        ChatResponse $response,
+        ?Message $assistantMessage,
+        RunStateMachine $states,
+        RunBroadcaster $broadcaster,
+        MessageWriter $messages,
+        ToolCallCoordinator $tools,
+        ActorManager $actors,
+    ): void {
+        if ($assistantMessage !== null) {
+            $messages->recordToolCalls($assistantMessage, $response->toolCalls);
+        }
+
+        $actor = $actors->current();
+
+        $executions = $tools->decide($run, $agent, $session, $actor, $response->toolCalls);
+
+        $previous = $run->state;
+        $run = $states->transition($run, $tools->nextState($executions));
+        $broadcaster->stateChanged($run, $previous);
+
+        // Handed off only after the transition is committed AND the run lock
+        // is released, so a tool job that starts immediately can still fan
+        // back in.
+        $this->deferred[] = function () use ($tools, $run, $executions, $actor): void {
+            $tools->dispatch($run, $executions, $actor, $this->synchronous);
+        };
     }
 
     /**
