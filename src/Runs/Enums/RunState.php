@@ -53,6 +53,23 @@ enum RunState: string
         return ! $this->isTerminal();
     }
 
+    /**
+     * The non-terminal states, as column values.
+     *
+     * For the queries that ask "is one of these still going?" -- the
+     * automation concurrency policy is the caller that needed it. Derived from
+     * `isTerminal()` so a new state joins the list by existing.
+     *
+     * @return list<string>
+     */
+    public static function liveStates(): array
+    {
+        return array_values(array_map(
+            static fn (self $state): string => $state->value,
+            array_filter(self::cases(), static fn (self $state): bool => $state->isActive()),
+        ));
+    }
+
     /** States from which a continuation job may legitimately proceed. */
     public function isContinuable(): bool
     {

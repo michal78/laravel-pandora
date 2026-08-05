@@ -15,4 +15,5 @@ uses(TestCase::class)->in(
     'Database',
     'Tools',
     'Approvals',
+    'Automation',
 );

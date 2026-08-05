@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pandora\Pandora;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Auth\Factory;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
@@ -20,8 +21,16 @@ use Pandora\Pandora\Agents\AgentRegistry;
 use Pandora\Pandora\Agents\AgentRunner;
 use Pandora\Pandora\Approvals\ApprovalManager;
 use Pandora\Pandora\Audit\AuditLogger;
+use Pandora\Pandora\Automation\AutomationDispatcher;
+use Pandora\Pandora\Automation\AutomationScheduler;
+use Pandora\Pandora\Automation\AutonomyBudget;
+use Pandora\Pandora\Automation\ConditionRegistry;
+use Pandora\Pandora\Automation\Schedule\NextRun;
 use Pandora\Pandora\Console\Commands\AgentListCommand;
 use Pandora\Pandora\Console\Commands\AgentRunCommand;
+use Pandora\Pandora\Console\Commands\AutomationListCommand;
+use Pandora\Pandora\Console\Commands\AutomationRunCommand;
+use Pandora\Pandora\Console\Commands\AutomationTickCommand;
 use Pandora\Pandora\Console\Commands\FlushCommand;
 use Pandora\Pandora\Console\Commands\InstallCommand;
 use Pandora\Pandora\Console\Commands\ModelSyncCommand;
@@ -50,6 +59,7 @@ use Pandora\Pandora\Providers\Health\ProviderHealthMonitor;
 use Pandora\Pandora\Providers\ProviderManager;
 use Pandora\Pandora\Providers\Routing\DeterministicModelRouter;
 use Pandora\Pandora\Realtime\RunBroadcaster;
+use Pandora\Pandora\Runs\RunCanceller;
 use Pandora\Pandora\Runs\RunFactory;
 use Pandora\Pandora\Runs\RunLock;
 use Pandora\Pandora\Runs\RunStateMachine;
@@ -102,6 +112,7 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->registerRouting();
         $this->registerAgents();
         $this->registerTools();
+        $this->registerAutomation();
         $this->registerRuntime();
 
         $this->app->singleton(Pandora::class, static fn (Container $app): Pandora => new Pandora($app));
@@ -114,6 +125,7 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->registerGates();
         $this->registerConfiguredAgents();
         $this->registerConfiguredTools();
+        $this->registerAutomationSchedule();
         $this->registerRoutesAndUi();
     }
 
@@ -304,6 +316,36 @@ final class PandoraServiceProvider extends ServiceProvider
         ));
     }
 
+    private function registerAutomation(): void
+    {
+        $this->app->singleton(NextRun::class);
+
+        $this->app->singleton(ConditionRegistry::class, static fn (Container $app): ConditionRegistry => new ConditionRegistry(
+            $app,
+            $app->make(Config::class),
+        ));
+
+        $this->app->singleton(AutonomyBudget::class, static fn (Container $app): AutonomyBudget => new AutonomyBudget(
+            $app->make(Config::class),
+            $app->make(AuditLogger::class),
+            $app,
+        ));
+
+        $this->app->singleton(AutomationScheduler::class, static fn (Container $app): AutomationScheduler => new AutomationScheduler(
+            $app->make(NextRun::class),
+            $app->make(Config::class),
+        ));
+
+        $this->app->singleton(AutomationDispatcher::class, static fn (Container $app): AutomationDispatcher => new AutomationDispatcher(
+            $app->make(AgentRunner::class),
+            $app->make(ConditionRegistry::class),
+            $app->make(AutonomyBudget::class),
+            $app->make(AuditLogger::class),
+            $app->make(TenantManager::class),
+            $app->make(RunCanceller::class),
+        ));
+    }
+
     private function registerRuntime(): void
     {
         $this->app->singleton(RunLock::class, static function (Container $app): RunLock {
@@ -418,6 +460,9 @@ final class PandoraServiceProvider extends ServiceProvider
             StatusCommand::class,
             AgentListCommand::class,
             AgentRunCommand::class,
+            AutomationListCommand::class,
+            AutomationRunCommand::class,
+            AutomationTickCommand::class,
             ToolListCommand::class,
             ModelSyncCommand::class,
             ProviderTestCommand::class,
@@ -508,6 +553,41 @@ final class PandoraServiceProvider extends ServiceProvider
         // so booting Pandora never issues a query on requests that never
         // touch it.
         $this->app->make(AgentRegistry::class)->defineMany($definitions);
+    }
+
+    /**
+     * The one scheduler entry that drives every automation.
+     *
+     * Registered here rather than documented as something a host must add to
+     * its own Kernel: an installation step that is easy to skip and produces
+     * no error when skipped is an installation step that will be skipped, and
+     * the symptom -- automations that simply never run -- looks like a bug in
+     * Pandora rather than a missing line in the host.
+     */
+    private function registerAutomationSchedule(): void
+    {
+        /** @var Config $config */
+        $config = $this->app->make(Config::class);
+
+        if ($config->get('pandora.automation.enabled', true) !== true
+            || $config->get('pandora.automation.schedule.enabled', true) !== true) {
+            return;
+        }
+
+        $this->app->booted(static function (Container $app): void {
+            if (! $app->bound(Schedule::class)) {
+                return;
+            }
+
+            $app->make(Schedule::class)
+                ->command(AutomationTickCommand::class)
+                ->everyMinute()
+                // Overlap protection is belt-and-braces: the occurrence claim
+                // already makes a double tick harmless. This just stops a
+                // pathologically slow tick from stacking.
+                ->withoutOverlapping()
+                ->runInBackground();
+        });
     }
 
     private function registerRoutesAndUi(): void

@@ -16,6 +16,7 @@ enum AuthorizationLayer: string
     case Registry = 'registry';
     case Agent = 'agent';
     case Tenant = 'tenant';
+    case Autonomy = 'autonomy';
     case Validation = 'validation';
     case Policy = 'policy';
     case Tool = 'tool';
@@ -27,6 +28,7 @@ enum AuthorizationLayer: string
             self::Registry => 'Tool registry',
             self::Agent => 'Agent allowlist',
             self::Tenant => 'Tenant restriction',
+            self::Autonomy => 'Autonomy level',
             self::Validation => 'Argument validation',
             self::Policy => 'Tool policy',
             self::Tool => 'Tool authorization',

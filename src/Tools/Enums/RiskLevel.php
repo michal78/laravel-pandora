@@ -35,6 +35,21 @@ enum RiskLevel: string
         return $this === self::High || $this === self::Critical;
     }
 
+    /**
+     * Whether using this tool changes something.
+     *
+     * Derived from risk rather than declared separately, because the two would
+     * drift and the disagreement would always be discovered the hard way. The
+     * documented definitions already say it: `low` reads, or affects only the
+     * run itself; everything above it writes, spends or is visible outside.
+     *
+     * This is what an `observe_only` autonomy level actually forbids.
+     */
+    public function isMutating(): bool
+    {
+        return $this !== self::Low;
+    }
+
     public function atLeast(self $other): bool
     {
         return $this->weight() >= $other->weight();

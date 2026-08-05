@@ -14,6 +14,7 @@ use Pandora\Pandora\Conversations\Conversation;
 use Pandora\Pandora\Conversations\Session;
 use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
 use Pandora\Pandora\Messages\Message;
+use Pandora\Pandora\Runs\Enums\AutonomyLevel;
 use Pandora\Pandora\Runs\Enums\RunState;
 use Pandora\Pandora\Runs\Enums\TriggerType;
 use Pandora\Pandora\Support\Concerns\PandoraModel;
@@ -33,6 +34,8 @@ use Pandora\Pandora\Support\Concerns\PandoraModel;
  * @property int $delegation_depth
  * @property RunState $state
  * @property TriggerType $trigger_type
+ * @property AutonomyLevel|null $autonomy_level
+ * @property string|null $automation_id
  * @property string $correlation_id
  * @property string|null $actor_type
  * @property string|null $actor_id
@@ -72,6 +75,7 @@ final class Run extends Model
     protected $fillable = [
         'tenant_id', 'agent_id', 'conversation_id', 'session_id',
         'parent_run_id', 'delegation_depth', 'state', 'trigger_type', 'trigger_id',
+        'autonomy_level', 'automation_id',
         'correlation_id', 'idempotency_key', 'actor_type', 'actor_id',
         'provider_key', 'model_key', 'input', 'output',
         'iterations', 'tool_calls_count', 'input_tokens', 'output_tokens',
@@ -88,6 +92,7 @@ final class Run extends Model
         return [
             'state' => RunState::class,
             'trigger_type' => TriggerType::class,
+            'autonomy_level' => AutonomyLevel::class,
             'metadata' => 'array',
             'delegation_depth' => 'integer',
             'iterations' => 'integer',
