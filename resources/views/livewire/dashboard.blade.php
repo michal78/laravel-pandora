@@ -40,11 +40,12 @@
     @endif
 
     <div class="pd-grid pd-grid-split">
-        <div class="pd-card">
-            <div class="pd-card-head">
-                <h2 class="pd-card-title">Recent runs</h2>
-                <a href="{{ route('pandora.runs') }}" class="pd-btn pd-btn-sm pd-btn-ghost">View all</a>
-            </div>
+        <x-pandora::card title="Recent runs" :padded="false">
+            <x-slot:actions>
+                <x-pandora::button :href="route('pandora.runs')" variant="ghost" size="sm">
+                    View all
+                </x-pandora::button>
+            </x-slot:actions>
 
             <div class="pd-table-wrap">
                 <table class="pd-table">
@@ -55,15 +56,11 @@
                         @forelse ($recentRuns as $run)
                             <tr>
                                 <td>
-                                    <a href="{{ route('pandora.runs.show', $run->getKey()) }}" class="pd-mono">
+                                    <a href="{{ route('pandora.runs.show', $run->getKey()) }}" class="pd-mono pd-link">
                                         {{ \Illuminate\Support\Str::limit($run->getKey(), 10, '…') }}
                                     </a>
                                 </td>
-                                <td>
-                                    <span class="pd-badge pd-badge-{{ $run->state->tone() }}">
-                                        {{ $run->state->label() }}
-                                    </span>
-                                </td>
+                                <td><x-pandora::status :state="$run->state" /></td>
                                 <td class="pd-faint">{{ $run->created_at?->diffForHumans() }}</td>
                             </tr>
                         @empty
@@ -72,13 +69,10 @@
                     </tbody>
                 </table>
             </div>
-        </div>
+        </x-pandora::card>
 
-        <div class="pd-card">
-            <div class="pd-card-head">
-                <h2 class="pd-card-title">System</h2>
-            </div>
-            <div class="pd-card-body pd-stack">
+        <x-pandora::card title="System">
+            <div class="pd-stack">
                 <div class="pd-row">
                     <span class="pd-muted">Version</span>
                     <span class="pd-row-end pd-mono">{{ $version }}</span>
@@ -94,12 +88,12 @@
                 <div class="pd-row">
                     <span class="pd-muted">Realtime</span>
                     <span class="pd-row-end">
-                        <span class="pd-badge pd-badge-{{ $realtimeEnabled ? 'success' : 'muted' }}">
+                        <x-pandora::badge :tone="$realtimeEnabled ? 'success' : 'muted'">
                             {{ $realtimeEnabled ? 'Enabled' : 'Polling' }}
-                        </span>
+                        </x-pandora::badge>
                     </span>
                 </div>
             </div>
-        </div>
+        </x-pandora::card>
     </div>
 </div>

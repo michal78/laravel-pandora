@@ -1,34 +1,78 @@
 {{--
     Pandora control center layout.
 
-    The design system is deliberately self-contained: a single stylesheet of
-    custom properties, no build step, and no dependency on the host
-    application's CSS. A package that required you to run its bundler before
-    its UI worked would not be worth installing.
+    The design system is deliberately self-contained: the brand kit's design
+    tokens plus a single stylesheet built on them, no build step, and no
+    dependency on the host application's CSS. A package that required you to run
+    its bundler before its UI worked would not be worth installing.
 
     Light and dark both derive from the same token set, so a new surface picks
-    up both automatically.
+    up both automatically. Brand artwork is served as files -- published to
+    `public/vendor/pandora` if the host has published it, and straight from the
+    package if not.
 --}}
+@php
+    $assets = \Pandora\Pandora\UI\Assets::class;
+    $configuredTheme = config('pandora.ui.theme', 'system');
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
-      data-theme="{{ config('pandora.ui.theme', 'system') }}">
+      data-theme="{{ $configuredTheme }}"
+      @class(['dark' => $configuredTheme === 'dark'])>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Pandora' }} &middot; {{ config('pandora.ui.brand', 'Pandora') }}</title>
 
-    <style>{!! \Pandora\Pandora\UI\Assets::styles() !!}</style>
+    <link rel="icon" href="{{ $assets::url('favicons/favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="{{ $assets::url('icons/svg/pandora-icon.svg') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ $assets::url('favicons/favicon-32x32.png') }}">
+    <link rel="apple-touch-icon" href="{{ $assets::url('favicons/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ $assets::url('favicons/site.webmanifest') }}">
+    <meta name="theme-color" content="#5B46D9">
+
+    {{--
+        Theme and sidebar state are resolved in the head, before the first
+        paint. Doing it after the body would show the wrong logo and the wrong
+        surfaces for a frame -- the flash this ordering exists to prevent.
+    --}}
+    <script>
+        (function () {
+            const root = document.documentElement;
+
+            const resolve = (theme) => theme === 'system' || !theme
+                ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                : theme;
+
+            const apply = (theme) => {
+                const resolved = resolve(theme);
+                root.dataset.theme = resolved;
+                root.classList.toggle('dark', resolved === 'dark');
+            };
+
+            try {
+                apply(localStorage.getItem('pandora-theme') ?? root.dataset.theme);
+                root.dataset.pdSidebar = localStorage.getItem('pandora-sidebar') ?? 'expanded';
+            } catch (e) {
+                // Storage can be denied outright. The server-rendered default
+                // still renders a usable, correctly themed page.
+                apply(root.dataset.theme);
+            }
+        })();
+    </script>
+
+    <style>{!! $assets::styles() !!}</style>
 
     @livewireStyles
 </head>
 <body>
     <div class="pd-shell">
         <aside class="pd-sidebar" id="pd-sidebar">
-            <div class="pd-brand">
-                <span class="pd-brand-mark" aria-hidden="true"></span>
-                <span class="pd-brand-name">{{ config('pandora.ui.brand', 'Pandora') }}</span>
-            </div>
+            <a href="{{ route('pandora.dashboard') }}" class="pd-brand">
+                <x-pandora::brand variant="lockup" class="pd-brand-expanded" />
+                <x-pandora::brand variant="icon" class="pd-brand-collapsed" />
+            </a>
 
             <nav class="pd-nav" aria-label="Main">
                 @php
@@ -42,6 +86,7 @@
                 @foreach ($nav as $item)
                     <a href="{{ route($item['route']) }}"
                        class="pd-nav-link {{ request()->routeIs($item['route'] . '*') ? 'is-active' : '' }}"
+                       title="{{ $item['label'] }}"
                        @if (request()->routeIs($item['route'] . '*')) aria-current="page" @endif>
                         <span class="pd-nav-glyph" aria-hidden="true">{{ $item['glyph'] }}</span>
                         <span>{{ $item['label'] }}</span>
@@ -50,17 +95,26 @@
             </nav>
 
             <div class="pd-sidebar-foot">
-                <button type="button" class="pd-theme-toggle" data-pd-theme-toggle>
+                <button type="button" class="pd-sidebar-button" data-pd-theme-toggle
+                        aria-label="Switch between light and dark theme">
                     <span class="pd-theme-icon" aria-hidden="true">◐</span>
                     <span>Theme</span>
                 </button>
+
+                <button type="button" class="pd-sidebar-button pd-collapse-button" data-pd-collapse-toggle
+                        aria-label="Collapse or expand the sidebar" aria-controls="pd-sidebar">
+                    <span class="pd-theme-icon" aria-hidden="true">⇤</span>
+                    <span>Collapse</span>
+                </button>
+
                 <p class="pd-version">Pandora {{ app(\Pandora\Pandora\Pandora::class)->version() }}</p>
             </div>
         </aside>
 
         <div class="pd-main">
             <header class="pd-topbar">
-                <button type="button" class="pd-menu-button" data-pd-sidebar-toggle aria-label="Toggle navigation">
+                <button type="button" class="pd-icon-button pd-menu-button" data-pd-sidebar-toggle
+                        aria-label="Toggle navigation" aria-controls="pd-sidebar">
                     <span aria-hidden="true">☰</span>
                 </button>
                 <h1 class="pd-page-title">{{ $title ?? 'Pandora' }}</h1>
@@ -75,24 +129,26 @@
     @livewireScripts
 
     <script>
-        // Theme: respect an explicit choice, otherwise follow the OS. Stored
-        // locally so it survives navigation without a round trip.
+        // Interaction only -- the state these toggles write was already applied
+        // in the head, so nothing here affects the first paint.
         (function () {
             const root = document.documentElement;
-            const stored = localStorage.getItem('pandora-theme');
 
-            const apply = (theme) => {
-                root.dataset.theme = theme === 'system'
-                    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-                    : theme;
+            const remember = (key, value) => {
+                try { localStorage.setItem(key, value); } catch (e) { /* storage denied */ }
             };
-
-            apply(stored ?? root.dataset.theme ?? 'system');
 
             document.querySelector('[data-pd-theme-toggle]')?.addEventListener('click', () => {
                 const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
-                localStorage.setItem('pandora-theme', next);
-                apply(next);
+                root.dataset.theme = next;
+                root.classList.toggle('dark', next === 'dark');
+                remember('pandora-theme', next);
+            });
+
+            document.querySelector('[data-pd-collapse-toggle]')?.addEventListener('click', () => {
+                const next = root.dataset.pdSidebar === 'collapsed' ? 'expanded' : 'collapsed';
+                root.dataset.pdSidebar = next;
+                remember('pandora-sidebar', next);
             });
 
             document.querySelector('[data-pd-sidebar-toggle]')?.addEventListener('click', () => {

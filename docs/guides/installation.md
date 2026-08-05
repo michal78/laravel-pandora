@@ -39,6 +39,16 @@ Use agents, tools and jobs from your own code with no routes, views or Livewire.
 Adds routes at `/pandora`, the Livewire pages, the views and the broadcast channels. Requires
 `livewire/livewire`.
 
+The control center needs no build step and no bundler. Its brand assets are served from the package
+by default; publish them so your web server serves them instead:
+
+```bash
+php artisan vendor:publish --tag=pandora-assets
+```
+
+Files land in `public/vendor/pandora`, and published copies always win over the packaged ones. See
+[visual identity](../visual-identity.md) for theming and how to substitute your own brand.
+
 ## Queue
 
 Pandora is queue-first: a web request may *start* a run but never performs one.

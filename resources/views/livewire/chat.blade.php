@@ -14,10 +14,9 @@
     {{-- Conversations --}}
     <div class="pd-card pd-chat-aside">
         <div class="pd-chat-aside-head">
-            <button type="button" class="pd-btn pd-btn-primary pd-btn-sm" style="width:100%"
-                    wire:click="startNewConversation">
+            <x-pandora::button variant="primary" size="sm" block wire:click="startNewConversation">
                 New conversation
-            </button>
+            </x-pandora::button>
         </div>
 
         <div class="pd-chat-list">
@@ -25,6 +24,7 @@
                 <button type="button"
                         class="pd-chat-item {{ $conversation?->getKey() === $item->getKey() ? 'is-active' : '' }}"
                         wire:key="conv-{{ $item->getKey() }}"
+                        @if ($conversation?->getKey() === $item->getKey()) aria-current="true" @endif
                         wire:click="selectConversation('{{ $item->getKey() }}')">
                     <span class="pd-chat-item-title">{{ $item->title ?? 'Untitled conversation' }}</span>
                     <span class="pd-chat-item-meta">
@@ -42,7 +42,8 @@
     {{-- Thread --}}
     <div class="pd-card pd-chat-main">
         <div class="pd-chat-head">
-            <select class="pd-select" style="max-width: 220px" wire:model.live="agentSlug"
+            <label class="pd-visually-hidden" for="pd-agent-select">Agent</label>
+            <select id="pd-agent-select" class="pd-select" style="max-width: 220px" wire:model.live="agentSlug"
                     @if ($conversation) disabled @endif>
                 @forelse ($agents as $agent)
                     <option value="{{ $agent->slug }}">{{ $agent->name }}</option>
@@ -52,21 +53,23 @@
             </select>
 
             @if ($run)
-                <span class="pd-badge pd-badge-{{ $run->state->tone() }} {{ $run->state->isTerminal() ? '' : 'is-live' }}">
-                    {{ $run->state->label() }}
-                </span>
+                <x-pandora::status :state="$run->state" />
 
                 @if (! $run->state->isTerminal())
-                    <button type="button" class="pd-btn pd-btn-sm pd-btn-danger"
-                            wire:click="cancelRun('{{ $run->getKey() }}')">
+                    <span class="pd-streaming" role="status">
+                        <span class="pd-streaming-dot" aria-hidden="true"></span>
+                        Working
+                    </span>
+
+                    <x-pandora::button variant="danger" size="sm" wire:click="cancelRun('{{ $run->getKey() }}')">
                         Stop
-                    </button>
+                    </x-pandora::button>
                 @endif
 
-                <a href="{{ route('pandora.runs.show', $run->getKey()) }}"
-                   class="pd-btn pd-btn-sm pd-btn-ghost pd-row-end">
+                <x-pandora::button :href="route('pandora.runs.show', $run->getKey())"
+                                   variant="ghost" size="sm" class="pd-row-end">
                     Inspect run
-                </a>
+                </x-pandora::button>
             @endif
         </div>
 
@@ -80,7 +83,11 @@
                 <div class="pd-msg {{ $isUser ? 'pd-msg-user' : '' }} {{ $isError ? 'pd-msg-error' : '' }}"
                      wire:key="msg-{{ $message->getKey() }}">
                     <div class="pd-msg-avatar" aria-hidden="true">
-                        {{ $isUser ? 'You' : ($conversation?->agent?->name ? mb_substr($conversation->agent->name, 0, 1) : 'A') }}
+                        @if ($isUser)
+                            You
+                        @else
+                            <x-pandora::brand variant="icon" class="pd-msg-mark" />
+                        @endif
                     </div>
 
                     <div class="pd-msg-body">
@@ -89,12 +96,9 @@
                     </div>
                 </div>
             @empty
-                <div class="pd-empty">
-                    <div>
-                        <p class="pd-empty-title">Start a conversation</p>
-                        <p>Ask the agent something. The run is queued, executed by a worker, and streamed back here.</p>
-                    </div>
-                </div>
+                <x-pandora::empty-state title="Start a conversation">
+                    Ask the agent something. The run is queued, executed by a worker, and streamed back here.
+                </x-pandora::empty-state>
             @endforelse
         </div>
 
@@ -104,16 +108,16 @@
             @enderror
 
             <form class="pd-composer" wire:submit="send">
-                <textarea class="pd-textarea"
+                <label class="pd-visually-hidden" for="pd-composer">Message</label>
+                <textarea id="pd-composer" class="pd-textarea"
                           rows="1"
                           placeholder="Send a message…"
                           wire:model="composer"
                           @keydown.enter.prevent="$wire.send()"></textarea>
 
-                <button type="submit" class="pd-btn pd-btn-primary"
-                        @if ($agents->isEmpty()) disabled @endif>
+                <x-pandora::button type="submit" variant="primary" :disabled="$agents->isEmpty()">
                     Send
-                </button>
+                </x-pandora::button>
             </form>
 
             <p class="pd-composer-hint">

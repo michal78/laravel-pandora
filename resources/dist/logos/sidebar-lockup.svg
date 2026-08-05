@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 110">
+<rect width="420" height="110" rx="22" fill="none"/>
+<rect x="10" y="15" width="80" height="80" rx="22" fill="url(#g)"/>
+<defs><linearGradient id="g" x1="10" y1="15" x2="90" y2="95"><stop stop-color="#5B46D9"/><stop offset="1" stop-color="#8F7DF0"/></linearGradient></defs>
+<path d="M50 32 29 43l21 11 21-11-21-11Z" fill="#fff" opacity=".95"/>
+<path d="M29 43v21l21 12V54L29 43Z" fill="#fff" opacity=".82"/>
+<path d="M71 43v21L50 76V54l21-11Z" fill="#fff" opacity=".68"/>
+<text x="112" y="68" font-family="Inter, Arial, sans-serif" font-size="43" font-weight="700" fill="currentColor">Pandora</text>
+</svg>

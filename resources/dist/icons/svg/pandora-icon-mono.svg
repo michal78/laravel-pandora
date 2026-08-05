@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+<path d="M128 33 58 71l70 38 70-38-70-38Z" fill="currentColor"/>
+<path d="M58 71v70l70 39v-71L58 71Z" fill="currentColor" opacity=".84"/>
+<path d="M198 71v70l-70 39v-71l70-38Z" fill="currentColor" opacity=".68"/>
+<circle cx="128" cy="119" r="8" fill="#fff"/>
+<circle cx="101" cy="103" r="4" fill="#fff" opacity=".72"/>
+<circle cx="155" cy="100" r="3" fill="#fff" opacity=".58"/>
+</svg>

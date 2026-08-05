@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+<title id="title">Laravel Pandora icon</title>
+<desc id="desc">An open dimensional box in violet, representing released agent capabilities.</desc>
+<defs>
+  <linearGradient id="top" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#8F7DF0"/>
+    <stop offset="1" stop-color="#5B46D9"/>
+  </linearGradient>
+  <linearGradient id="left" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#5B46D9"/>
+    <stop offset="1" stop-color="#4934C7"/>
+  </linearGradient>
+  <linearGradient id="right" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#765FE7"/>
+    <stop offset="1" stop-color="#5B46D9"/>
+  </linearGradient>
+</defs>
+<path d="M128 33 58 71l70 38 70-38-70-38Z" fill="url(#top)"/>
+<path d="M58 71v70l70 39v-71L58 71Z" fill="url(#left)"/>
+<path d="M198 71v70l-70 39v-71l70-38Z" fill="url(#right)"/>
+<path d="M128 116 76 88v38l52 29 52-29V88l-52 28Z" fill="#FFFFFF" opacity=".12"/>
+<path d="M128 33 93 52l35 19 35-19-35-19Z" fill="#FFFFFF" opacity=".18"/>
+<circle cx="128" cy="119" r="8" fill="#FFFFFF" opacity=".88"/>
+<circle cx="101" cy="103" r="4" fill="#FFFFFF" opacity=".68"/>
+<circle cx="155" cy="100" r="3" fill="#FFFFFF" opacity=".55"/>
+</svg>

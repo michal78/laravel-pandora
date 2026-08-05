@@ -40,6 +40,8 @@ use Pandora\Pandora\Runs\RunStateMachine;
 use Pandora\Pandora\Runs\RunStepRecorder;
 use Pandora\Pandora\Support\CorrelationId;
 use Pandora\Pandora\Support\Redactor;
+use Pandora\Pandora\UI\Assets;
+use Pandora\Pandora\UI\Http\AssetController;
 use Pandora\Pandora\UI\Livewire\Chat;
 use Pandora\Pandora\UI\Livewire\Dashboard;
 use Pandora\Pandora\UI\Livewire\RunDetail;
@@ -256,6 +258,13 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../resources/views' => resource_path('views/vendor/pandora'),
         ], 'pandora-views');
+
+        // Brand assets. Publishing is an optimisation, not a requirement: the
+        // control center serves the same files from the package when the host
+        // has not published them.
+        $this->publishes([
+            Assets::directory() => public_path(Assets::PUBLIC_DIRECTORY),
+        ], ['pandora-assets', 'laravel-assets']);
     }
 
     private function registerCommands(): void
@@ -345,6 +354,20 @@ final class PandoraServiceProvider extends ServiceProvider
         $prefix = $config->get('pandora.routes.prefix', 'pandora');
         /** @var string|null $domain */
         $domain = $config->get('pandora.routes.domain');
+
+        // Brand assets sit outside the control center's middleware stack on
+        // purpose. They are public files with no application data in them, and
+        // a favicon has to resolve on screens the user is not signed in to.
+        Route::group(array_filter([
+            'prefix' => $prefix,
+            'middleware' => ['web'],
+            'domain' => $domain,
+            'as' => 'pandora.',
+        ]), static function (): void {
+            Route::get('assets/{path}', AssetController::class)
+                ->where('path', '.*')
+                ->name('asset');
+        });
 
         Route::group(array_filter([
             'prefix' => $prefix,

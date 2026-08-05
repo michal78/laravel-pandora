@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 240">
+<rect width="1100" height="240" rx="24" fill="#0E1014"/>
+<g transform="translate(24 20) scale(.78)">
+<path d="M128 33 58 71l70 38 70-38-70-38Z" fill="#8F7DF0"/>
+<path d="M58 71v70l70 39v-71L58 71Z" fill="#4934C7"/>
+<path d="M198 71v70l-70 39v-71l70-38Z" fill="#5B46D9"/>
+<circle cx="128" cy="119" r="8" fill="#fff"/>
+<circle cx="101" cy="103" r="4" fill="#fff" opacity=".72"/>
+<circle cx="155" cy="100" r="3" fill="#fff" opacity=".58"/>
+</g>
+<text x="260" y="124" font-family="Inter, Arial, sans-serif" font-size="66" font-weight="650" fill="#E8EAEE">Laravel</text>
+<text x="504" y="124" font-family="Inter, Arial, sans-serif" font-size="66" font-weight="750" fill="#5B46D9">Pandora</text>
+
+</svg>

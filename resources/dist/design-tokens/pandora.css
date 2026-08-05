@@ -1,0 +1,32 @@
+:root {
+  --pandora-primary: #5B46D9;
+  --pandora-primary-hover: #4934C7;
+  --pandora-primary-soft: #ECE9FB;
+  --pandora-primary-light: #8F7DF0;
+
+  --pandora-bg: #FFFFFF;
+  --pandora-surface: #F6F7F9;
+  --pandora-surface-active: #ECE9FB;
+  --pandora-text: #16191F;
+  --pandora-text-muted: #667085;
+  --pandora-border: #DFE3E9;
+
+  --pandora-radius-sm: 0.625rem;
+  --pandora-radius-md: 0.875rem;
+  --pandora-radius-lg: 1.25rem;
+  --pandora-shadow: 0 10px 30px rgb(22 25 31 / 0.08);
+}
+
+.dark {
+  --pandora-primary: #8F7DF0;
+  --pandora-primary-hover: #A796FA;
+  --pandora-primary-soft: #241F3D;
+
+  --pandora-bg: #0E1014;
+  --pandora-surface: #16191F;
+  --pandora-surface-active: #241F3D;
+  --pandora-text: #E8EAEE;
+  --pandora-text-muted: #8992A3;
+  --pandora-border: #262B33;
+  --pandora-shadow: 0 10px 30px rgb(0 0 0 / 0.25);
+}

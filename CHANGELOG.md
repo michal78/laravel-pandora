@@ -34,6 +34,23 @@ All notable changes to this project are documented here. The format follows
   - `pandora:install` (idempotent), `pandora:status`, `pandora:agent:list`, `pandora:agent:run`.
   - Append-only audit log with correlation IDs.
 
+- **Visual identity.** The Pandora brand applied across the control center:
+  - Brand assets shipped in `resources/dist` — full and compact lockups in light and dark, sidebar
+    lockup, standalone and monochrome icons, raster app icons, favicons and the web manifest.
+    Publishable with `--tag=pandora-assets`, and served from the package by a route when they are
+    not published, so a fresh install is never a broken-looking one.
+  - The brand kit's `design-tokens/pandora.css` is the source of truth for colour, radius and
+    shadow; every `--pd-*` token in the control center derives from a `--pandora-*` token.
+  - Reusable Blade components: `x-pandora::brand`, `icon`, `button`, `card`, `badge`, `status`,
+    `empty-state`.
+  - Theme and sidebar state resolve in `<head>` before the first paint, and light/dark artwork is
+    switched by CSS, so neither the surfaces nor the logo flash the wrong variant.
+  - Favicons and app icons in the layout; sidebar lockup when expanded, standalone icon when
+    collapsed; a branded access-denied view (`pandora::errors.denied`) hosts may opt into.
+  - WCAG AA contrast for text and controls in both themes, and full
+    `prefers-reduced-motion: reduce` support.
+  - `docs/visual-identity.md` documents how a host overrides the brand safely.
+
 ### Security
 - Tenant isolation, session isolation, broadcast authorization and secret redaction are enforced and
   covered by dedicated tests in `tests/Security/`.
