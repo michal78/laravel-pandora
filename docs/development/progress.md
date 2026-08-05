@@ -27,7 +27,7 @@ authorization, and a run can wait days for a human without consuming anything.
 **Verified — commands actually run, output quoted.**
 
 ```
-vendor/bin/pest        → Tests: 431 passed (1,580 assertions)
+vendor/bin/pest        → Tests: 432 passed (1,603 assertions)
 vendor/bin/phpstan     → [OK] No errors            (level 8, checkModelProperties on)
 vendor/bin/pint --test → passed
 ```
@@ -70,8 +70,9 @@ purpose.
 
 **Not verified.** Two items, both breadth rather than behaviour, and neither is claimed:
 
-- The database matrix beyond SQLite. The two new tables use only portable types and short index
-  names, but that is an argument, not a run.
+- The database matrix beyond SQLite. Both new tables now create cleanly on **MySQL 8.4**, verified
+  in the host application after defect 7 — but MariaDB and PostgreSQL remain CI-only, and the whole
+  suite has not been run against any of the three.
 - A human driving the new pages in a host application: granting a tool, watching a call pause,
   approving it and seeing the run resume. Every step has an automated equivalent that passes;
   none of them is a person using the product.
