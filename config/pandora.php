@@ -214,8 +214,48 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Models
+    |--------------------------------------------------------------------------
+    |
+    | The catalog records what each model can do, how large it is and what it
+    | costs. `pandora:model:sync` fills in what a provider's own API reports;
+    | PRICING can only come from here, because no vendor exposes prices through
+    | an API and a price nobody typed on purpose is a guess.
+    |
+    | A priced entry must state `pricing_source` and `pricing_date`. Pandora
+    | refuses an unattributed price rather than storing one, because six months
+    | later nobody can tell whether it was ever right. An unpriced model is
+    | perfectly usable -- its runs simply record no cost, which is honest,
+    | where a cost of zero would not be.
+    |
+    */
+
     'models' => [
+
         'default' => env('PANDORA_MODEL', 'fake-model'),
+
+        // How long a price is trusted before it is flagged as stale in the
+        // control center. It is not ignored -- an operator is told.
+        'pricing_stale_after_days' => (int) env('PANDORA_PRICING_STALE_DAYS', 90),
+
+        'catalog' => [
+            // [
+            //     'provider' => 'openai',
+            //     'key' => 'gpt-4o-mini',
+            //     'display_name' => 'GPT-4o mini',
+            //     'context_limit' => 128000,
+            //     'max_output_tokens' => 16384,
+            //     'capabilities' => ['streaming', 'tools', 'structured_output', 'vision'],
+            //     'input_price' => 0.15,          // per million tokens
+            //     'output_price' => 0.60,
+            //     'cached_input_price' => 0.075,
+            //     'currency' => 'USD',
+            //     'pricing_source' => 'https://openai.com/api/pricing',
+            //     'pricing_date' => '2026-08-05',
+            // ],
+        ],
     ],
 
     /*

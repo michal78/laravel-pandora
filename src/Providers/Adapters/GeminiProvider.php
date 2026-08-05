@@ -8,12 +8,14 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
+use Pandora\Pandora\Contracts\ModelCatalogProvider;
 use Pandora\Pandora\Contracts\StreamingProvider;
 use Pandora\Pandora\Exceptions\InvalidConfiguration;
 use Pandora\Pandora\Exceptions\Provider\ProviderTimeout;
 use Pandora\Pandora\Exceptions\Provider\ProviderUnavailable;
 use Pandora\Pandora\Messages\Enums\MessageRole;
 use Pandora\Pandora\Providers\Adapters\Concerns\ClassifiesProviderFailures;
+use Pandora\Pandora\Providers\Catalog\ModelDescriptor;
 use Pandora\Pandora\Providers\Credentials\CredentialManager;
 use Pandora\Pandora\Providers\Data\ChatMessage;
 use Pandora\Pandora\Providers\Data\ChatRequest;
@@ -43,7 +45,7 @@ use Pandora\Pandora\Providers\Data\UsageData;
  * The credential goes in `x-goog-api-key`, never the query string, so it
  * cannot end up in a proxy log or a browser history.
  */
-final class GeminiProvider implements StreamingProvider
+final class GeminiProvider implements ModelCatalogProvider, StreamingProvider
 {
     use ClassifiesProviderFailures;
 
@@ -92,6 +94,55 @@ final class GeminiProvider implements StreamingProvider
         }
 
         return ProviderHealth::degraded("HTTP {$response->status()}");
+    }
+
+    /**
+     * The `/models` list.
+     *
+     * Alone among the three, Gemini reports genuine per-model facts -- token
+     * limits and which generation methods a model supports -- so the sync has
+     * something real to record rather than an id and a shrug.
+     *
+     * @return list<ModelDescriptor>
+     */
+    public function models(): array
+    {
+        $response = $this->get('/models');
+
+        /** @var array<int, mixed> $entries */
+        $entries = is_array($response['models'] ?? null) ? $response['models'] : [];
+
+        $models = [];
+
+        foreach ($entries as $entry) {
+            if (! is_array($entry) || ! is_string($entry['name'] ?? null)) {
+                continue;
+            }
+
+            /** @var list<string> $methods */
+            $methods = is_array($entry['supportedGenerationMethods'] ?? null)
+                ? $entry['supportedGenerationMethods']
+                : [];
+
+            $models[] = new ModelDescriptor(
+                providerKey: $this->key,
+                // The API returns `models/gemini-2.5-flash`; everything else
+                // in Pandora names the model without the prefix.
+                modelKey: (string) preg_replace('#^models/#', '', $entry['name']),
+                displayName: is_string($entry['displayName'] ?? null) ? $entry['displayName'] : null,
+                contextLimit: isset($entry['inputTokenLimit']) ? (int) $entry['inputTokenLimit'] : null,
+                maxOutputTokens: isset($entry['outputTokenLimit']) ? (int) $entry['outputTokenLimit'] : null,
+                capabilities: new ProviderCapabilities(
+                    streaming: in_array('streamGenerateContent', $methods, true),
+                    tools: in_array('generateContent', $methods, true),
+                    structuredOutput: in_array('generateContent', $methods, true),
+                    vision: in_array('generateContent', $methods, true),
+                    embeddings: in_array('embedContent', $methods, true),
+                ),
+            );
+        }
+
+        return $models;
     }
 
     public function chat(ChatRequest $request): ChatResponse
@@ -538,6 +589,41 @@ final class GeminiProvider implements StreamingProvider
                 }
             }
         }
+    }
+
+    /**
+     * A plain GET against this provider, classified like any other call.
+     *
+     * @return array<string, mixed>
+     */
+    private function get(string $path): array
+    {
+        try {
+            $response = $this->client()->get($path);
+        } catch (ConnectionException $e) {
+            throw new ProviderTimeout(
+                "Could not reach provider [{$this->key}]: {$e->getMessage()}",
+                $this->key,
+                null,
+                $e,
+            );
+        }
+
+        if (! $response->successful()) {
+            throw $this->classifyFailure($response, null);
+        }
+
+        $body = $response->json();
+
+        if (! is_array($body)) {
+            throw new ProviderUnavailable(
+                "Provider [{$this->key}] returned a response that could not be parsed.",
+                $this->key,
+            );
+        }
+
+        /** @var array<string, mixed> $body */
+        return $body;
     }
 
     private function client(): PendingRequest

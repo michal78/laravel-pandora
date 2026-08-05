@@ -8,11 +8,13 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
+use Pandora\Pandora\Contracts\ModelCatalogProvider;
 use Pandora\Pandora\Contracts\StreamingProvider;
 use Pandora\Pandora\Exceptions\InvalidConfiguration;
 use Pandora\Pandora\Exceptions\Provider\ProviderTimeout;
 use Pandora\Pandora\Exceptions\Provider\ProviderUnavailable;
 use Pandora\Pandora\Providers\Adapters\Concerns\ClassifiesProviderFailures;
+use Pandora\Pandora\Providers\Catalog\ModelDescriptor;
 use Pandora\Pandora\Providers\Credentials\CredentialManager;
 use Pandora\Pandora\Providers\Data\ChatMessage;
 use Pandora\Pandora\Providers\Data\ChatRequest;
@@ -37,7 +39,7 @@ use Pandora\Pandora\Providers\Data\UsageData;
  * unclassified error would either retry forever or fail a run that a fallback
  * model could have completed.
  */
-final class OpenAiCompatibleProvider implements StreamingProvider
+final class OpenAiCompatibleProvider implements ModelCatalogProvider, StreamingProvider
 {
     use ClassifiesProviderFailures;
 
@@ -85,6 +87,35 @@ final class OpenAiCompatibleProvider implements StreamingProvider
         }
 
         return ProviderHealth::degraded("HTTP {$response->status()}");
+    }
+
+    /**
+     * The `/models` list. Ids only: the endpoint reports neither context
+     * limits nor prices, and inventing either would be worse than leaving
+     * them for configuration to state.
+     *
+     * @return list<ModelDescriptor>
+     */
+    public function models(): array
+    {
+        $response = $this->get('/models');
+
+        /** @var array<int, mixed> $data */
+        $data = is_array($response['data'] ?? null) ? $response['data'] : [];
+
+        $models = [];
+
+        foreach ($data as $entry) {
+            $id = is_array($entry) && is_string($entry['id'] ?? null) ? $entry['id'] : null;
+
+            if ($id === null) {
+                continue;
+            }
+
+            $models[] = new ModelDescriptor(providerKey: $this->key, modelKey: $id);
+        }
+
+        return $models;
     }
 
     public function chat(ChatRequest $request): ChatResponse
@@ -513,6 +544,41 @@ final class OpenAiCompatibleProvider implements StreamingProvider
                 }
             }
         }
+    }
+
+    /**
+     * A plain GET against this provider, classified like any other call.
+     *
+     * @return array<string, mixed>
+     */
+    private function get(string $path): array
+    {
+        try {
+            $response = $this->client()->get($path);
+        } catch (ConnectionException $e) {
+            throw new ProviderTimeout(
+                "Could not reach provider [{$this->key}]: {$e->getMessage()}",
+                $this->key,
+                null,
+                $e,
+            );
+        }
+
+        if (! $response->successful()) {
+            throw $this->classifyFailure($response, null);
+        }
+
+        $body = $response->json();
+
+        if (! is_array($body)) {
+            throw new ProviderUnavailable(
+                "Provider [{$this->key}] returned a response that could not be parsed.",
+                $this->key,
+            );
+        }
+
+        /** @var array<string, mixed> $body */
+        return $body;
     }
 
     private function client(): PendingRequest

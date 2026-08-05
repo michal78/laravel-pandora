@@ -22,6 +22,7 @@ use Pandora\Pandora\Audit\AuditLogger;
 use Pandora\Pandora\Console\Commands\AgentListCommand;
 use Pandora\Pandora\Console\Commands\AgentRunCommand;
 use Pandora\Pandora\Console\Commands\InstallCommand;
+use Pandora\Pandora\Console\Commands\ModelSyncCommand;
 use Pandora\Pandora\Console\Commands\StatusCommand;
 use Pandora\Pandora\Console\Commands\ToolListCommand;
 use Pandora\Pandora\Context\ContextBuilder;
@@ -38,6 +39,7 @@ use Pandora\Pandora\Core\Actor\GuardActorResolver;
 use Pandora\Pandora\Core\Tenancy\NullTenantResolver;
 use Pandora\Pandora\Core\Tenancy\TenantManager;
 use Pandora\Pandora\Messages\MessageWriter;
+use Pandora\Pandora\Providers\Catalog\ModelCatalog;
 use Pandora\Pandora\Providers\Credentials\CredentialManager;
 use Pandora\Pandora\Providers\Credentials\DatabaseCredentialResolver;
 use Pandora\Pandora\Providers\ProviderManager;
@@ -192,6 +194,10 @@ final class PandoraServiceProvider extends ServiceProvider
             $app->make(TenantManager::class),
             $app->make(ActorManager::class),
             $app->make(AuditLogger::class),
+            $app->make(Config::class),
+        ));
+
+        $this->app->singleton(ModelCatalog::class, static fn (Container $app): ModelCatalog => new ModelCatalog(
             $app->make(Config::class),
         ));
 
@@ -368,6 +374,7 @@ final class PandoraServiceProvider extends ServiceProvider
             AgentListCommand::class,
             AgentRunCommand::class,
             ToolListCommand::class,
+            ModelSyncCommand::class,
         ]);
     }
 
