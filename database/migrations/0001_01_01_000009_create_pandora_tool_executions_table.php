@@ -19,8 +19,11 @@ return new class extends Migration
             $table->char('run_id', 26);
             $table->char('run_step_id', 26)->nullable();
 
-            $table->string('tool_name');
-            $table->string('tool_version')->default('1.0');
+            // Explicit lengths for the same reason as on `approvals`: these
+            // columns appear in composite indexes, and utf8mb4 varchar(255) is
+            // 1020 bytes apiece against a 3072-byte InnoDB key limit.
+            $table->string('tool_name', 128);
+            $table->string('tool_version', 32)->default('1.0');
 
             // The provider's id for this call. Ties the execution to the
             // assistant message that requested it and to the result message
@@ -39,9 +42,9 @@ return new class extends Migration
             $table->json('result')->nullable();
             $table->json('sanitized_result')->nullable();
 
-            $table->string('status')->default('pending');
-            $table->string('risk_level')->default('low');
-            $table->string('decided_by')->nullable();
+            $table->string('status', 32)->default('pending');
+            $table->string('risk_level', 32)->default('low');
+            $table->string('decided_by', 32)->nullable();
             $table->text('decision_reason')->nullable();
 
             $table->boolean('required_approval')->default(false);

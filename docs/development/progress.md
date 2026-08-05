@@ -32,7 +32,7 @@ vendor/bin/phpstan     → [OK] No errors            (level 8, checkModelPropert
 vendor/bin/pint --test → passed
 ```
 
-**Six real defects found and fixed by the tests.**
+**Seven real defects, six found by the tests and one by MySQL.**
 
 1. Tool jobs dispatched while `ContinueAgentRun` still held the run lock could not fan back in:
    they found the run locked and quietly did nothing, stalling it. On a `sync` queue connection
@@ -52,6 +52,16 @@ vendor/bin/pint --test → passed
    cuts a loop in half.
 6. Argument modification lost its reason when it also triggered an approval, so a human approving
    a clamped refund would have discovered the clamp only by reading the diff.
+7. **Found on MySQL, after the suite was green.** `pandora_approvals_remembered_idx` covered four
+   `varchar(255)` columns — 4080 bytes in utf8mb4, against InnoDB's 3072-byte key limit — so the
+   migration created the table, applied two indexes, and failed on the third. SQLite has no key
+   limit *and* reports no column lengths, so neither the tests nor schema introspection could have
+   caught it. The columns now carry explicit lengths, and `Database/PortabilityTest` reads the
+   migration sources rather than the live schema so the rule holds on whichever engine runs. The
+   guard was verified by reverting the fix and watching it fail with the exact byte count.
+
+   This is precisely the risk recorded below as "the database matrix beyond SQLite" — logged as an
+   argument rather than a run, and it turned out the argument was wrong.
 
 **One design decision worth recording.** `PolicyDecision::allow()` deliberately does **not** waive
 the approval a tool's risk level demands. A policy with nothing to say about a critical tool must

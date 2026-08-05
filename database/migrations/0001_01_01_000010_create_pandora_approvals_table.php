@@ -19,9 +19,13 @@ return new class extends Migration
             $table->char('run_id', 26);
             $table->char('tool_execution_id', 26)->nullable();
 
-            $table->string('tool_name');
-            $table->string('tool_version')->default('1.0');
-            $table->string('risk_level')->default('high');
+            // Explicit lengths, not the 255 default. Four varchar(255) columns
+            // in one utf8mb4 index is 4080 bytes, over InnoDB's 3072-byte key
+            // limit -- and the remembered-approval lookup below needs exactly
+            // such an index. SQLite has no key limit and will not warn you.
+            $table->string('tool_name', 128);
+            $table->string('tool_version', 32)->default('1.0');
+            $table->string('risk_level', 32)->default('high');
 
             // A human summary of THIS call, not of the tool in general: an
             // approver deciding on "Refund £42.00 to order 1234" is making a
@@ -34,13 +38,13 @@ return new class extends Migration
             $table->json('proposed_modifications')->nullable();
 
             // once | run | remembered
-            $table->string('scope')->default('once');
+            $table->string('scope', 32)->default('once');
 
             // approval | confirmation -- who may resolve it differs.
-            $table->string('kind')->default('approval');
+            $table->string('kind', 32)->default('approval');
 
             // pending | approved | denied | expired | cancelled
-            $table->string('status')->default('pending');
+            $table->string('status', 32)->default('pending');
 
             $table->string('requested_by_type')->nullable();
             $table->string('requested_by_id')->nullable();

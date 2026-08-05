@@ -14,17 +14,82 @@ use Illuminate\Support\Facades\Schema;
 it('names every index within the 64-character MySQL limit', function (): void {
     $prefix = config('pandora.database.table_prefix');
 
-    $tables = [
-        'agents', 'conversations', 'sessions', 'conversation_participants',
-        'messages', 'runs', 'run_steps', 'settings', 'audit_logs',
-    ];
-
-    foreach ($tables as $table) {
+    foreach (pandoraTables() as $table) {
         foreach (Schema::getIndexes($prefix.$table) as $index) {
             expect(strlen((string) $index['name']))
                 ->toBeLessThanOrEqual(64, "index {$index['name']} on {$prefix}{$table} is too long for MySQL");
         }
     }
+});
+
+/**
+ * Every Pandora table, so a new one cannot quietly skip these rules.
+ *
+ * @return list<string>
+ */
+function pandoraTables(): array
+{
+    return [
+        'agents', 'conversations', 'sessions', 'conversation_participants',
+        'messages', 'runs', 'run_steps', 'settings', 'audit_logs',
+        'tool_executions', 'approvals',
+    ];
+}
+
+it('keeps every composite index within InnoDB\'s 3072-byte key limit', function (): void {
+    // Learned the hard way, on MySQL, after the tests were green: four utf8mb4
+    // varchar(255) columns in one index is 4080 bytes and InnoDB refuses to
+    // create it. SQLite has no key limit AND reports no column lengths, so
+    // this reads the migrations themselves rather than the live schema -- the
+    // rule then holds on whichever engine happens to be running.
+    $offenders = [];
+
+    foreach (glob(dirname(__DIR__, 2).'/database/migrations/*.php') ?: [] as $file) {
+        $source = (string) file_get_contents($file);
+
+        // Declared column widths, in characters. An undeclared string() is
+        // Laravel's 255 default, which is exactly the trap.
+        $widths = [];
+
+        preg_match_all("/->string\\('([^']+)'(?:\\s*,\\s*(\\d+))?/", $source, $strings, PREG_SET_ORDER);
+
+        foreach ($strings as $match) {
+            $widths[$match[1]] = isset($match[2]) && $match[2] !== '' ? (int) $match[2] : 255;
+        }
+
+        preg_match_all("/->char\\('([^']+)'\\s*,\\s*(\\d+)/", $source, $chars, PREG_SET_ORDER);
+
+        foreach ($chars as $match) {
+            $widths[$match[1]] = (int) $match[2];
+        }
+
+        // Composite indexes and uniques, as declared.
+        preg_match_all(
+            "/->(?:index|unique)\\(\\[([^\\]]+)\\]\\s*,\\s*'([^']+)'/",
+            $source,
+            $indexes,
+            PREG_SET_ORDER,
+        );
+
+        foreach ($indexes as [, $columnList, $indexName]) {
+            preg_match_all("/'([^']+)'/", $columnList, $columns);
+
+            $bytes = 0;
+
+            foreach ($columns[1] as $column) {
+                // utf8mb4 is 4 bytes per character, worst case. Anything not a
+                // declared string column is a small fixed type; 8 bytes covers
+                // the largest of them.
+                $bytes += isset($widths[$column]) ? $widths[$column] * 4 : 8;
+            }
+
+            if ($bytes > 3072) {
+                $offenders[] = "{$indexName} needs {$bytes} bytes";
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
 });
 
 it('uses char(26) ULID primary keys throughout', function (): void {
