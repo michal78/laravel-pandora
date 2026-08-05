@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pandora\Pandora\Tests;
 
+use Illuminate\Support\Facades\Http;
 use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Pandora\Pandora\PandoraServiceProvider;
@@ -22,6 +23,12 @@ abstract class TestCase extends Orchestra
         // against -- proving the package works with an ordinary Laravel user.
         $this->loadLaravelMigrations();
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+
+        // No test may reach a network. This is a hard guarantee rather than a
+        // convention: any HTTP request without a matching fake now throws,
+        // including one made by a code path nobody thought to fake. See
+        // tests/Providers/NoLiveCallsTest.php.
+        Http::preventStrayRequests();
     }
 
     /**

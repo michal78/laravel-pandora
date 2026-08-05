@@ -95,9 +95,22 @@ final class OpenAiCompatibleProvider implements StreamingProvider
 
         $response = $this->send($this->payload($request, stream: false), $request);
 
-        /** @var array<string, mixed> $body */
-        $body = $response->json() ?? [];
+        $body = $response->json();
 
+        // A 200 whose body will not parse is a broken response, not a bad
+        // request: a truncated transfer, a proxy that mangled the stream, a
+        // server that died mid-write. Treated as unavailability, so it is
+        // retried and can fail over, rather than as a PHP error thrown from
+        // somewhere deep in parsing.
+        if (! is_array($body) || ! is_array($body['choices'] ?? null)) {
+            throw new ProviderUnavailable(
+                "Provider [{$this->key}] returned a response that could not be parsed.",
+                $this->key,
+                $request->model,
+            );
+        }
+
+        /** @var array<string, mixed> $body */
         return $this->parseResponse($body, $this->elapsedMs($startedAt));
     }
 
