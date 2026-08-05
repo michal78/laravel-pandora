@@ -155,6 +155,20 @@ return [
             'rotation_grace_minutes' => (int) env('PANDORA_CREDENTIAL_GRACE_MINUTES', 60),
         ],
 
+        /*
+        | Health probes. `ProbeProviderHealth` runs on the maintenance queue
+        | and records reachability and latency; the router skips a degraded
+        | provider when walking a fallback chain.
+        |
+        | Degradation takes a RUN of failures because a provider that flapped
+        | on every transient timeout would scatter runs across models for no
+        | reason anybody could later explain.
+        */
+        'health' => [
+            'enabled' => env('PANDORA_PROVIDER_HEALTH', true),
+            'failure_threshold' => (int) env('PANDORA_PROVIDER_FAILURE_THRESHOLD', 3),
+        ],
+
         'connections' => [
 
             'fake' => [

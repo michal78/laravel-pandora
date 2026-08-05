@@ -42,6 +42,7 @@ use Pandora\Pandora\Messages\MessageWriter;
 use Pandora\Pandora\Providers\Catalog\ModelCatalog;
 use Pandora\Pandora\Providers\Credentials\CredentialManager;
 use Pandora\Pandora\Providers\Credentials\DatabaseCredentialResolver;
+use Pandora\Pandora\Providers\Health\ProviderHealthMonitor;
 use Pandora\Pandora\Providers\ProviderManager;
 use Pandora\Pandora\Realtime\RunBroadcaster;
 use Pandora\Pandora\Runs\RunFactory;
@@ -195,6 +196,11 @@ final class PandoraServiceProvider extends ServiceProvider
             $app->make(ActorManager::class),
             $app->make(AuditLogger::class),
             $app->make(Config::class),
+        ));
+
+        $this->app->singleton(ProviderHealthMonitor::class, static fn (Container $app): ProviderHealthMonitor => new ProviderHealthMonitor(
+            $app->make(Config::class),
+            $app->make(AuditLogger::class),
         ));
 
         $this->app->singleton(ModelCatalog::class, static fn (Container $app): ModelCatalog => new ModelCatalog(
