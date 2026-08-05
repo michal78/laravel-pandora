@@ -11,6 +11,7 @@
 | 1 | Kernel vertical slice | 🔨 21/22 acceptance criteria verified; host walkthrough blocked (Q9) |
 | 2 | Tools and approvals | 🔨 34/36 acceptance criteria verified; database matrix and host walkthrough outstanding |
 | 3 | Providers and routing | 🔨 39/40 acceptance criteria verified; database matrix outstanding |
+| 3.5 | Agents page | 🔨 20/20 acceptance criteria verified; host walkthrough outstanding (Q9) |
 | 4 | Automation | ⬜ |
 | 5 | Memory and context | ⬜ |
 | 6 | Multi-agent and MCP | ⬜ |
@@ -122,13 +123,67 @@ inherited by every adapter written in the meantime.
 
 ---
 
+## Phase 3.5 — Agents page 🔨
+
+A late insertion, and an admission. The control-center page map specifies sixteen page groups, and
+`Agents` is one of them — but Phase 1 deferred "the remaining 14 UI page groups" and no later phase
+ever claimed this one. Phases 4 to 7 each name only their own pages. Left alone, the single entity
+the whole product is named for would have reached Phase 8 with no way to look at it that was not
+`pandora:agent:list`.
+
+Phase 4 is where it becomes untenable rather than merely untidy: every automation binds to an agent
+and inherits its `autonomy_level`, `token_budget` and `cost_budget_minor`. Shipping an Automations
+editor whose agent picker points at rows nobody can open would drag half this page into Phase 4
+anyway, unplanned.
+
+### Scope
+
+Only what Phases 1–3 have already built, which is more than it sounds — the `agents` table has
+carried instructions, model preferences, the four limits, budgets, autonomy and the three policy
+documents since Phase 1.
+
+`AgentsIndex` — name, slug, definition source, model, autonomy, enabled, run counts ·
+`AgentDetail` with six live tabs: Overview · Instructions · Models · Limits & Autonomy · Runs ·
+Usage · creating and editing database-defined agents, gated on `pandora.agents.manage` ·
+class-defined agents rendered read-only for the fields their definition expresses, naming the class ·
+`AgentRegistry::managedKeysFor()` exposing that set to the UI · audited edits ·
+`agent.created` / `agent.updated` / `agent.deleted` · sidebar entry.
+
+The remaining seven tabs — Tools, Skills, Memory, Channels, Automations, Workspace, Permissions —
+are rendered as stubs naming the phase that fills them. Each owning phase now carries one UI line
+item instead of Phase 8 inheriting all of them at once.
+
+### The decision this phase exists to get right
+
+`definition_class` is nullable, so one page serves two kinds of agent. Class definitions are
+authoritative for the fields they set (`AgentRegistry`, ADR-0007's sibling reasoning). The editor
+therefore reads `managedKeys()` from the blueprint and renders exactly those fields read-only,
+naming the class that owns them; only fields the definition leaves unset stay writable. **Create**
+produces database-defined agents only.
+
+The alternative — letting the form write anything and hoping — produces an edit that survives until
+the next deploy silently reverts it. That is the kind of defect that is reported as "Pandora lost my
+settings" six months later.
+
+### Acceptance
+
+See `docs/development/phase-3.5-acceptance.md` — 20 criteria mapped to automated tests. The
+load-bearing ones: a control-center edit to a class-managed field is refused rather than reverted;
+`pandora.agents.manage` is required to write and proven absent-by-default; instructions stay behind
+`pandora.prompts.view`; and a tenant cannot open, edit or delete another tenant's agent.
+
+**Status:** all 20 criteria verified by automated test. The host walkthrough (Q9) is outstanding, as
+it is for Phases 1 and 2 — nobody has yet clicked Edit in a browser against a real deployment.
+
+---
+
 ## Phase 4 — Automation ⬜
 
 `Automation` entity with all six trigger types · single scheduler entry driving `next_run_at` ·
 timezone handling · misfire, concurrency and retry policies · idempotency preventing double-fire ·
 Laravel event triggers via `Pandora::on()` · signed, replay-protected webhooks · heartbeats and
 autonomy levels · conditional polling · goal queue and pending observations · run history ·
-Automations UI · `pandora:automation:list` / `:run`.
+Automations UI · the agent's **Automations** tab · `pandora:automation:list` / `:run`.
 
 **Acceptance:** two schedulers firing simultaneously produce exactly one run. Autonomy levels are
 enforced. An automation exhausting its autonomy budget disables itself and notifies an admin. Webhook
@@ -142,7 +197,8 @@ Full context provider pipeline with budgeting, redaction and attribute allowlist
 from configured roots only · conversation summarisation · `MemoryItem` with all scopes and types ·
 lexical retrieval requiring no vector database · `EmbeddingProvider` / `VectorStore` contracts +
 pgvector adapter · curation, approval before storing sensitive facts, expiry, forgetting, export ·
-workspaces with path containment, quotas and MIME restrictions · Memory and Workspaces UI.
+workspaces with path containment, quotas and MIME restrictions · Memory and Workspaces UI ·
+the agent's **Skills**, **Memory** and **Workspace** tabs.
 
 **Acceptance:** memory scoping is proven — a user cannot retrieve another user's or another tenant's
 memories. Workspace traversal and symlink escape attacks fail. A default install works with no vector
@@ -155,7 +211,7 @@ database.
 `DelegateToAgent`, child runs, depth limits, budget inheritance, cancellation propagation, structured
 results · MCP client with transports, discovery, schema caching and hashing, per-agent permissions,
 namespacing, health · optional authenticated Pandora MCP server with an explicit exposure allowlist ·
-MCP UI · `pandora:mcp:list`.
+MCP UI · the agent's **Permissions** tab · `pandora:mcp:list`.
 
 **Acceptance:** delegation cannot escalate privilege — the child's abilities are the intersection.
 Depth limits hold. A changed remote schema hash revokes approval. Nothing is exposed by the MCP server
@@ -167,7 +223,7 @@ without explicit configuration.
 
 `Channel` contract · identity linking (channel identity is never application identity) · Slack as the
 reference extension package · extension manifest format · Composer-installed extension discovery and
-inspection · Channels UI · extension authoring documentation.
+inspection · Channels UI · the agent's **Channels** tab · extension authoring documentation.
 
 **Acceptance:** an unlinked channel identity cannot act as a user. An extension package registers
 providers, tools and channels through the documented contracts alone, with no core changes.

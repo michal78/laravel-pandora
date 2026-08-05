@@ -271,7 +271,7 @@ Sixteen groups. Each page is authorized independently (`security-model.md`).
 | Dashboard | status, attention items, health, usage summary |
 | Chat | conversation list, thread, composer, tool cards, approval cards |
 | Conversations | search, filter, tags, archive, fork, usage |
-| Agents | index; detail tabs: Overview · Instructions · Models · Tools · Skills · Memory · Channels · Automations · Workspace · Permissions · Runs · Usage |
+| Agents | index; detail tabs: Overview · Instructions · Models · Limits & Autonomy · Runs · Usage (built, Phase 3.5) — Tools · Skills · Memory · Channels · Automations · Workspace · Permissions (each filled by the phase that builds its subsystem) |
 | Runs | active / waiting / completed / failed / cancelled; run detail timeline; raw trace (admin only) |
 | Tools | registry, schema, risk, policy, executions, success rates, test console |
 | Skills | installed, validation, import/export, editor, warnings |
