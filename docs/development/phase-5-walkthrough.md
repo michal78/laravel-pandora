@@ -1,8 +1,9 @@
 # Phase 5 — Host Walkthrough
 
-> Status: **not yet run.** Phase 5 is code-complete and every acceptance
-> criterion has a passing test; this is the part the suite structurally cannot
-> do.
+> Status: **staged, not yet driven.** Phase 5 is code-complete and every
+> acceptance criterion has a passing test; this is the part the suite
+> structurally cannot do. The host application is prepared (see *Before you
+> start*) and the checks below are waiting on a person and a browser.
 
 Phase 4 produced seven defects and not one was reachable by the package suite
 as configured. Three of those came from this walkthrough — a different date
@@ -13,6 +14,29 @@ Run against `laravel-test`, or any host application, with
 `PANDORA_UI_ENABLED=true` and the abilities granted (see
 `docs/guides/automations.md` for the `AppServiceProvider` pattern —
 Phase 5 needs `pandora.memory.manage` and `pandora.workspaces.access`).
+
+## Before you start
+
+Five things, none of which the package can do for a host application. They are
+listed because the first run of this walkthrough hit every one of them:
+
+- [x] `vendor:publish --tag=pandora-migrations` **again**, then `migrate`.
+      Pandora's migrations are published, never loaded from the package, so a
+      host that installed at Phase 4 has none of the five Phase 5 tables and
+      `migrate` will cheerfully report nothing to do.
+- [x] `vendor:publish --tag=pandora-config --force`. A config file published
+      before this phase has no `memory` section and an older `context` section;
+      `mergeConfigFrom` restores the missing top-level key but will *not* fill
+      in the new nested `context.files` and `context.summarisation` keys.
+      Re-apply any local edits — for `laravel-test` that is one agent class in
+      `agents.definitions`.
+- [x] Define `pandora.memory.manage` and `pandora.workspaces.access`.
+- [x] Give an agent the memory tools: `->tools(['remember', 'recall'])`. An
+      empty allowlist means no tools, so an agent that has never been given
+      them cannot remember anything and will say so in a way that reads like a
+      bug.
+- [x] Run a queue worker. Every run is a queued continuation; without one the
+      chat page waits forever and nothing in this document can be checked.
 
 ## Memory
 
