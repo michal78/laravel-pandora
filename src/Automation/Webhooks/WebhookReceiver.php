@@ -7,6 +7,7 @@ namespace Pandora\Pandora\Automation\Webhooks;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Pandora\Pandora\Audit\AuditLogger;
 use Pandora\Pandora\Automation\Automation;
 use Pandora\Pandora\Automation\AutomationDispatcher;
@@ -85,7 +86,13 @@ final class WebhookReceiver
             // The nonce was already there. Nothing further happens, and the
             // status code says so -- a legitimate integrator retrying after a
             // timeout should learn its first attempt landed.
-            throw WebhookRejected::replay();
+            //
+            // It is counted rather than merely refused. Replay protection
+            // works by a unique insert, so the duplicate cannot record itself
+            // as its own row; without this it would be the one rejection that
+            // left no evidence anywhere, which is exactly how a sender with
+            // broken retry logic stays invisible.
+            throw $this->countReplay($automation, $signature->hash, $sourceIp);
         }
 
         $occurrence = $this->dispatcher->dispatch(
@@ -107,6 +114,34 @@ final class WebhookReceiver
             'occurrence_id' => (string) ($occurrence?->getKey() ?? $delivery->getKey()),
             'duplicate' => $occurrence === null,
         ];
+    }
+
+    /**
+     * Record a repeat delivery against the one it duplicates.
+     *
+     * `increment()` rather than read-modify-write, so two simultaneous
+     * replays of the same delivery both count -- the same reasoning that made
+     * the original claim an insert.
+     */
+    private function countReplay(Automation $automation, string $signature, ?string $sourceIp): WebhookRejected
+    {
+        WebhookDelivery::query()
+            ->where('automation_id', $automation->getKey())
+            ->where('signature', $signature)
+            ->update([
+                'replay_count' => DB::raw('replay_count + 1'),
+                'last_replayed_at' => now(),
+            ]);
+
+        $this->audit->record(
+            action: 'webhook.rejected',
+            targetType: 'automation',
+            targetId: $automation->id,
+            severity: 'warning',
+            metadata: ['slug' => $automation->slug, 'reason' => 'replay', 'ip' => $sourceIp],
+        );
+
+        return WebhookRejected::replay();
     }
 
     private function automation(string $slug): Automation

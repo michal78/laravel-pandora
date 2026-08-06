@@ -165,6 +165,12 @@ All notable changes to this project are documented here. The format follows
     audit actions.
 
 ### Fixed
+- **A replayed webhook left no evidence anywhere.** Replay protection is a unique
+  `(automation, signature)` insert, so the duplicate could not record itself as a row — making it the
+  one rejection with nothing to show for it, and letting a sender with broken retry logic stay
+  invisible. Repeats are now counted on the delivery they duplicate (`replay_count`,
+  `last_replayed_at`) and audited like every other rejection. The Deliveries table shows the count,
+  and the History tab of a webhook automation now says where refused deliveries actually live.
 - **Pandora now works in an application that uses immutable dates.** A host with
   `Date::use(CarbonImmutable::class)` — a suggestion in Laravel's own default `AppServiceProvider` —
   got a fatal `TypeError` on the Automations page, because Phase 4 typed its date parameters and

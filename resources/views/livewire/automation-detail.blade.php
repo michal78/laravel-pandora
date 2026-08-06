@@ -427,6 +427,20 @@
 
     {{-- ------------------------------------------------------------- history --}}
     @if ($tab === 'history')
+        @if ($automation->trigger_type === \Pandora\Pandora\Automation\Enums\AutomationTrigger::Webhook)
+            {{--
+                Sends people to the right tab. A delivery refused before it
+                became an occurrence -- a bad signature, a replay -- has nothing
+                to show here by construction, and somebody who just got a 401 or
+                a 409 will look here first.
+            --}}
+            <div class="pd-notice pd-notice-info">
+                Occurrences are what this automation <em>ran</em>. A delivery that was refused before
+                it got that far — a wrong signature, a stale timestamp, a repeat — never became one,
+                and is on the <strong>Webhook</strong> tab under Deliveries.
+            </div>
+        @endif
+
         <x-pandora::card title="Occurrences" :padded="false">
             <div class="pd-table-wrap">
                 <table class="pd-table">
@@ -534,6 +548,16 @@
                                     @else
                                         <x-pandora::badge tone="warning">Rejected</x-pandora::badge>
                                         <div class="pd-mono pd-faint">{{ $delivery->reason }}</div>
+                                    @endif
+
+                                    @if ($delivery->replay_count > 0)
+                                        {{-- A replay cannot be its own row: the unique insert that
+                                             refuses it is the replay protection. It is counted here
+                                             instead, on the delivery it duplicates. --}}
+                                        <div class="pd-faint">
+                                            sent again {{ $delivery->replay_count }}&times;,
+                                            last {{ $delivery->last_replayed_at?->diffForHumans() }}
+                                        </div>
                                     @endif
                                 </td>
                                 <td class="pd-mono pd-faint">{{ $delivery->source_ip ?? '—' }}</td>

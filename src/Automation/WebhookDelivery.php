@@ -31,6 +31,8 @@ use Pandora\Pandora\Support\Concerns\PandoraModel;
  * @property string $signature
  * @property string $status
  * @property string|null $reason
+ * @property int $replay_count
+ * @property Carbon|null $last_replayed_at
  * @property string|null $source_ip
  * @property int $payload_bytes
  * @property array<string, mixed>|null $payload
@@ -52,6 +54,7 @@ final class WebhookDelivery extends Model
     protected $fillable = [
         'tenant_id', 'automation_id', 'run_id', 'signature', 'status',
         'reason', 'source_ip', 'payload_bytes', 'payload',
+        'replay_count', 'last_replayed_at',
     ];
 
     /**
@@ -62,6 +65,8 @@ final class WebhookDelivery extends Model
         return [
             'payload' => 'array',
             'payload_bytes' => 'integer',
+            'replay_count' => 'integer',
+            'last_replayed_at' => 'datetime',
         ];
     }
 

@@ -113,6 +113,39 @@ it('rejects a replayed delivery and creates no second run', function (): void {
         ->and(WebhookDelivery::query()->count())->toBe(1);
 });
 
+it('counts a replay on the delivery it duplicates, and audits it', function (): void {
+    // Replay protection is a unique insert, so the duplicate cannot be its own
+    // row. Without counting it here a 409 leaves no evidence anywhere -- the
+    // only rejection with none -- and a sender with broken retry logic stays
+    // invisible until somebody wonders about the bill.
+    $body = json_encode(['order' => 'ORD-9']);
+    $signature = WebhookSignature::sign(WEBHOOK_SECRET, $body);
+
+    postWebhook($body, $signature)->assertStatus(202);
+    postWebhook($body, $signature)->assertStatus(409);
+    postWebhook($body, $signature)->assertStatus(409);
+
+    /** @var WebhookDelivery $delivery */
+    $delivery = WebhookDelivery::query()->firstOrFail();
+
+    expect(WebhookDelivery::query()->count())->toBe(1)
+        ->and($delivery->status)->toBe(WebhookDelivery::ACCEPTED)
+        ->and($delivery->replay_count)->toBe(2)
+        ->and($delivery->last_replayed_at)->not->toBeNull();
+
+    expect(AuditLog::query()->where('action', 'webhook.rejected')->count())->toBe(2)
+        ->and(AuditLog::query()->where('action', 'webhook.rejected')->value('metadata'))
+        ->not->toBeNull();
+});
+
+it('leaves replay_count alone on a delivery nobody repeated', function (): void {
+    $body = json_encode(['order' => 'ORD-9']);
+
+    postWebhook($body, WebhookSignature::sign(WEBHOOK_SECRET, $body))->assertStatus(202);
+
+    expect(WebhookDelivery::query()->firstOrFail()->replay_count)->toBe(0);
+});
+
 it('accepts a second delivery with its own signature', function (): void {
     // The guard has to be tight enough to stop a replay and loose enough that
     // two genuine deliveries close together both land.

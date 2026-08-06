@@ -174,7 +174,7 @@ no single process sees every delivery.
 | `202` | Accepted; the run is queued. Not `200` — the work is not done |
 | `401` | Signature missing, malformed, wrong, or stale |
 | `404` | No such automation, disabled, no secret, or another tenant's |
-| `409` | Already delivered |
+| `409` | Already delivered — counted on the delivery it duplicates, not stored as a second row |
 | `413` | Body over `webhooks.max_payload_bytes` |
 
 The 404 covers four different situations on purpose. A caller learning which one applied is being
@@ -223,6 +223,13 @@ me.
 Every occurrence is a row, **including the ones that produced no run**, with a reason. "It never
 fired" and "it fired and declined" are different incidents, and a silence is indistinguishable from a
 scheduler that stopped last Tuesday.
+
+An occurrence is what the automation **ran**. An inbound delivery refused before it got that far — a
+wrong signature, a stale timestamp, a repeat — never became one, so it is on the **Webhook** tab
+under Deliveries rather than in History. A replay is the awkward case: replay protection *is* a
+unique insert, so the duplicate cannot be its own row, and it is counted on the delivery it
+duplicates instead. `replay_count` climbing is how a sender with broken retry logic announces
+itself.
 
 | Outcome | What happened |
 |---|---|
