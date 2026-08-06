@@ -464,14 +464,51 @@ it('names the phase that fills each tab that is not built yet', function (): voi
         ->call('selectTab', 'tools')
         ->assertSee('Phase 3.5+')
         ->call('selectTab', 'channels')
-        ->assertSee('Phase 7')
+        ->assertSee('a later phase')
         ->call('selectTab', 'permissions')
         ->assertSee('Phase 6');
 
     expect(array_keys(AgentDetail::PENDING_TABS))
         ->not->toContain('memory')
-        ->and(array_keys(AgentDetail::PENDING_TABS))->not->toContain('skills')
-        ->and(array_keys(AgentDetail::PENDING_TABS))->not->toContain('workspace');
+        ->and(array_keys(AgentDetail::PENDING_TABS))->not->toContain('skills');
+});
+
+/**
+ * A deferred tab is a promise, and says so the way the others do.
+ *
+ * Workspace is built rather than unbuilt, which makes it tempting to leave as a
+ * working tab that explains itself inside. That reads as a page that is broken.
+ * It joins the pending list instead, and leaves it when the flag flips.
+ */
+it('lists workspace among the tabs that are not here yet', function (): void {
+    config()->set('pandora.features.workspaces', false);
+
+    AgentFactory::database(['slug' => 'support']);
+
+    $this->actingAsUser();
+
+    expect(array_keys(AgentDetail::pendingTabs()))->toContain('workspace');
+
+    Livewire::test(AgentDetail::class, ['agent' => 'support'])
+        ->call('selectTab', 'workspace')
+        ->assertSee('Phase 7')
+        // Not a workspace page reporting that it is empty.
+        ->assertDontSee('Root');
+});
+
+it('returns workspace to the live tabs once the feature is enabled', function (): void {
+    config()->set('pandora.features.workspaces', true);
+
+    AgentFactory::database(['slug' => 'support']);
+
+    $this->actingAsUser();
+
+    expect(array_keys(AgentDetail::pendingTabs()))->not->toContain('workspace');
+
+    Livewire::test(AgentDetail::class, ['agent' => 'support'])
+        ->call('selectTab', 'workspace')
+        ->assertSee('can reach no files at all')
+        ->assertDontSee('Phase 7');
 });
 
 // ------------------------------------------------------------- automations

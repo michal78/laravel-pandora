@@ -18,6 +18,7 @@ use Pandora\Pandora\Memory\MemoryItem;
 use Pandora\Pandora\Runs\Enums\AutonomyLevel;
 use Pandora\Pandora\Runs\Run;
 use Pandora\Pandora\Skills\Skill;
+use Pandora\Pandora\UI\Feature;
 use Pandora\Pandora\UI\PandoraGate;
 use Pandora\Pandora\Usage\UsageRecord;
 use Pandora\Pandora\Workspaces\Workspace;
@@ -105,10 +106,37 @@ final class AgentDetail extends Component
             'note' => 'Tool grants are stored on the agent and enforced today; this tab will edit them rather than requiring a class definition or a seeder.',
         ],
 
-        'channels' => ['label' => 'Channels', 'phase' => 'Phase 7', 'note' => 'Where this agent can be reached, and which identities map to it.'],
+        // Was pencilled in as Phase 7 before Phase 7 became workspaces. Left
+        // unnumbered rather than renumbered onto a phase nobody has scoped.
+        'channels' => ['label' => 'Channels', 'phase' => 'a later phase', 'note' => 'Where this agent can be reached, and which identities map to it.'],
 
         'permissions' => ['label' => 'Permissions', 'phase' => 'Phase 6', 'note' => 'Delegation, MCP access and the abilities required to run it.'],
     ];
+
+    /**
+     * The pending tabs, plus anything built but not yet released.
+     *
+     * A deferred tab is a promise like any other and says so the same way,
+     * rather than presenting itself as working and explaining inside. The
+     * const holds what was never built; this adds what is finished and
+     * withheld, and the tab returns to the live list when the flag flips.
+     *
+     * @return array<string, array{label: string, phase: string, note: string}>
+     */
+    public static function pendingTabs(): array
+    {
+        $pending = self::PENDING_TABS;
+
+        if (Feature::disabled('workspaces')) {
+            $pending['workspace'] = [
+                'label' => 'Workspace',
+                'phase' => 'Phase 7',
+                'note' => 'A directory this agent may read and write inside, bounded by a root it cannot escape, a quota it cannot exceed and a list of types it cannot widen. Until then it reaches no files, which is what it would do with no workspace attached in any case.',
+            ];
+        }
+
+        return $pending;
+    }
 
     public function mount(string $agent): void
     {
@@ -339,7 +367,7 @@ final class AgentDetail extends Component
             'skills' => $this->tab === 'skills' ? $this->skillsFor($agent) : collect(),
             'workspace' => $this->tab === 'workspace' ? $this->workspaceFor($agent) : null,
             'canManageMemory' => PandoraGate::allows('memory.manage'),
-            'pendingTabs' => self::PENDING_TABS,
+            'pendingTabs' => self::pendingTabs(),
         ])->layout('pandora::layouts.app', ['title' => $agent->name]);
     }
 
