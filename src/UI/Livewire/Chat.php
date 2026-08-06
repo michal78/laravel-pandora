@@ -22,6 +22,7 @@ use Pandora\Pandora\Core\Actor\ActorManager;
 use Pandora\Pandora\Exceptions\ApprovalNotPending;
 use Pandora\Pandora\Exceptions\AuthorizationDenied;
 use Pandora\Pandora\Messages\Message;
+use Pandora\Pandora\Pandora;
 use Pandora\Pandora\Runs\Enums\RunState;
 use Pandora\Pandora\Runs\Enums\TriggerType;
 use Pandora\Pandora\Runs\Run;
@@ -204,6 +205,23 @@ final class Chat extends Component
 
         if ($agent === null) {
             $this->addError('composer', 'No agent is available to respond.');
+
+            return;
+        }
+
+        // A run that asked something is owed an answer, not a competitor. Left
+        // to start a fresh run, the parked one is never resumed and so never
+        // reaches a terminal state -- it stays the conversation's active run,
+        // and the header goes on reporting "Waiting for you" over the top of a
+        // conversation that has since moved on.
+        $waiting = $this->activeRun();
+
+        if ($waiting !== null && $waiting->state === RunState::WaitingForUser) {
+            $this->composer = '';
+
+            app(Pandora::class)->reply($waiting, $input);
+
+            $this->awaitingRun = true;
 
             return;
         }

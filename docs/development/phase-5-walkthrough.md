@@ -144,6 +144,25 @@ write". Alongside it, a sweep in `BuiltInToolsTest` asserts that no built-in
 above `Low` risk inherits `authorize()` from the base class, which is the
 invariant that was silently violated rather than the single instance of it.
 
+**3. Answering a question started a rival run.** (Header stuck on *Waiting for
+you* over a conversation that had moved on.)
+
+`ask_user` parks its run at `waiting_for_user` holding no job; `Pandora::reply()`
+is what resumes it, and it is the only thing that does. `Chat::send()` never
+called it — every message went to `AgentRunner->dispatch()`, so answering a
+question started a second run beside the parked one rather than feeding it.
+
+The parked run was then unreachable. Nothing would ever resume it, so it never
+reached a terminal state, so `activeRun()` — which takes the latest non-terminal
+run — kept returning it in preference to the runs that actually completed. The
+header rendered that orphan's state, which is why "Waiting for you" and
+"Working" appeared together and why answering never cleared it. The visible
+symptom was a stale badge; the real one was a run leaked per question asked.
+
+No test covered the composer against a parked run: the chat tests either send
+into a fresh conversation or assert on rendering, and `Pandora::reply()` has its
+own tests that never go through the UI. The gap was the seam between them.
+
 ## Notes
 
 Anything found here goes in `progress.md` with the same honesty Phase 4 used:

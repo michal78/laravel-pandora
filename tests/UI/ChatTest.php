@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
 use Pandora\Pandora\Agents\AgentRegistry;
 use Pandora\Pandora\Agents\AgentRunner;
+use Pandora\Pandora\Jobs\ResumeRunWithUserReply;
 use Pandora\Pandora\Messages\Enums\StreamingState;
 use Pandora\Pandora\Messages\Message;
 use Pandora\Pandora\Runs\Enums\RunState;
@@ -188,4 +189,48 @@ it('works correctly with realtime disabled', function (): void {
     Livewire::test(Chat::class, ['conversation' => (string) $conversation->getKey()])
         ->assertOk()
         ->assertSee('Polling still works.');
+});
+
+/**
+ * A parked run is owed an answer, not a competitor.
+ *
+ * `ask_user` leaves the run at `waiting_for_user` holding no job, waiting for
+ * `Pandora::reply()` to resume it. If the composer starts a fresh run instead,
+ * the parked one is never resumed and never reaches a terminal state, so it
+ * remains the conversation's active run -- and the header reports "Waiting for
+ * you" over a conversation that has since moved on.
+ */
+it('answers a run that asked a question instead of starting a rival run', function (): void {
+    Queue::fake();
+
+    $agent = app(AgentRegistry::class)->get('echo');
+    $conversation = $this->makeConversation($agent, [
+        'created_by_type' => $this->user::class,
+        'created_by_id' => (string) $this->user->getKey(),
+    ]);
+    $session = $this->makeSession($agent);
+
+    $waiting = $this->makeRun([
+        'agent_id' => $agent->getKey(),
+        'session_id' => $session->getKey(),
+        'conversation_id' => $conversation->getKey(),
+        'state' => RunState::WaitingForUser->value,
+        'actor_type' => $this->user::class,
+        'actor_id' => (string) $this->user->getKey(),
+    ]);
+
+    Livewire::test(Chat::class)
+        ->set('conversationId', (string) $conversation->getKey())
+        ->set('composer', 'Michal')
+        ->call('send')
+        ->assertOk();
+
+    // No second run: the answer belongs to the run that asked.
+    expect(Run::query()->count())->toBe(1);
+
+    Queue::assertPushed(ResumeRunWithUserReply::class,
+        static fn ($job): bool => $job->runId === (string) $waiting->getKey());
+
+    // And the answer is an ordinary message, reaching the model by the one path.
+    expect(Message::query()->where('content', 'Michal')->exists())->toBeTrue();
 });
