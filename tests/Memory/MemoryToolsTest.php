@@ -217,3 +217,26 @@ it('is registered as a built-in tool', function (): void {
 
     expect($names)->toContain('remember', 'recall');
 });
+
+/**
+ * The layer between "the agent may call this" and "it ran".
+ *
+ * Every test above reaches `handle()` directly, which is the right shape for
+ * asking what a write does but says nothing about whether a write is ever
+ * reached. `Tool::authorize()` is consulted first, and its default refuses
+ * anything above `RiskLevel::Low` -- so a `Medium` tool that does not override
+ * it is not merely restricted, it is unreachable by everyone.
+ */
+it('lets a person present in the session write a memory', function (): void {
+    expect((new RememberTool)->authorize(
+        new ToolInput(['content' => 'They prefer mornings.', 'about' => 'person']),
+        memoryToolContext(),
+    ))->toBeTrue();
+});
+
+it('refuses a write to an actorless run', function (): void {
+    expect((new RememberTool)->authorize(
+        new ToolInput(['content' => 'They prefer mornings.', 'about' => 'person']),
+        memoryToolContext(ActorContext::system('automation:nightly')),
+    ))->toBeFalse();
+});

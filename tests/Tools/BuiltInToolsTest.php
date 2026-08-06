@@ -306,6 +306,32 @@ it('declares no recipient argument at all', function (): void {
     expect(array_keys($rules))->toBe(['notification', 'payload']);
 });
 
+/**
+ * The default `authorize()` grants nothing above `RiskLevel::Low`, which is the
+ * right default for a tool somebody else writes and the wrong one to inherit by
+ * accident: a `Medium` tool that forgets to override it is not restricted to
+ * privileged callers, it is refused to every caller including the person who
+ * owns the data. That failure is invisible to any test calling `handle()`,
+ * because `handle()` is never reached.
+ */
+it('gives every mutating built-in an authorize() of its own', function (): void {
+    $inherited = [];
+
+    foreach (BuiltInTools::all() as $class) {
+        $tool = app($class);
+
+        if ($tool->risk() === RiskLevel::Low) {
+            continue;
+        }
+
+        if ((new ReflectionMethod($tool, 'authorize'))->getDeclaringClass()->getName() === Tool::class) {
+            $inherited[] = $tool->name();
+        }
+    }
+
+    expect($inherited)->toBe([]);
+});
+
 final class BuiltInNoopJob implements ShouldQueue
 {
     use Dispatchable;

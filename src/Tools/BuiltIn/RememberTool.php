@@ -79,6 +79,18 @@ final class RememberTool extends Tool
         return 'Remember: '.mb_substr($input->requiredString('content'), 0, 80);
     }
 
+    /**
+     * A person has to be there, unlike a read.
+     *
+     * The default refuses anything above `RiskLevel::Low`, which for a `Medium`
+     * tool means refusing everyone -- the risk here is carried by approval and
+     * by the scopes `MemoryWriter` derives, not by making the tool unreachable.
+     */
+    public function authorize(ToolInput $input, ToolContext $context): bool
+    {
+        return $context->actor !== null && ! $context->actor->isSystem();
+    }
+
     public function handle(ToolInput $input, ToolContext $context): ToolResult
     {
         [$scope, $type] = match ($input->requiredString('about')) {

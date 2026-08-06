@@ -122,6 +122,28 @@ once, in `ToolDefinition::encodableSchema()`, rather than in each of the three
 adapters that pass it to `json_encode`; the new tests read the encoded body,
 and all five fail without it.
 
+**2. `remember` was refused to everybody.** (*You are not authorized to use
+[remember].*)
+
+`Tool::authorize()` grants nothing above `RiskLevel::Low`. That is the right
+default for a tool somebody else writes and the wrong one to inherit by
+accident: `RememberTool` declares `Medium` — deliberately, since writing a
+durable claim about a person is not a low-risk act — and never overrode it. The
+result was not a tool restricted to privileged callers but one refused to every
+caller, including the person whose own memory it was. No allowlist, gate or
+ability could have opened it.
+
+The suite could not see this one either, and for the same reason as the first:
+every test in `MemoryToolsTest` calls `handle()` directly, so it exercised what
+the write does while never asking whether the write is reachable. `handle()` is
+never reached when `authorize()` refuses.
+
+The fix gives `RememberTool` the actor-presence check its sibling's docblock
+already implied — `recall` notes it is "available to a system actor, unlike a
+write". Alongside it, a sweep in `BuiltInToolsTest` asserts that no built-in
+above `Low` risk inherits `authorize()` from the base class, which is the
+invariant that was silently violated rather than the single instance of it.
+
 ## Notes
 
 Anything found here goes in `progress.md` with the same honesty Phase 4 used:
