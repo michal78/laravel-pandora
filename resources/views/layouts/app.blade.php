@@ -88,7 +88,8 @@
                         ['route' => 'pandora.runs',      'label' => 'Runs',      'glyph' => '◇', 'ability' => 'access'],
                         ['route' => 'pandora.tools',     'label' => 'Tools',     'glyph' => '◧', 'ability' => 'access'],
                         ['route' => 'pandora.memory',    'label' => 'Memory',    'glyph' => '◎', 'ability' => 'access'],
-                        ['route' => 'pandora.workspaces', 'label' => 'Workspaces', 'glyph' => '▤', 'ability' => 'workspaces.access'],
+                        ['route' => 'pandora.workspaces', 'label' => 'Workspaces', 'glyph' => '▤', 'ability' => 'workspaces.access',
+                         'soon' => \Pandora\Pandora\UI\Feature::disabled('workspaces')],
                         ['route' => 'pandora.approvals', 'label' => 'Approvals', 'glyph' => '◉', 'ability' => 'access'],
                         ['route' => 'pandora.providers', 'label' => 'Providers', 'glyph' => '◍', 'ability' => 'access'],
                         ['route' => 'pandora.usage',     'label' => 'Usage',     'glyph' => '◫', 'ability' => 'usage.view'],
@@ -96,6 +97,19 @@
                 @endphp
 
                 @foreach ($nav as $item)
+                    @if ($item['soon'] ?? false)
+                        {{-- Shown, so the feature is not a surprise later, and
+                             inert, so it cannot be mistaken for one that works. --}}
+                        <span class="pd-nav-link is-soon" title="{{ $item['label'] }} — coming soon"
+                              aria-disabled="true">
+                            <span class="pd-nav-glyph" aria-hidden="true">{{ $item['glyph'] }}</span>
+                            <span>{{ $item['label'] }}</span>
+                            <span class="pd-nav-soon">Coming soon</span>
+                        </span>
+
+                        @continue
+                    @endif
+
                     <a href="{{ route($item['route']) }}"
                        class="pd-nav-link {{ request()->routeIs($item['route'] . '*') ? 'is-active' : '' }}"
                        title="{{ $item['label'] }}"

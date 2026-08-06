@@ -18,6 +18,13 @@ use Pandora\Pandora\Workspaces\Workspace;
 beforeEach(function (): void {
     Gate::define('pandora.access', static fn (): bool => true);
     Gate::define('pandora.workspaces.access', static fn (): bool => true);
+
+    // The surface is deferred to Phase 7 and ships disabled. The behaviour
+    // below is finished, so it stays covered here rather than being deleted
+    // and rewritten a phase later -- which is how tested code becomes
+    // untested code. See the tests at the foot of this file for the off state.
+    config()->set('pandora.features.workspaces', true);
+
     $this->actingAsUser();
 
     $this->root = sys_get_temp_dir().'/pandora-wspage-'.bin2hex(random_bytes(6));
@@ -163,4 +170,43 @@ it('requires pandora.access to open at all', function (): void {
 
 it('is reachable over HTTP', function (): void {
     $this->get(route('pandora.workspaces'))->assertOk()->assertSee('Workspaces');
+});
+
+/**
+ * The off state, which is what actually ships until Phase 7.
+ *
+ * A feature flag that is never tested in its default position is a feature
+ * flag that works in exactly the configuration nobody runs.
+ */
+it('says the feature is coming rather than listing workspaces', function (): void {
+    config()->set('pandora.features.workspaces', false);
+
+    Livewire::test(WorkspacesIndex::class)
+        ->assertOk()
+        ->assertSee('coming in a later phase')
+        // The workspace exists in the database and is still not named here.
+        ->assertDontSee('Scratch');
+});
+
+it('reaches no file at all while the feature is off', function (): void {
+    config()->set('pandora.features.workspaces', false);
+
+    Livewire::test(WorkspacesIndex::class)
+        ->set('selected', 'scratch')
+        ->set('path', 'reports')
+        ->assertOk()
+        // Not a listing narrowed by permission -- no listing was taken.
+        ->assertDontSee('notes.txt')
+        ->assertDontSee('q1.txt');
+});
+
+it('withholds the page from an operator holding every ability', function (): void {
+    config()->set('pandora.features.workspaces', false);
+
+    Gate::before(static fn (): bool => true);
+
+    Livewire::test(WorkspacesIndex::class)
+        ->assertOk()
+        ->assertSee('coming in a later phase')
+        ->assertDontSee('Scratch');
 });

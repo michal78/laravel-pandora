@@ -37,9 +37,13 @@ longer in the room.
   summarisation as a stored artefact, and redaction inside `ContextBuilder`.
 - **Workspaces** with path containment checked after resolution on every
   operation, quotas claimed by conditional increment, and MIME matched on the
-  detected type rather than the extension.
-- **Memory and Workspaces pages**, and the agent's Skills, Memory and Workspace
-  tabs.
+  detected type rather than the extension — **built, and deferred to Phase 7
+  behind `pandora.features.workspaces` (off).** The code and its tests stay in
+  the tree; what is withheld is the way in, from everybody, including an
+  operator holding every ability. Deferred because creating a workspace means
+  choosing a root, and a UI field that accepts a root path accepts `/`.
+- **Memory page**, and the agent's Skills and Memory tabs. The Workspaces page
+  and the agent's Workspace tab say the feature is coming.
 
 ### Fixed
 

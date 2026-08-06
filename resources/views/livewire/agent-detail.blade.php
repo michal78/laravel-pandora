@@ -74,6 +74,10 @@
                 'runs' => 'Runs',
                 'usage' => 'Usage',
             ];
+
+            // Deferred to Phase 7. The tab stays, so the agent's shape is not
+            // quietly different between releases, and says why it is empty.
+            $workspaceSoon = \Pandora\Pandora\UI\Feature::disabled('workspaces');
         @endphp
 
         @foreach ($liveTabs as $key => $label)
@@ -603,7 +607,13 @@
     {{-- -------------------------------------------------------- workspace --}}
     @if ($tab === 'workspace')
         <x-pandora::card title="Workspace">
-            @if ($workspace === null)
+            @if ($workspaceSoon)
+                <p class="pd-muted">
+                    Agent file workspaces are coming in a later phase. Until then this
+                    agent reaches no files, which is what it would do with no workspace
+                    attached in any case.
+                </p>
+            @elseif ($workspace === null)
                 <p class="pd-muted">
                     This agent has no workspace, so it can reach no files at all. That is the
                     default, and it is the right one for an agent nobody has thought about yet.

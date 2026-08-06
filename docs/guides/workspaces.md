@@ -1,5 +1,12 @@
 # Workspaces
 
+> **Coming in Phase 7.** This is built and covered by tests, and it ships
+> disabled: `pandora.features.workspaces` is `false`, the Workspaces page says
+> the feature is coming, and no agent reaches a file through a workspace.
+> Set `PANDORA_FEATURE_WORKSPACES=true` to use it before then, understanding
+> that creating a workspace is a code-level act and stays one until Phase 7
+> settles how a root may be chosen from the UI.
+
 A workspace is a bounded piece of filesystem an agent may use. An agent with no
 workspace can reach no files at all, and that is the default — it is the right
 one for an agent nobody has thought about yet.

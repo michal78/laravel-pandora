@@ -10,6 +10,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Pandora\Pandora\Audit\AuditLogger;
 use Pandora\Pandora\Exceptions\WorkspaceDenied;
+use Pandora\Pandora\UI\Feature;
 use Pandora\Pandora\UI\PandoraGate;
 use Pandora\Pandora\Workspaces\Workspace;
 use Pandora\Pandora\Workspaces\WorkspaceFiles;
@@ -90,6 +91,15 @@ final class WorkspacesIndex extends Component
 
     public function render(): View
     {
+        // Held back rather than removed. Nothing below runs while the feature
+        // is off, so no workspace is listed, read or counted -- including for
+        // an operator holding every ability, because this is not a question
+        // about who is asking.
+        if (Feature::disabled('workspaces')) {
+            return view('pandora::livewire.workspaces-soon')
+                ->layout('pandora::layouts.app', ['title' => 'Workspaces']);
+        }
+
         $workspace = $this->workspace();
         $entries = [];
         $unreachable = false;

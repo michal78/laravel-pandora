@@ -82,3 +82,39 @@ it('reaches both automation pages over HTTP from the sidebar', function (): void
         ->assertOk()
         ->assertSee('Nightly report');
 });
+
+/**
+ * A deferred feature is shown and inert.
+ *
+ * Hiding it entirely would leave an operator who has read the guides unable to
+ * tell whether the page is missing or broken; linking it would offer a page
+ * that does not do what the label says.
+ */
+it('marks a deferred feature as coming soon rather than linking it', function (): void {
+    config()->set('pandora.features.workspaces', false);
+
+    Gate::define('pandora.workspaces.access', static fn (): bool => true);
+
+    $this->actingAsUser();
+
+    $response = $this->get(route('pandora.dashboard'))->assertOk()->assertSee('Coming soon');
+
+    // Named, and not offered as somewhere to go.
+    expect($response->getContent())
+        ->toContain('Workspaces')
+        ->not->toContain('href="'.route('pandora.workspaces').'"');
+});
+
+it('links it normally once the feature is enabled', function (): void {
+    config()->set('pandora.features.workspaces', true);
+
+    Gate::define('pandora.workspaces.access', static fn (): bool => true);
+
+    $this->actingAsUser();
+
+    $response = $this->get(route('pandora.dashboard'))->assertOk();
+
+    expect($response->getContent())
+        ->toContain('href="'.route('pandora.workspaces').'"')
+        ->not->toContain('Coming soon');
+});

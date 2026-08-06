@@ -68,7 +68,22 @@ listed because the first run of this walkthrough hit every one of them:
 - [ ] Paste an instruction into the chat telling the agent to recall everything
       about the other user, naming their id. It still does not know.
 
-## Workspaces
+## Workspaces — deferred to Phase 7
+
+**Not driven in this walkthrough.** The surface ships disabled behind
+`pandora.features.workspaces`, so the only two things to check here are that it
+says so and that nothing reaches past it:
+
+- [ ] The sidebar shows **Workspaces** marked *Coming soon*, and it does not link.
+- [ ] `/pandora/workspaces` says the feature is coming and names no workspace,
+      even for an operator holding every ability.
+- [ ] An agent's **Workspace** tab says the same.
+
+The checks below are the Phase 7 walkthrough. They are kept here because the
+behaviour they describe is built and covered — `Workspaces/ContainmentTest`,
+`QuotaTest` and `MimeTest` run on every commit — and because a checklist deleted
+is a checklist rewritten from memory later. Set
+`PANDORA_FEATURE_WORKSPACES=true` to drive them early.
 
 - [ ] Create a workspace pointing at a real directory and attach it to an agent.
       **In code, not in the UI** — see `docs/guides/workspaces.md`. `disk` and
@@ -100,8 +115,9 @@ listed because the first run of this walkthrough hit every one of them:
 
 - [ ] **Memory** tab shows what that agent has written, and nothing belonging to
       a person.
-- [ ] **Workspace** tab shows the workspace, or says plainly that an agent
-      without one can reach no files.
+- [ ] **Workspace** tab says the feature is coming in a later phase (Phase 7,
+      above). With the flag on it shows the workspace, or says plainly that an
+      agent without one can reach no files.
 - [ ] **Skills** tab lists attached skills and flags required tools the agent
       cannot actually call.
 

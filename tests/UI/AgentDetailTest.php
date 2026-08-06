@@ -554,6 +554,8 @@ it('shows what this agent has written down, and nothing belonging to a person', 
 });
 
 it('says an agent with no workspace can reach no files', function (): void {
+    config()->set('pandora.features.workspaces', true);
+
     $agent = AgentFactory::database();
 
     $this->actingAsUser();
@@ -564,6 +566,8 @@ it('says an agent with no workspace can reach no files', function (): void {
 });
 
 it('shows the workspace an agent has', function (): void {
+    config()->set('pandora.features.workspaces', true);
+
     $agent = AgentFactory::database();
 
     /** @var Workspace $workspace */

@@ -46,9 +46,12 @@ Full context provider pipeline with budgeting, redaction and attribute allowlist
 from configured roots only · conversation summarisation · `MemoryItem` with all scopes and types ·
 lexical retrieval requiring no vector database · `EmbeddingProvider` / `VectorStore` contracts and a
 pgvector adapter · curation — approval before storing sensitive facts, expiry, forgetting, export ·
-workspaces with path containment, quotas and MIME restrictions · Memory and Workspaces UI · the
-agent's **Skills**, **Memory** and **Workspace** tabs · `pandora:memory:forget` /
-`:export` / `:reembed`.
+Memory UI · the agent's **Skills** and **Memory** tabs · `pandora:memory:forget` / `:export` /
+`:reembed`.
+
+Workspaces — path containment, quotas, MIME restrictions and the Workspaces UI — were built in this
+phase and **deferred to Phase 7**, where they are accepted. The code stays in the tree and under
+test; `pandora.features.workspaces` holds back the way in.
 
 ## Design decisions taken for this phase
 
@@ -101,17 +104,23 @@ agent's **Skills**, **Memory** and **Workspace** tabs · `pandora:memory:forget`
 | 22 | ✅ **A context provider serialising a model exposes only allowlisted attributes** | `Context/AllowlistTest` |
 | 23 | ✅ **A context file outside the configured roots is refused — absolute path, `..` traversal and symlink alike** | `Context/ContextFileTest` |
 | 24 | ✅ Conversation summarisation produces a stored artefact, regenerated on threshold, not per request | `Context/SummarisationTest` |
-| 25 | ✅ A workspace confines reads and writes to its root — **traversal and symlink escape both fail** | `Workspaces/ContainmentTest` |
-| 26 | ✅ A write exceeding the quota is refused before it lands, and `used_bytes` stays accurate under concurrent writes | `Workspaces/QuotaTest` |
-| 27 | ✅ A disallowed MIME type is refused on detected type, not on the claimed extension | `Workspaces/MimeTest` |
-| 28 | ✅ **A tenant cannot see, read, write or export another tenant's workspace or memory through the UI** | `Memory/TenancyTest` |
+| 25 | ↦ A workspace confines reads and writes to its root — **traversal and symlink escape both fail** | Moved to Phase 7 |
+| 26 | ↦ A write exceeding the quota is refused before it lands, and `used_bytes` stays accurate under concurrent writes | Moved to Phase 7 |
+| 27 | ↦ A disallowed MIME type is refused on detected type, not on the claimed extension | Moved to Phase 7 |
+| 28 | ✅ **A tenant cannot see, read or export another tenant's memory through the UI** | `Memory/TenancyTest` |
+
+Criteria 25–27 are **built and passing** — `Workspaces/ContainmentTest`, `QuotaTest` and `MimeTest`
+still run on every commit. They are not claimed by this phase because the surface that reaches them
+ships disabled behind `pandora.features.workspaces`, and a phase should not accept a guarantee its
+release does not offer. Criterion 28 kept its memory half, which does ship; the workspace half moved
+with the rest.
 
 Test files: `Memory/MemoryItemTest` · `ScopingTest` · `LexicalRetrievalTest` · `ExpiryTest` ·
 `CurationTest` · `RedactionTest` · `ForgettingTest` · `ExportTest` · `VectorStoreTest` ·
 `PgvectorTest` · `EmbeddingCacheTest` · `TenancyTest`; `Context/MemoryProviderTest` · `BudgetTest` ·
-`AllowlistTest` · `ContextFileTest` · `SummarisationTest`; `Workspaces/ContainmentTest` ·
-`QuotaTest` · `MimeTest`; plus `UI/MemoryPageTest`, `UI/WorkspacesPageTest` and additions to
-`UI/AgentDetailTest` for the Skills, Memory and Workspace tabs.
+`AllowlistTest` · `ContextFileTest` · `SummarisationTest`; plus `UI/MemoryPageTest` and additions to
+`UI/AgentDetailTest` for the Skills and Memory tabs. `Workspaces/ContainmentTest` · `QuotaTest` ·
+`MimeTest` and `UI/WorkspacesPageTest` still run, and are counted by Phase 7.
 
 ## Audit actions this phase must produce
 

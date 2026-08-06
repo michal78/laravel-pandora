@@ -63,6 +63,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Features
+    |--------------------------------------------------------------------------
+    |
+    | Surfaces that are built but not yet released. The engine behind a disabled
+    | feature stays present and stays tested -- what a flag withdraws is the way
+    | in, not the code -- so turning one on is a decision rather than a port.
+    |
+    | 'workspaces' holds back the agent file workspace UI, deferred to Phase 7.
+    | Containment, quotas and MIME detection are finished and covered; nothing
+    | reaches them while this is false.
+    |
+    */
+
+    'features' => [
+        'workspaces' => env('PANDORA_FEATURE_WORKSPACES', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Authentication and authorization
     |--------------------------------------------------------------------------
     |

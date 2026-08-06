@@ -220,6 +220,27 @@ button { font: inherit; cursor: pointer; }
     font-weight: var(--pd-weight-heading);
 }
 
+/* Present, and plainly not yet usable. Muted rather than hidden so the feature
+   is not a surprise later, and inert so it cannot be mistaken for one that
+   works: no pointer, no hover response. */
+.pd-nav-link.is-soon {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.pd-nav-link.is-soon:hover { background: transparent; color: var(--pd-text-muted); }
+
+.pd-nav-soon {
+    margin-left: auto;
+    padding: 1px var(--pd-space-2);
+    border: 1px solid var(--pd-border);
+    border-radius: var(--pd-radius-sm, 4px);
+    font-size: 0.72rem;
+    font-weight: var(--pd-weight-label);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
 .pd-nav-glyph { width: 18px; flex-shrink: 0; text-align: center; opacity: 0.85; }
 
 .pd-sidebar-foot { border-top: 1px solid var(--pd-border); padding-top: var(--pd-space-3); }
