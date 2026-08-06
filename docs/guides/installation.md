@@ -6,11 +6,29 @@
 |---|---|
 | PHP | 8.3+ |
 | Laravel | 13 |
+| Database | MySQL 8+, MariaDB 11+, PostgreSQL 14+ — or SQLite for development (see below) |
 | Queue | any Laravel queue driver |
 | Livewire 4 | optional — required only for the control center |
 | Reverb | optional — streaming; the UI polls correctly without it |
 | Redis / Horizon | optional — never required by the core runtime |
 | Vector database | optional — never required; default memory retrieval is lexical |
+
+### A word about SQLite
+
+Pandora **supports SQLite and always will**. It is Laravel's default for a new application, its own
+test suite runs on it, and a package that could not be installed into a fresh `laravel new` app would
+be a package nobody evaluates. Every migration and every portability rule in
+`docs/architecture/database-model.md` exists to keep all four engines working.
+
+For **production**, prefer a server engine — and the reason is specific to what Pandora does rather
+than a general preference. The execution model is concurrent by design: queue workers take row locks
+on runs, the automation scheduler claims occurrences with a unique insert, and webhook replay
+protection depends on two processes racing the same index and exactly one winning. SQLite serialises
+writers across the whole database, so under more than one worker those paths do not fail cleanly —
+they surface as `database is locked`.
+
+Use SQLite for development, tests, CI and single-worker deployments. Use MySQL, MariaDB or
+PostgreSQL where more than one thing runs at once.
 
 ## Install
 

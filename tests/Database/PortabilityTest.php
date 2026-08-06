@@ -130,14 +130,22 @@ it('omits updated_at from append-only tables', function (): void {
 it('rolls migrations back cleanly', function (): void {
     $prefix = config('pandora.database.table_prefix');
 
-    // Counted rather than hard-coded: every phase adds migrations, and a
-    // fixed step count quietly stops reaching the table it was written to
-    // check.
-    $steps = count(glob(dirname(__DIR__, 2).'/database/migrations/*.php') ?: []);
+    // By PATH, not by `--step`. A step count has meant "this many batches" and
+    // "this many migrations" in different Laravel versions, and the count of
+    // Pandora's own files is not either of those once the host's migrations
+    // are in the same table -- which is how this passed locally and failed in
+    // CI for two phases without anybody noticing.
+    //
+    // The path form says exactly what the test means: Pandora's migrations,
+    // all of them, reversed.
+    $this->artisan('migrate:rollback', [
+        '--path' => realpath(dirname(__DIR__, 2).'/database/migrations'),
+        '--realpath' => true,
+    ])->assertSuccessful();
 
-    $this->artisan('migrate:rollback', ['--step' => $steps])->assertSuccessful();
-
-    expect(Schema::hasTable($prefix.'runs'))->toBeFalse();
+    foreach (pandoraTables() as $table) {
+        expect(Schema::hasTable($prefix.$table))->toBeFalse("{$prefix}{$table} survived a rollback");
+    }
 });
 
 it('uses correctly sized ULIDs in hand-written test fixtures', function (): void {
