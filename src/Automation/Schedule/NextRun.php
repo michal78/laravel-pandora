@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pandora\Pandora\Automation\Schedule;
 
+use Carbon\CarbonInterface;
 use Cron\CronExpression;
 use Illuminate\Support\Carbon;
 use Pandora\Pandora\Automation\Automation;
@@ -34,7 +35,7 @@ final class NextRun
      * next occurrence, and neither has an event or webhook automation, which
      * is precisely why the scheduler must never claim one.
      */
-    public function after(Automation $automation, ?Carbon $from = null): ?Carbon
+    public function after(Automation $automation, ?CarbonInterface $from = null): ?CarbonInterface
     {
         $from = ($from ?? Carbon::now())->copy();
 
@@ -54,9 +55,9 @@ final class NextRun
      * unbounded catch-up after a six-hour outage is the outage twice, and the
      * second time it costs money.
      *
-     * @return list<Carbon>
+     * @return list<CarbonInterface>
      */
-    public function occurrencesBetween(Automation $automation, Carbon $after, Carbon $until, int $cap): array
+    public function occurrencesBetween(Automation $automation, CarbonInterface $after, CarbonInterface $until, int $cap): array
     {
         $occurrences = [];
         $cursor = $after->copy();
@@ -106,7 +107,7 @@ final class NextRun
         }
     }
 
-    private function oneOff(Automation $automation, Carbon $from): ?Carbon
+    private function oneOff(Automation $automation, CarbonInterface $from): ?CarbonInterface
     {
         $at = $automation->run_at;
 
@@ -115,7 +116,7 @@ final class NextRun
         return $at !== null && $at->greaterThan($from) ? $at->copy()->utc() : null;
     }
 
-    private function cron(Automation $automation, Carbon $from): ?Carbon
+    private function cron(Automation $automation, CarbonInterface $from): ?CarbonInterface
     {
         $expression = (string) $automation->cron_expression;
 
@@ -136,7 +137,7 @@ final class NextRun
         return Carbon::instance($next)->utc();
     }
 
-    private function interval(Automation $automation, Carbon $from): ?Carbon
+    private function interval(Automation $automation, CarbonInterface $from): ?CarbonInterface
     {
         // A heartbeat may be expressed either way. Cron wins when present,
         // because somebody who wrote one meant it.

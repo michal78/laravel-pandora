@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pandora\Pandora\Automation;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Carbon;
 use Pandora\Pandora\Agents\Agent;
 use Pandora\Pandora\Agents\AgentRunner;
 use Pandora\Pandora\Audit\AuditLogger;
@@ -64,7 +64,7 @@ final class AutomationDispatcher
      */
     public function dispatch(
         Automation $automation,
-        Carbon $occurrence,
+        CarbonInterface $occurrence,
         array $payload = [],
         ?string $idempotencyKey = null,
         bool $synchronous = false,
@@ -123,7 +123,7 @@ final class AutomationDispatcher
      * concurrency, so it is caught here rather than allowed to fail a job.
      * Any other query error is a real problem and is left to propagate.
      */
-    private function claim(Automation $automation, Carbon $occurrence, string $key): ?AutomationRun
+    private function claim(Automation $automation, CarbonInterface $occurrence, string $key): ?AutomationRun
     {
         try {
             /** @var AutomationRun $claim */

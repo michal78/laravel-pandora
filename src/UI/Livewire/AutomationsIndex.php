@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pandora\Pandora\UI\Livewire;
 
+use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -303,7 +304,7 @@ final class AutomationsIndex extends Component
      * staring at an automation that never fires should be able to see that
      * the scheduler itself has not been heard from since Tuesday.
      */
-    private function schedulerLastSeen(): ?Carbon
+    private function schedulerLastSeen(): ?CarbonInterface
     {
         /** @var Automation|null $latest */
         $latest = Automation::query()->whereNotNull('last_run_at')->latest('last_run_at')->first();

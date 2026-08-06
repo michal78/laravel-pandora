@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pandora\Pandora\Jobs;
 
+use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -111,7 +112,7 @@ final class RunAutomation implements ShouldQueue
         });
     }
 
-    private function occurrenceAt(): Carbon
+    private function occurrenceAt(): CarbonInterface
     {
         return $this->occurrence === '' ? Carbon::now() : Carbon::parse($this->occurrence);
     }

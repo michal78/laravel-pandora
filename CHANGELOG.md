@@ -165,6 +165,15 @@ All notable changes to this project are documented here. The format follows
     audit actions.
 
 ### Fixed
+- **Pandora now works in an application that uses immutable dates.** A host with
+  `Date::use(CarbonImmutable::class)` — a suggestion in Laravel's own default `AppServiceProvider` —
+  got a fatal `TypeError` on the Automations page, because Phase 4 typed its date parameters and
+  returns as `Illuminate\Support\Carbon`, which `CarbonImmutable` is not. Every date crossing a
+  Pandora boundary is now typed `CarbonInterface`, which both satisfy.
+- A date field was reported as changed on every save of an automation, because two `Carbon` objects
+  were compared with `!==` — identity, not value. That put a spurious entry in the audit log each
+  time somebody edited a schedule, defeating the one question the per-tab diff exists to answer.
+- `AutomationRun::keyFor()` no longer rewrites its caller's argument to UTC as a side effect.
 - **The CI database matrix was not testing databases.** All three "engine" jobs ran SQLite, because
   the package test case hardcoded the connection and overrode the `DB_CONNECTION` the workflow set.
   Three passing jobs that assert nothing are worse than no jobs at all. The suite now genuinely runs

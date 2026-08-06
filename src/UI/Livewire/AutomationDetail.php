@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pandora\Pandora\UI\Livewire;
 
+use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
@@ -183,7 +184,7 @@ final class AutomationDetail extends Component
         $changes = [];
 
         foreach ($candidate as $key => $value) {
-            if ($this->storedValue($automation, $key) !== $value) {
+            if ($this->differs($this->storedValue($automation, $key), $value)) {
                 $changes[$key] = $value;
             }
         }
@@ -582,6 +583,26 @@ final class AutomationDetail extends Component
             'autonomyBudgetWindow' => 'budget window',
             'disableAfterFailures' => 'failure limit',
         ];
+    }
+
+    /**
+     * Has this attribute actually changed?
+     *
+     * `!==` is identity comparison for objects, so two dates representing the
+     * same instant are always "different" -- which would mark `run_at` as
+     * changed on every save of the Schedule tab, and put a spurious entry in
+     * the audit log every time somebody edited a cron expression. The whole
+     * point of the per-tab diff is that the audit trail says what changed.
+     */
+    private function differs(mixed $stored, mixed $candidate): bool
+    {
+        if ($stored instanceof CarbonInterface && $candidate instanceof CarbonInterface) {
+            return ! $stored->equalTo($candidate);
+        }
+
+        // One side null and the other a date is a real change in either
+        // direction, and falls through to the strict comparison below.
+        return $stored !== $candidate;
     }
 
     private function storedValue(Automation $automation, string $key): mixed

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pandora\Pandora\Automation;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -83,8 +84,10 @@ final class AutomationRun extends Model
      * schedule Pandora supports has two occurrences in the same second, and
      * sub-second precision would let a millisecond of drift mint a second key.
      */
-    public static function keyFor(string $automationId, Carbon $occurrence): string
+    public static function keyFor(string $automationId, CarbonInterface $occurrence): string
     {
-        return substr(hash('sha256', $automationId.'@'.$occurrence->utc()->format('Y-m-d\TH:i:s')), 0, 64);
+        // `copy()` because `utc()` mutates a mutable Carbon in place, and this
+        // method has no business changing its caller's argument.
+        return substr(hash('sha256', $automationId.'@'.$occurrence->copy()->utc()->format('Y-m-d\TH:i:s')), 0, 64);
     }
 }

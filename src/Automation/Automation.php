@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pandora\Pandora\Automation;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -160,7 +161,7 @@ final class Automation extends Model
      *
      * @param Builder<self> $query
      */
-    public function scopeDue(Builder $query, ?Carbon $now = null): void
+    public function scopeDue(Builder $query, ?CarbonInterface $now = null): void
     {
         $query->where('enabled', true)
             ->whereNotNull('next_run_at')

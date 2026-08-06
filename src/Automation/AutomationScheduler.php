@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pandora\Pandora\Automation;
 
+use Carbon\CarbonInterface;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -47,7 +48,7 @@ final class AutomationScheduler
      *
      * @return list<string> the occurrence keys handed off this tick
      */
-    public function tick(?Carbon $now = null): array
+    public function tick(?CarbonInterface $now = null): array
     {
         if ($this->config->get('pandora.automation.enabled', true) !== true) {
             return [];
@@ -101,7 +102,7 @@ final class AutomationScheduler
      * schedule that keeps the previous schedule until it next fires is the
      * kind of thing that gets described as "it ignored my change".
      */
-    public function advance(Automation $automation, ?Carbon $from = null): void
+    public function advance(Automation $automation, ?CarbonInterface $from = null): void
     {
         if (! $automation->isScheduled()) {
             $automation->forceFill(['next_run_at' => null])->save();
@@ -122,9 +123,9 @@ final class AutomationScheduler
      * window, which means nothing was running -- a worker was down, or the
      * scheduler was.
      *
-     * @return list<Carbon>
+     * @return list<CarbonInterface>
      */
-    private function occurrencesFor(Automation $automation, Carbon $now): array
+    private function occurrencesFor(Automation $automation, CarbonInterface $now): array
     {
         $due = $automation->next_run_at;
 
@@ -156,9 +157,9 @@ final class AutomationScheduler
     }
 
     /**
-     * @return list<Carbon>
+     * @return list<CarbonInterface>
      */
-    private function catchUp(Automation $automation, Carbon $due, Carbon $now): array
+    private function catchUp(Automation $automation, CarbonInterface $due, CarbonInterface $now): array
     {
         /** @var int $cap */
         $cap = $this->config->get('pandora.automation.misfire.max_catch_up', 12);
