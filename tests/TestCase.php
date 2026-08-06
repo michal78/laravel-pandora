@@ -28,6 +28,12 @@ abstract class TestCase extends Orchestra
      * process, and re-running 25 migrations for each of ~900 tests turns a
      * forty-second suite into a forty-minute one -- which is the real reason
      * nobody noticed the matrix was not testing anything.
+     *
+     * This assumes ONE process per database. It is true today because the
+     * suite runs serially, and it would stop being true under `pest
+     * --parallel` without also giving each worker its own database -- two
+     * workers sharing one schema would truncate each other's rows mid-test.
+     * Whoever adds parallelism has to solve that first.
      */
     private static bool $serverSchemaReady = false;
 
