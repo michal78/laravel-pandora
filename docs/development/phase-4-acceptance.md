@@ -3,7 +3,8 @@
 > **Status as of 2026-08-06: 26 of 26 criteria verified.**
 >
 > ```
-> vendor/bin/pest        -> Tests: 925 passed (3,151 assertions)
+> vendor/bin/pest        -> Tests: 937 passed (3,205 assertions)   [SQLite]
+>                        -> MySQL 8.4 · MariaDB 11 · PostgreSQL 17 green in CI
 > vendor/bin/phpstan     -> [OK] No errors  (level 8, checkModelProperties on)
 > vendor/bin/pint --test -> passed
 > ```
@@ -114,11 +115,13 @@ provider overrides, which belong with the agent.
 ## Definition of done
 
 - [x] All 26 criteria have tests, and they pass
-- [x] `vendor/bin/pest` green — 925 passed, 3,151 assertions
+- [x] `vendor/bin/pest` green — 937 passed, 3,205 assertions, on all four engines
 - [x] `vendor/bin/phpstan analyse` clean at level 8
 - [x] `vendor/bin/pint --test` clean
 - [x] `docs/development/progress.md`, `docs/roadmap.md`, `docs/architecture/database-model.md`,
       `docs/architecture/overview.md`, `docs/guides/automations.md` and `CHANGELOG.md` updated
-- [ ] **A human drives the page in a host application** — the walkthrough item open since Phase 1 (Q9).
-      Every assertion here is a Livewire or unit test; nobody has yet watched a real cron fire a real
-      automation against a real deployment.
+- [x] **A human drives the page in a host application** — done 2026-08-06 against `laravel-test`;
+      all twenty checks in `phase-4-walkthrough.md` pass, including a real cron firing a real
+      automation. It found a defect the suite could not: a replayed webhook left no evidence
+      anywhere. Two more were found while preparing it — a fatal `TypeError` on any host using
+      immutable dates, and a date reported as changed on every save.

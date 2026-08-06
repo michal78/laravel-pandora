@@ -1,10 +1,13 @@
 # Phase 4 — Host walkthrough script
 
-> The half of Q9 that needs a person. Everything below has an automated equivalent that passes;
-> none of them is somebody using the product.
+> **Completed 2026-08-06 against `laravel-test`.** All twenty checks pass.
 >
-> The console and HTTP halves were done on 2026-08-06 against `laravel-test` — see Q9 in
-> `open-questions.md`. What follows is the browser.
+> The half of Q9 that needs a person. Everything below has an automated equivalent that passes;
+> none of them was somebody using the product until now.
+>
+> Running it found one defect — a replayed webhook left no evidence anywhere — fixed in `d535e1d`.
+> Two earlier defects were found the same way while preparing it: a fatal `TypeError` on any host
+> using `Date::use(CarbonImmutable::class)`, and a date field reported as changed on every save.
 
 ## Before you start
 
@@ -89,8 +92,14 @@ curl -i -X POST http://localhost:8080/pandora/webhooks/demo-webhook \
   -H 'Content-Type: application/json' -H "X-Pandora-Signature: t=$TS,v1=$SIG" -d "$BODY"
 ```
 
-- [x] The **Deliveries** table shows both — one accepted, one not — and the rejected one stores no
-      payload, because it failed authentication and nothing in it is trustworthy.
+- [x] The **Deliveries** table shows **one** row, marked accepted and annotated *sent again 1×*.
+      A replay is deliberately not a second row: replay protection *is* the unique insert, so the
+      duplicate cannot record itself and is counted on the delivery it duplicates instead.
+
+      *(This line originally said "shows both — one accepted, one not". That was true when the script
+      was written and stopped being true when the replay-visibility fix landed mid-walkthrough. A
+      genuinely rejected delivery — wrong secret, stale timestamp — does still get its own row, and
+      stores no payload because it failed authentication.)*
 
 ## 6. The agent's side
 

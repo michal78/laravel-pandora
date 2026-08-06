@@ -12,7 +12,7 @@
 | 2 | Tools and approvals | 🔨 35/36 acceptance criteria verified; host walkthrough outstanding |
 | 3 | Providers and routing | ✅ 41/41 — database matrix now genuinely green on MySQL, MariaDB and PostgreSQL |
 | 3.5 | Agents page | 🔨 20/20 acceptance criteria verified; host walkthrough outstanding (Q9) |
-| 4 | Automation | 🔨 26/26 acceptance criteria verified on all four engines; browser walkthrough outstanding |
+| 4 | Automation | ✅ 26/26 on all four engines; host walkthrough complete |
 | 5 | Memory and context | ⬜ |
 | 6 | Multi-agent and MCP | ⬜ |
 | 7 | Channels and extensions | ⬜ |
@@ -179,7 +179,7 @@ it is for Phases 1 and 2 — nobody has yet clicked Edit in a browser against a 
 
 ---
 
-## Phase 4 — Automation 🔨
+## Phase 4 — Automation ✅
 
 The phase where Pandora starts doing things nobody asked it to do in the moment. Everything else in
 this roadmap runs because a human pressed something; an automation runs because a clock, an event or
@@ -238,11 +238,18 @@ rejected; and an automation can never raise the autonomy of the agent it binds t
 PostgreSQL 17. ADR-0009's autonomy levels are also now *enforced* rather than merely stored —
 `ToolGatekeeper` gained an autonomy layer, and every run records the level it ran at.
 
-The console and HTTP halves of the host walkthrough were performed on 2026-08-06 (Q9): the scheduler
-entry registers itself with no host Kernel edit, occurrences render in their own timezone against a
-real clock, a real run was produced by `pandora:automation:run`, and the webhook endpoint answered
-202 / 409 / 401 over real HTTP. What remains is a human driving the Automations **pages** in a
-browser, and an automation firing unattended on a real cron.
+The host walkthrough is **complete** — all twenty checks in
+`docs/development/phase-4-walkthrough.md`, against `laravel-test` on 2026-08-06, including a real
+cron firing a real automation and the autonomy budget disabling one by itself.
+
+It earned its place. Three defects were found by running Pandora somewhere the test suite is not:
+a fatal `TypeError` on any host using `Date::use(CarbonImmutable::class)`, a date field reported as
+changed on every save, and a replayed webhook that left no evidence anywhere. None was reachable
+from the package suite, because the test application does not set immutable dates and the replay
+path recorded nothing to assert against.
+
+Still uncovered, and deferred to Phase 8 rather than left implied: a live Reverb server, and an
+automation left running long enough to exercise the misfire policy against a genuine worker outage.
 
 ---
 

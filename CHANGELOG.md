@@ -122,7 +122,9 @@ All notable changes to this project are documented here. The format follows
   - `agent.created`, `agent.updated` (carrying the changed keys with before and after values) and
     `agent.deleted` audit actions.
 
-- **Phase 4 — Automation.** Pandora can now act without a human in the moment, on a leash:
+- **Phase 4 — Automation.** Pandora can now act without a human in the moment, on a leash.
+  Verified on SQLite, MySQL 8.4, MariaDB 11 and PostgreSQL 17, and driven by a human in a real
+  application:
   - `Automation` entity with all six trigger types — one-off, cron, interval, event, webhook and
     heartbeat — each with its own timezone, condition, concurrency policy, misfire policy, retry
     policy, autonomy level and autonomy budget. Four migrations: `automations`, `automation_runs`,

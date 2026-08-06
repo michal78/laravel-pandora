@@ -146,14 +146,39 @@ Verified live in `laravel-test`:
 - The webhook endpoint over real HTTP: **202** with a run id, **409** on a byte-identical replay,
   **401** on a wrong secret — criteria 21, 22 and 23 outside the test harness.
 
-No defects found this time, which is a weaker result than Phase 1's but not a null one: the
-scheduler self-registration and the timezone rendering were both unobserved claims until now.
+No defects in that half, which looked like a weaker result than Phase 1's — until the browser half
+ran and found three.
+
+### Phase 4 browser walkthrough — 2026-08-06 ✅ **complete, and it found three defects**
+
+All twenty checks in `docs/development/phase-4-walkthrough.md` pass. A real cron fired a real
+automation; an unparseable cron expression was refused rather than stored; an autonomy level that
+would be clamped was not offered; a rotated webhook secret was genuinely unreadable after the
+response that minted it; the autonomy budget disabled an automation by itself; and removing the
+ability made every control disappear.
+
+Three defects, none of them reachable from the package suite:
+
+1. **A fatal `TypeError` on the Automations page** of any host using
+   `Date::use(CarbonImmutable::class)` — a suggestion in Laravel's own default `AppServiceProvider`.
+   Phase 4 typed its dates `Illuminate\Support\Carbon`, which a model cast no longer returns once a
+   host opts in. Everything Pandora constructed itself satisfied the hint; everything it read back
+   from a model did not.
+2. **A date reported as changed on every save**, because two `Carbon` objects were compared with
+   `!==` — identity, not value. Every schedule edit wrote a spurious audit entry, defeating the one
+   question the per-tab diff exists to answer.
+3. **A replayed webhook left no evidence anywhere.** Replay protection is a unique insert, so the
+   duplicate could not record itself, and it threw before reaching the audit path every other
+   rejection uses. The only rejection in the system with nothing to show for it.
+
+The first two were found while preparing the walkthrough; the third by following it. `TypeError`
+aside, the pattern is the same one the database matrix showed: the suite is good at what it was told
+to check and blind to configuration it was never run under.
 
 **Still not verified:** a live Reverb server (the host broadcasts to `log`, so the UI is running on
 its polling fallback — which is precisely the degraded mode acceptance criterion 22 requires to
-remain correct), a real paid provider under an automation firing unattended on the cron, and the
-control-center Automations pages driven by a human in a browser. That last one is written up as a
-checklist in `docs/development/phase-4-walkthrough.md`, with the demo automations already seeded.
+remain correct), and an automation left running long enough to exercise the misfire policy against a
+genuine worker outage. Both are Phase 8 hardening items.
 
 **The DB matrix is now real** (2026-08-06). It previously ran SQLite in all three "engine" jobs
 because `TestCase` hardcoded the connection; it now honours `DB_CONNECTION` and the full suite passes

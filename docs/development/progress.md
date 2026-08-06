@@ -5,6 +5,54 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-06 — Phase 4 closed by a human with a browser
+
+The walkthrough ran. All twenty checks pass, and it found three defects the
+package suite structurally could not.
+
+**1. A fatal `TypeError` on the Automations page** of any host that calls
+`Date::use(CarbonImmutable::class)` — which is a suggestion in Laravel's own default
+`AppServiceProvider`, so not an exotic configuration. Phase 4 typed its dates as
+`Illuminate\Support\Carbon`. That is what `Carbon::now()` returns, so everything Pandora constructed
+itself satisfied the hint; it is not what a model date cast returns once a host opts in, and
+`CarbonImmutable` does not extend it. Every date crossing a Pandora boundary is now `CarbonInterface`.
+
+**2. A date reported as changed on every save.** The editor decided what had changed with `!==`,
+which for two objects is identity comparison and therefore always true. Every save of the Schedule
+tab wrote `run_at` into the audit log as changed — defeating the single question the per-tab diff
+exists to answer.
+
+**3. A replayed webhook left no evidence anywhere.** Reported from the walkthrough as "the second
+curl is not shown in History". History showing nothing was correct — an occurrence is what the
+automation *ran*, and a delivery refused before that never became one. But the replay was invisible
+on the Deliveries tab too, because replay protection *is* a unique insert and the duplicate cannot
+record itself; and it threw before the audit path every other rejection uses. The only rejection in
+the system with nothing to show for it, and precisely how a sender with broken retry logic stays
+invisible. Repeats are now counted on the delivery they duplicate and audited like everything else.
+
+**What that says about the suite.** Three defects here, three from the database matrix, one racy
+test — seven in one phase, and not one of them was reachable by running the tests as configured. The
+common shape: the suite is good at what it was told to check and blind to configurations it was
+never run under. A different engine, a different runner speed, a different date class, a real
+browser. Worth carrying into Phase 5, which adds a vector store — optional, therefore untested by
+default, therefore the same shape exactly.
+
+**Also fixed along the way:** the Automations guide stated `pandora.automations.manage` was denied
+by default and stopped there, so the first thing a reader meets after installing is a read-only page
+with no indication of where the switch is. It now shows the gate definition.
+
+**Phase 4 is complete.** 26/26 criteria on SQLite, MySQL 8.4, MariaDB 11 and PostgreSQL 17, plus the
+host walkthrough. Deferred to Phase 8 rather than left implied: a live Reverb server, and an
+automation left running long enough to exercise the misfire policy against a genuine outage.
+
+```
+vendor/bin/pest        -> Tests: 937 passed (3,205 assertions)
+vendor/bin/phpstan     -> [OK] No errors  (level 8)
+vendor/bin/pint --test -> passed
+```
+
+---
+
 ## 2026-08-06 — The database matrix was not testing databases
 
 Asked whether the two outstanding items were worth clearing before Phase 5. Checking rather than
