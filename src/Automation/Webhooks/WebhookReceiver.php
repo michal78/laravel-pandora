@@ -13,6 +13,7 @@ use Pandora\Pandora\Automation\AutomationDispatcher;
 use Pandora\Pandora\Automation\Enums\AutomationTrigger;
 use Pandora\Pandora\Automation\WebhookDelivery;
 use Pandora\Pandora\Exceptions\WebhookRejected;
+use Pandora\Pandora\Support\Concerns\DetectsUniqueViolations;
 use Pandora\Pandora\Support\Redactor;
 
 /**
@@ -34,6 +35,8 @@ use Pandora\Pandora\Support\Redactor;
  */
 final class WebhookReceiver
 {
+    use DetectsUniqueViolations;
+
     public function __construct(
         private readonly AutomationDispatcher $dispatcher,
         private readonly AuditLogger $audit,
@@ -149,8 +152,15 @@ final class WebhookReceiver
             ]);
 
             return $delivery;
-        } catch (QueryException) {
-            return null;
+        } catch (QueryException $e) {
+            // ONLY a uniqueness clash means replay. Any other query error is a
+            // real fault, and answering "already processed" to it would drop
+            // the delivery while telling the sender it landed.
+            if ($this->isUniqueViolation($e)) {
+                return null;
+            }
+
+            throw $e;
         }
     }
 
@@ -184,8 +194,16 @@ final class WebhookReceiver
                 // nothing in it is trustworthy enough to store.
                 'payload' => null,
             ]);
-        } catch (QueryException) {
-            // Already recorded.
+        } catch (QueryException $queryError) {
+            // Deliberately a different variable name from the rejection being
+            // reported: shadowing it here once cost a confusing PHPStan error
+            // and would have cost a wrong `reason` on the audit entry.
+            if (! $this->isUniqueViolation($queryError)) {
+                throw $queryError;
+            }
+
+            // Already recorded. Losing the second record of a repeated attack
+            // is better than a 500 that tells the attacker they found an edge.
         }
 
         $this->audit->record(

@@ -145,9 +145,15 @@ it('records an argument modification as its own entry, with the diff', function 
         ->where('action', 'tool.arguments_modified')
         ->firstOrFail();
 
-    expect($entry->metadata['diff'])->toBe([
-        ['field' => 'reference', 'from' => 'ORD-1234', 'to' => 'ORD-CLAMPED'],
-    ])->and($entry->metadata['reason'])->toBe('Forced onto the tenant order.');
+    // Key ORDER is deliberately not asserted. MySQL's native JSON type
+    // normalises the order of an object's keys and SQLite stores the text
+    // verbatim, so a strict comparison here passes on one engine and fails on
+    // the other while both are storing exactly the same thing.
+    expect($entry->metadata['diff'])->toHaveCount(1)
+        ->and($entry->metadata['diff'][0])->toEqualCanonicalizing([
+            'field' => 'reference', 'from' => 'ORD-1234', 'to' => 'ORD-CLAMPED',
+        ])
+        ->and($entry->metadata['reason'])->toBe('Forced onto the tenant order.');
 });
 
 it('records the tool, the risk and the sanitized arguments on every entry', function (): void {

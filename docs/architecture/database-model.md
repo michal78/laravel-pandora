@@ -24,6 +24,12 @@
   matching, with better search available via extensions.
 - Index name length kept under 64 characters (MySQL limit) — explicit short names on composites.
 - `json` columns are never used in a `WHERE` on a hot path.
+- **Key order inside a `json` column is not preserved.** MySQL's native JSON type normalises an
+  object's keys; SQLite stores the text verbatim. Nothing may depend on the order a JSON object
+  round-trips in, and a test that asserts it is asserting the engine, not the behaviour.
+- **A value longer than its column is an error, not a truncation.** SQLite accepts an over-long
+  value into `char(26)`; MySQL in strict mode refuses the insert. ULIDs are exactly 26 characters,
+  including the hand-written ones in fixtures.
 - Every migration runs on SQLite, MySQL, MariaDB and PostgreSQL in CI.
 
 ## 2. Tables

@@ -121,9 +121,13 @@ it('shows an argument diff openly, not behind a disclosure', function (): void {
         ->where('run_id', $run->getKey())
         ->firstOrFail();
 
-    expect($approval->proposed_modifications)->toBe([
-        ['field' => 'amount_minor', 'from' => 90000, 'to' => 1000],
-    ]);
+    // Key order is not asserted: MySQL's native JSON type normalises an
+    // object's key order and SQLite keeps the text as written, so a strict
+    // comparison distinguishes engines rather than behaviour.
+    expect($approval->proposed_modifications)->toHaveCount(1)
+        ->and($approval->proposed_modifications[0])->toEqualCanonicalizing([
+            'field' => 'amount_minor', 'from' => 90000, 'to' => 1000,
+        ]);
 
     app(ApprovalManager::class)->approve($approval, null, authorize: false);
 

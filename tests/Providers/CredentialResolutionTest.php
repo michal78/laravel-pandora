@@ -82,10 +82,10 @@ it('prefers an agent credential over every broader scope', function (): void {
 
 it('does not let one agent resolve another agent\'s credential', function (): void {
     credentials()->issue('openai', 'sk-deployment');
-    credentials()->issue('openai', 'sk-billing-agent', agentId: '01JQ0000000000000000BILLING');
+    credentials()->issue('openai', 'sk-billing-agent', agentId: '01JQ000000000000000BILLING');
 
     $resolved = credentials()->forAgent(
-        '01JQ00000000000000000SUPPORT',
+        '01JQ000000000000000SUPPORT',
         fn () => credentials()->resolve('openai'),
     );
 

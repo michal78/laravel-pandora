@@ -16,6 +16,7 @@ use Pandora\Pandora\Exceptions\AutomationRefused;
 use Pandora\Pandora\Runs\Enums\RunState;
 use Pandora\Pandora\Runs\Run;
 use Pandora\Pandora\Runs\RunCanceller;
+use Pandora\Pandora\Support\Concerns\DetectsUniqueViolations;
 
 /**
  * Turns one occurrence of an automation into at most one run.
@@ -41,6 +42,8 @@ use Pandora\Pandora\Runs\RunCanceller;
  */
 final class AutomationDispatcher
 {
+    use DetectsUniqueViolations;
+
     public function __construct(
         private readonly AgentRunner $agents,
         private readonly ConditionRegistry $conditions,
@@ -140,27 +143,6 @@ final class AutomationDispatcher
 
             throw $e;
         }
-    }
-
-    /**
-     * Portable enough for the four engines in CI.
-     *
-     * SQLSTATE 23000/23505 covers MySQL, MariaDB and PostgreSQL; SQLite
-     * reports 23000 but its driver message is the reliable part.
-     */
-    private function isUniqueViolation(QueryException $e): bool
-    {
-        $state = (string) $e->getCode();
-
-        if (in_array($state, ['23000', '23505'], true)) {
-            return true;
-        }
-
-        $message = strtolower($e->getMessage());
-
-        return str_contains($message, 'unique constraint')
-            || str_contains($message, 'duplicate entry')
-            || str_contains($message, 'unique violation');
     }
 
     private function agentFor(Automation $automation): Agent

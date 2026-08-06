@@ -139,3 +139,23 @@ it('rolls migrations back cleanly', function (): void {
 
     expect(Schema::hasTable($prefix.'runs'))->toBeFalse();
 });
+
+it('uses correctly sized ULIDs in hand-written test fixtures', function (): void {
+    // A ULID is exactly 26 characters and the columns are `char(26)`. SQLite
+    // stores an over-long value happily; MySQL in strict mode rejects the
+    // insert. Two fixtures in this suite were 27 and 28 characters and passed
+    // for months, because the only engine anybody ran was the forgiving one.
+    $offenders = [];
+
+    foreach (glob(dirname(__DIR__).'/*/*.php') ?: [] as $file) {
+        preg_match_all("/'(01[0-9A-HJKMNP-TV-Z]{10,})'/", (string) file_get_contents($file), $matches);
+
+        foreach ($matches[1] as $ulid) {
+            if (strlen($ulid) !== 26) {
+                $offenders[] = basename($file).": {$ulid} is ".strlen($ulid).' characters';
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
