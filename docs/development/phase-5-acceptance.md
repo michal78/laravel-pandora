@@ -1,10 +1,11 @@
 # Phase 5 — Acceptance Test Plan
 
-> **Status as of 2026-08-06: 12 of 28 criteria verified.**
+> **Status as of 2026-08-06: 24 of 28 criteria verified.**
 >
 > ```
-> vendor/bin/pest        -> Tests: 1,018 passed (3,474 assertions)   [SQLite]
->                        -> MySQL 8.4 and PostgreSQL 17 green for tests/Memory + tests/Context
+> vendor/bin/pest        -> Tests: 1,087 passed, 8 skipped (3,708 assertions)  [SQLite]
+>                        -> pgvector/pg17: 1,047 passed, 0 skipped -- the adapter tests really ran
+>                        -> MySQL 8.4 and PostgreSQL 17 green
 > vendor/bin/phpstan     -> [OK] No errors  (level 8, checkModelProperties on)
 > vendor/bin/pint --test -> passed
 > ```
@@ -79,22 +80,22 @@ agent's **Skills**, **Memory** and **Workspace** tabs · `pandora:memory:forget`
 | 1 | ✅ A `MemoryItem` persists every scope and type, with tenancy, soft deletes and provenance | `Memory/MemoryItemTest` |
 | 2 | ✅ **A retrieval in one user's session returns none of another user's memories** | `Memory/ScopingTest` |
 | 3 | ✅ **A retrieval in one tenant returns none of another tenant's memories, on every scope** | `Memory/ScopingTest` |
-| 4 | ⬜ **The `recall` tool cannot name a scope; an argument attempting to is refused, not widened** | `Memory/ScopingTest` |
+| 4 | ✅ **The `recall` tool cannot name a scope; an argument attempting to is refused, not widened** | `Memory/MemoryToolsTest` |
 | 5 | ✅ Agent-scoped memory is visible to that agent only; shared scope is visible across agents in the tenant | `Memory/ScopingTest` |
 | 6 | ✅ Lexical retrieval ranks by token overlap and returns a bounded, deterministic result set | `Memory/LexicalRetrievalTest` |
 | 7 | ✅ **A default install with no vector store configured retrieves memory successfully** | `Memory/LexicalRetrievalTest` |
 | 8 | ✅ Retrieval excludes `suggested`, `rejected`, expired and soft-deleted items | `Memory/LexicalRetrievalTest` |
-| 9 | ⬜ An expired item is excluded by the retrieval predicate even when the sweep has not run | `Memory/ExpiryTest` |
-| 10 | ⬜ The expiry sweep transitions items to `expired` and deletes their embeddings | `Memory/ExpiryTest` |
-| 11 | ⬜ Writing a fact classified sensitive creates a `suggested` item and an approval, and stores nothing active | `Memory/CurationTest` |
-| 12 | ⬜ Approving promotes it to `active`; denying marks it `rejected` and it is never retrievable | `Memory/CurationTest` |
-| 13 | ⬜ **Redaction is applied before persistence — a redacted secret is absent from the row, the embedding and the export** | `Memory/RedactionTest` |
-| 14 | ⬜ `pandora:memory:forget` soft-deletes the item and hard-deletes its embedding | `Memory/ForgettingTest` |
-| 15 | ⬜ `pandora:memory:export` exports one scope's items and refuses a scope the actor cannot read | `Memory/ExportTest` |
-| 16 | ⬜ `EmbeddingProvider` and `VectorStore` contracts round-trip a vector through the portable database store | `Memory/VectorStoreTest` |
-| 17 | ⬜ **The pgvector adapter returns nearest neighbours, and its results are re-filtered by scope before use** | `Memory/PgvectorTest` |
-| 18 | ⬜ Unchanged content is not re-embedded; a changed embedding model invalidates and re-embeds | `Memory/EmbeddingCacheTest` |
-| 19 | ⬜ A vector store that is unreachable degrades to lexical retrieval and records the degradation | `Memory/VectorStoreTest` |
+| 9 | ✅ An expired item is excluded by the retrieval predicate even when the sweep has not run | `Memory/ExpiryTest` |
+| 10 | ✅ The expiry sweep transitions items to `expired` and deletes their embeddings | `Memory/ExpiryTest` |
+| 11 | ✅ Writing a fact classified sensitive creates a `suggested` item and an approval, and stores nothing active | `Memory/CurationTest` |
+| 12 | ✅ Approving promotes it to `active`; denying marks it `rejected` and it is never retrievable | `Memory/CurationTest` |
+| 13 | ✅ **Redaction is applied before persistence — a redacted secret is absent from the row, the embedding and the export** | `Memory/RedactionTest` |
+| 14 | ✅ `pandora:memory:forget` soft-deletes the item and hard-deletes its embedding | `Memory/ForgettingTest` |
+| 15 | ✅ `pandora:memory:export` exports one scope's items and refuses a scope the actor cannot read | `Memory/ExportTest` |
+| 16 | ✅ `EmbeddingProvider` and `VectorStore` contracts round-trip a vector through the portable database store | `Memory/VectorStoreTest` |
+| 17 | ✅ **The pgvector adapter returns nearest neighbours, and its results are re-filtered by scope before use** | `Memory/PgvectorTest` |
+| 18 | ✅ Unchanged content is not re-embedded; a changed embedding model invalidates and re-embeds | `Memory/EmbeddingCacheTest` |
+| 19 | ✅ A vector store that is unreachable degrades to lexical retrieval and records the degradation | `Memory/VectorStoreTest` |
 | 20 | ✅ The memory context provider contributes a section within the agent's budget and is traced | `Context/MemoryProviderTest` |
 | 21 | ✅ A provider exceeding the remaining budget is dropped with `budget_exhausted`, never truncated | `Context/BudgetTest` |
 | 22 | ✅ **A context provider serialising a model exposes only allowlisted attributes** | `Context/AllowlistTest` |

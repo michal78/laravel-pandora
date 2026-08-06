@@ -9,6 +9,7 @@ use Pandora\Pandora\Context\Providers\RecentMessagesProvider;
 use Pandora\Pandora\Context\Providers\SystemInstructionsProvider;
 use Pandora\Pandora\Core\Actor\GuardActorResolver;
 use Pandora\Pandora\Core\Tenancy\NullTenantResolver;
+use Pandora\Pandora\Memory\Embeddings\HashEmbeddingProvider;
 use Pandora\Pandora\Providers\Credentials\DatabaseCredentialResolver;
 use Pandora\Pandora\Providers\Routing\DeterministicModelRouter;
 use Pandora\Pandora\Tools\Policies\RiskBasedToolPolicy;
@@ -665,8 +666,35 @@ return [
     */
 
     'memory' => [
-        // null = lexical retrieval only. Name a configured store to accelerate.
+        // null = lexical retrieval only. 'database' is the portable
+        // brute-force store; 'pgvector' uses the PostgreSQL extension and
+        // degrades to lexical wherever it is not installed.
         'vector_store' => env('PANDORA_VECTOR_STORE'),
+
+        'stores' => [
+            'database' => [
+                'driver' => 'database',
+                // How many stored vectors to compare in PHP. A million-row
+                // table loaded into memory is an outage, not a slow query.
+                'scan_limit' => 5000,
+            ],
+            'pgvector' => [
+                'driver' => 'pgvector',
+            ],
+        ],
+
+        'embeddings' => [
+            // The default provider is offline and deterministic. It is not a
+            // language model: it hashes tokens into buckets, which is enough
+            // to exercise the whole vector path honestly in every environment
+            // including CI. Point this at a real provider for semantics.
+            'provider' => HashEmbeddingProvider::class,
+
+            // Must match the vector column pgvector was migrated with. A
+            // change here needs a migration and a re-embed -- two vector
+            // spaces in one column makes every distance meaningless.
+            'dimensions' => env('PANDORA_EMBEDDING_DIMENSIONS', 256),
+        ],
 
         'retrieval' => [
             // Returned to the caller.

@@ -37,6 +37,9 @@ use Pandora\Pandora\Console\Commands\AutomationRunCommand;
 use Pandora\Pandora\Console\Commands\AutomationTickCommand;
 use Pandora\Pandora\Console\Commands\FlushCommand;
 use Pandora\Pandora\Console\Commands\InstallCommand;
+use Pandora\Pandora\Console\Commands\MemoryExportCommand;
+use Pandora\Pandora\Console\Commands\MemoryForgetCommand;
+use Pandora\Pandora\Console\Commands\MemorySweepCommand;
 use Pandora\Pandora\Console\Commands\ModelSyncCommand;
 use Pandora\Pandora\Console\Commands\ProviderTestCommand;
 use Pandora\Pandora\Console\Commands\StatusCommand;
@@ -46,15 +49,26 @@ use Pandora\Pandora\Contracts\ActorResolver;
 use Pandora\Pandora\Contracts\AgentDefinition;
 use Pandora\Pandora\Contracts\ContextProvider;
 use Pandora\Pandora\Contracts\CredentialResolver;
+use Pandora\Pandora\Contracts\EmbeddingProvider;
 use Pandora\Pandora\Contracts\ModelRouter;
 use Pandora\Pandora\Contracts\TenantResolver;
 use Pandora\Pandora\Contracts\ToolPolicy;
+use Pandora\Pandora\Contracts\VectorStore;
 use Pandora\Pandora\Conversations\ConversationManager;
 use Pandora\Pandora\Conversations\SessionResolver;
 use Pandora\Pandora\Core\Actor\ActorManager;
 use Pandora\Pandora\Core\Actor\GuardActorResolver;
 use Pandora\Pandora\Core\Tenancy\NullTenantResolver;
 use Pandora\Pandora\Core\Tenancy\TenantManager;
+use Pandora\Pandora\Memory\Embeddings\HashEmbeddingProvider;
+use Pandora\Pandora\Memory\Embeddings\MemoryEmbedder;
+use Pandora\Pandora\Memory\MemoryCurator;
+use Pandora\Pandora\Memory\MemoryRetriever;
+use Pandora\Pandora\Memory\MemoryWriter;
+use Pandora\Pandora\Memory\ScopeResolver;
+use Pandora\Pandora\Memory\SensitivityClassifier;
+use Pandora\Pandora\Memory\Vector\DatabaseVectorStore;
+use Pandora\Pandora\Memory\Vector\PgvectorStore;
 use Pandora\Pandora\Messages\MessageWriter;
 use Pandora\Pandora\Providers\Catalog\ModelCatalog;
 use Pandora\Pandora\Providers\Credentials\CredentialManager;
@@ -117,6 +131,7 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->registerAgents();
         $this->registerTools();
         $this->registerAutomation();
+        $this->registerMemory();
         $this->registerRuntime();
 
         $this->app->singleton(Pandora::class, static fn (Container $app): Pandora => new Pandora($app));
@@ -369,6 +384,116 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->app->singleton(EventTriggerRegistry::class, static fn (Container $app): EventTriggerRegistry => new EventTriggerRegistry($app));
     }
 
+    /**
+     * Memory retrieval, embeddings and the optional vector store.
+     *
+     * The store is resolved lazily and may legitimately be null: a default
+     * install has no vector database, and that is a supported production
+     * configuration rather than a degraded one. `MemoryRetriever` works with
+     * both halves absent.
+     */
+    private function registerMemory(): void
+    {
+        $this->app->singleton(EmbeddingProvider::class, static function (Container $app): EmbeddingProvider {
+            /** @var Config $config */
+            $config = $app->make(Config::class);
+
+            /** @var class-string<EmbeddingProvider> $class */
+            $class = $config->get('pandora.memory.embeddings.provider', HashEmbeddingProvider::class);
+
+            return $app->make($class);
+        });
+
+        $this->app->singleton(HashEmbeddingProvider::class, static function (Container $app): HashEmbeddingProvider {
+            /** @var Config $config */
+            $config = $app->make(Config::class);
+            /** @var int $dimensions */
+            $dimensions = $config->get('pandora.memory.embeddings.dimensions', 256);
+
+            return new HashEmbeddingProvider($dimensions);
+        });
+
+        // Bound through one factory so the retriever, the embedder and any
+        // host code all agree on which store is in play. It legitimately
+        // resolves to null: a default install has no vector database, and
+        // that is a supported production configuration.
+        $this->app->singleton(VectorStore::class, static fn (Container $app): ?VectorStore => self::makeVectorStore($app));
+
+        $this->app->singleton(MemoryRetriever::class, static fn (Container $app): MemoryRetriever => new MemoryRetriever(
+            $app->make(EmbeddingProvider::class),
+            self::makeVectorStore($app),
+            $app->make(AuditLogger::class),
+        ));
+
+        $this->app->singleton(SensitivityClassifier::class);
+
+        $this->app->singleton(MemoryWriter::class, static fn (Container $app): MemoryWriter => new MemoryWriter(
+            $app->make(Redactor::class),
+            $app->make(AuditLogger::class),
+            $app->make(SensitivityClassifier::class),
+        ));
+
+        $this->app->singleton(MemoryCurator::class, static fn (Container $app): MemoryCurator => new MemoryCurator(
+            $app->make(AuditLogger::class),
+            $app->make(MemoryEmbedder::class),
+        ));
+
+        $this->app->singleton(MemoryEmbedder::class, static fn (Container $app): MemoryEmbedder => new MemoryEmbedder(
+            $app->make(EmbeddingProvider::class),
+            // The embedder always has somewhere to write. With no accelerator
+            // configured that is the portable column, which the database store
+            // reads directly -- so embeddings are never orphaned by the
+            // absence of an index.
+            self::makeVectorStore($app) ?? new DatabaseVectorStore,
+        ));
+    }
+
+    /**
+     * Build the configured vector store, or null when there is none.
+     *
+     * A separate method rather than a closure so its nullable return type is
+     * visible to static analysis at every call site -- the container erases
+     * that, and "may be null" is the whole point of this one.
+     */
+    private static function makeVectorStore(Container $app): ?VectorStore
+    {
+        /** @var Config $config */
+        $config = $app->make(Config::class);
+
+        /** @var string|null $key */
+        $key = $config->get('pandora.memory.vector_store');
+
+        if ($key === null || $key === '') {
+            return null;
+        }
+
+        /** @var array<string, mixed> $store */
+        $store = $config->get('pandora.memory.stores.'.$key, []);
+        /** @var string $driver */
+        $driver = $store['driver'] ?? $key;
+
+        /** @var string $prefix */
+        $prefix = $config->get('pandora.database.table_prefix', 'pandora_');
+
+        return match ($driver) {
+            'pgvector' => new PgvectorStore(self::pandoraConnection($app), $prefix.'embeddings'),
+            'database' => new DatabaseVectorStore(
+                is_int($store['scan_limit'] ?? null) ? $store['scan_limit'] : 5000,
+            ),
+            // An unrecognised name is null rather than an exception: a typo in
+            // configuration should cost recall, not availability.
+            default => null,
+        };
+    }
+
+    private static function pandoraConnection(Container $app): Connection
+    {
+        /** @var Connection $connection */
+        $connection = $app->make('pandora.db');
+
+        return $connection;
+    }
+
     private function registerRuntime(): void
     {
         $this->app->singleton(RunLock::class, static function (Container $app): RunLock {
@@ -490,6 +615,9 @@ final class PandoraServiceProvider extends ServiceProvider
             ModelSyncCommand::class,
             ProviderTestCommand::class,
             FlushCommand::class,
+            MemoryForgetCommand::class,
+            MemoryExportCommand::class,
+            MemorySweepCommand::class,
         ]);
     }
 

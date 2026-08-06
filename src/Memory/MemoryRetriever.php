@@ -6,6 +6,9 @@ namespace Pandora\Pandora\Memory;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Date;
+use Pandora\Pandora\Audit\AuditLogger;
+use Pandora\Pandora\Contracts\EmbeddingProvider;
+use Pandora\Pandora\Contracts\VectorStore;
 use Pandora\Pandora\Memory\Enums\MemoryType;
 use Pandora\Pandora\Memory\Lexical\Tokeniser;
 
@@ -31,6 +34,14 @@ final class MemoryRetriever
 {
     public const STRATEGY_LEXICAL = 'lexical';
 
+    public const STRATEGY_HYBRID = 'hybrid';
+
+    public function __construct(
+        private readonly ?EmbeddingProvider $embeddings = null,
+        private readonly ?VectorStore $store = null,
+        private readonly ?AuditLogger $audit = null,
+    ) {}
+
     /**
      * @return list<MemoryResult>
      */
@@ -46,22 +57,29 @@ final class MemoryRetriever
             return [];
         }
 
-        $candidates = $this->candidates($scopes, $query, $tokens);
+        $semantic = $this->semanticMatches($query);
+        $strategy = $semantic === [] ? self::STRATEGY_LEXICAL : self::STRATEGY_HYBRID;
+
+        $candidates = $this->candidates($scopes, $query, $tokens, array_keys($semantic));
 
         $results = [];
 
         foreach ($candidates as $item) {
             $matched = $this->matchedTokens($item, $tokens);
+            $similarity = $semantic[(string) $item->getKey()] ?? null;
 
-            if ($matched === []) {
+            // Nothing lexical matched and the store did not propose it either.
+            // This can only happen for a row the LIKE pulled in as a substring
+            // of a longer word.
+            if ($matched === [] && $similarity === null) {
                 continue;
             }
 
             $results[] = new MemoryResult(
                 item: $item,
-                score: $this->score($item, $tokens, $matched),
+                score: $this->score($item, $tokens, $matched) + ($similarity ?? 0.0) * 0.5,
                 matchedTokens: $matched,
-                strategy: self::STRATEGY_LEXICAL,
+                strategy: $similarity === null ? self::STRATEGY_LEXICAL : $strategy,
             );
         }
 
@@ -80,10 +98,63 @@ final class MemoryRetriever
     }
 
     /**
+     * Ask the vector store for candidates, or degrade quietly to lexical.
+     *
+     * The store is an index and an index is allowed to be wrong, stale, or
+     * on fire. None of those should cost the run: an unreachable store means
+     * worse recall, never a failed answer. The degradation IS recorded,
+     * because "memory got quietly worse three weeks ago" is otherwise
+     * indistinguishable from "the agent is not as good as it was".
+     *
+     * @return array<string, float> owner id => similarity
+     */
+    private function semanticMatches(MemoryQuery $query): array
+    {
+        if ($this->embeddings === null || $this->store === null) {
+            return [];
+        }
+
+        try {
+            if (! $this->store->isAvailable()) {
+                return [];
+            }
+
+            $vector = $this->embeddings->embed($query->text);
+
+            $matches = $this->store->search(
+                MemoryItem::class,
+                $vector,
+                $query->candidateLimit,
+            );
+        } catch (\Throwable $e) {
+            $this->audit?->record(
+                action: 'memory.retrieval_degraded',
+                severity: 'warning',
+                metadata: [
+                    'store' => $this->store->key(),
+                    'error_class' => $e::class,
+                    'error_message' => $e->getMessage(),
+                ],
+            );
+
+            return [];
+        }
+
+        $similarities = [];
+
+        foreach ($matches as $match) {
+            $similarities[$match->ownerId] = $match->similarity();
+        }
+
+        return $similarities;
+    }
+
+    /**
      * @param list<string> $tokens
+     * @param list<string> $semanticIds ids the vector store proposed
      * @return list<MemoryItem>
      */
-    private function candidates(MemoryScopeSet $scopes, MemoryQuery $query, array $tokens): array
+    private function candidates(MemoryScopeSet $scopes, MemoryQuery $query, array $tokens, array $semanticIds = []): array
     {
         // `acrossAllTenants` looks alarming and is correct: the scope set
         // reapplies the tenant predicate per branch, because installation-wide
@@ -103,7 +174,18 @@ final class MemoryRetriever
             ));
         }
 
-        $builder->where(/** @param Builder<MemoryItem> $q */ function (Builder $q) use ($tokens): void {
+        $builder->where(/** @param Builder<MemoryItem> $q */ function (Builder $q) use ($tokens, $semanticIds): void {
+            if ($semanticIds !== []) {
+                // The vector store's proposals join the candidate set here,
+                // INSIDE the scope constraint applied above -- not as a
+                // separate query whose results are merged afterwards. That
+                // ordering is the whole safety property: an index Pandora does
+                // not control, cannot audit, and which may be serving rows
+                // from before a memory was forgotten still cannot surface
+                // anything the database says this runner may not see.
+                $q->orWhereIn('id', $semanticIds);
+            }
+
             foreach ($tokens as $token) {
                 // Tokens contain only letters and digits, so there is nothing
                 // here for a LIKE wildcard to do -- but the escape stays,

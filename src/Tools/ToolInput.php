@@ -48,6 +48,22 @@ final readonly class ToolInput implements \JsonSerializable, Arrayable
         return $value === null ? null : (string) (is_scalar($value) ? $value : $default);
     }
 
+    /**
+     * A field the tool's own `rules()` marked `required`.
+     *
+     * `string()` is nullable because most fields are optional, which forces
+     * every required field to be handled as if it might be absent -- and the
+     * usual way that gets resolved is a cast at the call site, which lies
+     * about the contract instead of stating it. By the time `handle()` runs,
+     * validation has already passed; this says so, and falls back to an empty
+     * string rather than a null if a tool ever calls it for a field it did not
+     * actually require.
+     */
+    public function requiredString(string $key): string
+    {
+        return $this->string($key) ?? '';
+    }
+
     public function integer(string $key, ?int $default = null): ?int
     {
         $value = $this->get($key);

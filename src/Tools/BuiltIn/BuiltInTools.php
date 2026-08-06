@@ -35,6 +35,8 @@ final class BuiltInTools
             EmitEventTool::class,
             SendNotificationTool::class,
             ProposeFollowUpTool::class,
+            RememberTool::class,
+            RecallTool::class,
         ];
     }
 }

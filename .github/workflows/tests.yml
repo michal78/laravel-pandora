@@ -37,9 +37,16 @@ jobs:
       fail-fast: false
       matrix:
         db:
-          - { name: mysql,      image: 'mysql:8.4',      port: 3306, conn: mysql }
-          - { name: mariadb,    image: 'mariadb:11',     port: 3306, conn: mariadb }
-          - { name: postgresql, image: 'postgres:17',    port: 5432, conn: pgsql }
+          - { name: mysql,      image: 'mysql:8.4',           port: 3306, conn: mysql }
+          - { name: mariadb,    image: 'mariadb:11',          port: 3306, conn: mariadb }
+          - { name: postgresql, image: 'postgres:17',         port: 5432, conn: pgsql }
+          # The pgvector leg. Optional at runtime, mandatory here: Phase 4
+          # produced seven defects and not one was reachable by the suite as
+          # configured, and "optional, therefore untested" is that shape
+          # exactly. Memory/PgvectorTest SKIPS without this image rather than
+          # passing, so removing this leg makes the gap visible instead of
+          # silent.
+          - { name: pgvector,   image: 'pgvector/pgvector:pg17', port: 5432, conn: pgsql }
     services:
       database:
         image: ${{ matrix.db.image }}
