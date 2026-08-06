@@ -152,7 +152,8 @@ scheduler self-registration and the timezone rendering were both unobserved clai
 **Still not verified:** a live Reverb server (the host broadcasts to `log`, so the UI is running on
 its polling fallback — which is precisely the degraded mode acceptance criterion 22 requires to
 remain correct), a real paid provider under an automation firing unattended on the cron, and the
-control-center Automations pages driven by a human in a browser.
+control-center Automations pages driven by a human in a browser. That last one is written up as a
+checklist in `docs/development/phase-4-walkthrough.md`, with the demo automations already seeded.
 
 **The DB matrix is now real** (2026-08-06). It previously ran SQLite in all three "engine" jobs
 because `TestCase` hardcoded the connection; it now honours `DB_CONNECTION` and the full suite passes
