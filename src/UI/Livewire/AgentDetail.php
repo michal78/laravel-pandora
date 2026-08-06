@@ -13,10 +13,14 @@ use Pandora\Pandora\Agents\Agent;
 use Pandora\Pandora\Agents\AgentRegistry;
 use Pandora\Pandora\Audit\AuditLogger;
 use Pandora\Pandora\Automation\Automation;
+use Pandora\Pandora\Memory\Enums\MemoryScope;
+use Pandora\Pandora\Memory\MemoryItem;
 use Pandora\Pandora\Runs\Enums\AutonomyLevel;
 use Pandora\Pandora\Runs\Run;
+use Pandora\Pandora\Skills\Skill;
 use Pandora\Pandora\UI\PandoraGate;
 use Pandora\Pandora\Usage\UsageRecord;
+use Pandora\Pandora\Workspaces\Workspace;
 
 /**
  * One agent: what it is, what it is told, what it runs on, and how far it may
@@ -100,10 +104,9 @@ final class AgentDetail extends Component
             'phase' => 'Phase 3.5+',
             'note' => 'Tool grants are stored on the agent and enforced today; this tab will edit them rather than requiring a class definition or a seeder.',
         ],
-        'skills' => ['label' => 'Skills', 'phase' => 'Phase 5', 'note' => 'Skills are instructions, never code (ADR-0008).'],
-        'memory' => ['label' => 'Memory', 'phase' => 'Phase 5', 'note' => 'Scope, retention and what this agent is allowed to remember.'],
+
         'channels' => ['label' => 'Channels', 'phase' => 'Phase 7', 'note' => 'Where this agent can be reached, and which identities map to it.'],
-        'workspace' => ['label' => 'Workspace', 'phase' => 'Phase 5', 'note' => 'The files this agent may read and write, and its quota.'],
+
         'permissions' => ['label' => 'Permissions', 'phase' => 'Phase 6', 'note' => 'Delegation, MCP access and the abilities required to run it.'],
     ];
 
@@ -332,8 +335,54 @@ final class AgentDetail extends Component
             'automations' => $this->tab === 'automations' ? $this->automationsFor($agent) : collect(),
             'canManageAutomations' => PandoraGate::allows('automations.manage'),
             'usage' => $this->tab === 'usage' ? $this->usageSummary($agent) : [],
+            'memories' => $this->tab === 'memory' ? $this->memoriesFor($agent) : collect(),
+            'skills' => $this->tab === 'skills' ? $this->skillsFor($agent) : collect(),
+            'workspace' => $this->tab === 'workspace' ? $this->workspaceFor($agent) : null,
+            'canManageMemory' => PandoraGate::allows('memory.manage'),
             'pendingTabs' => self::PENDING_TABS,
         ])->layout('pandora::layouts.app', ['title' => $agent->name]);
+    }
+
+    /**
+     * What this agent in particular has written down.
+     *
+     * Agent-scoped only. A tab showing everything the agent can RETRIEVE would
+     * have to include user-scoped memory belonging to whoever it has spoken
+     * to, and an admin page is not a session -- there is no "who is standing
+     * here" to bound it. Those live on the Memory page, filtered by scope,
+     * behind `pandora.memory.manage`.
+     *
+     * @return Collection<int, MemoryItem>
+     */
+    private function memoriesFor(Agent $agent): mixed
+    {
+        return MemoryItem::query()
+            ->where('scope', MemoryScope::Agent->value)
+            ->where('scope_id', $agent->getKey())
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, Skill>
+     */
+    private function skillsFor(Agent $agent): mixed
+    {
+        return $agent->skills()->orderBy('name')->get();
+    }
+
+    private function workspaceFor(Agent $agent): ?Workspace
+    {
+        if ($agent->workspace_id === null) {
+            return null;
+        }
+
+        /** @var Workspace|null $workspace */
+        $workspace = Workspace::query()->find($agent->workspace_id);
+
+        return $workspace;
     }
 
     /**

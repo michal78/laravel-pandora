@@ -143,6 +143,22 @@ Retention policies per entity, `pandora:prune`, cascade-correct deletion for rig
 requests, versioned JSON export, and sensitivity classification on memory items with approval before
 storing sensitive facts.
 
+**Memory (Phase 5).** The scope of a retrieval is derived from the run's session before any provider
+or tool is consulted, and no tool exposes a parameter that could widen it — `recall` takes a search
+string and nothing else. A vector store is an accelerator and never an authority: every candidate it
+proposes is re-filtered against the same constraint in the database, so an index Pandora does not
+control cannot surface anything the database would have hidden. Content that looks like a credential
+is refused outright; every claim about a person is held for a human. Forgetting hard-deletes the
+vector and soft-deletes the row, because a soft-deleted row with a live vector is still findable by
+the path that matters. Export is gated and audited at `warning` — one call returns everything an
+agent believes about a person.
+
+**Workspaces (Phase 5).** Containment is checked after `realpath()` and on every operation, never
+against the string a caller passed: `../` has many spellings and a symlink has none. Reads *and*
+writes are checked, an escaping symlink is omitted from listings as well as refused, and a refusal
+names only the relative path the caller supplied — saying where a symlink pointed confirms both that
+the file exists and where the root is. A containment violation is audited at `critical`.
+
 ## 9. What we will not claim
 
 - That prompt injection is solved.

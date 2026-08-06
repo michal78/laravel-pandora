@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace Pandora\Pandora\Agents;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Pandora\Pandora\Conversations\Conversation;
 use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
 use Pandora\Pandora\Runs\Enums\AutonomyLevel;
 use Pandora\Pandora\Runs\Run;
+use Pandora\Pandora\Skills\Skill;
 use Pandora\Pandora\Support\Concerns\PandoraModel;
 
 /**
@@ -95,6 +98,41 @@ final class Agent extends Model
     }
 
     /** @return HasMany<Conversation, $this> */
+    /**
+     * Attach a skill, generating the pivot's ULID.
+     *
+     * Every Pandora table carries a ULID primary key, including this pivot,
+     * and Eloquent's `attach()` writes the pivot row with a raw insert that
+     * knows nothing about that. Calling `attach()` directly therefore fails on
+     * a NOT NULL constraint -- so the supported way to do this is a method
+     * rather than a trap with a comment next to it.
+     */
+    public function attachSkill(Skill $skill, bool $enabled = true): void
+    {
+        $this->skills()->syncWithoutDetaching([
+            $skill->getKey() => ['id' => (string) Str::ulid(), 'enabled' => $enabled],
+        ]);
+    }
+
+    /**
+     * Skills attached to this agent.
+     *
+     * Attaching a skill adds to what an agent knows how to do and grants it
+     * nothing -- ADR-0008. A skill declaring `required_tools` is a statement
+     * of what it needs, not a request the agent's allowlist has to honour.
+     *
+     * @return BelongsToMany<Skill, $this>
+     */
+    public function skills(): BelongsToMany
+    {
+        /** @var string $prefix */
+        $prefix = config('pandora.database.table_prefix', 'pandora_');
+
+        return $this->belongsToMany(Skill::class, $prefix.'agent_skills', 'agent_id', 'skill_id')
+            ->withPivot('enabled')
+            ->withTimestamps();
+    }
+
     public function conversations(): HasMany
     {
         return $this->hasMany(Conversation::class, 'agent_id');

@@ -5,6 +5,73 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-06 — Phase 5 slices 4 to 7: vectors, curation, workspaces and the pages
+
+All 28 criteria verified. The phase is code-complete; the host walkthrough is
+the one thing left, and the roadmap says so rather than claiming ✅.
+
+**The pgvector decision held.** The acceptance plan said the vector store would be
+optional at runtime and mandatory in CI. A `pgvector/pgvector:pg17` leg is in the matrix, and
+`Memory/PgvectorTest` SKIPS rather than passing where the extension is absent — verified both
+directions: 8 skipped on plain PostgreSQL, 8 passed on pgvector, 1,047 passed and **0 skipped** on
+the pgvector image. A skipped test is honest about not having run; a test that passes because it
+substituted a fake for the thing under test is the Phase 4 failure repeated deliberately.
+
+**Three defects found by writing the tests.**
+
+*A write through a symlink escaped the workspace root.* Resolving a path for creation checked only
+the parent directory, on the reasoning that a file which does not exist yet has no realpath. But
+`notes.txt` can already exist as a symlink pointing anywhere, and `file_put_contents` follows it —
+so reads through that symlink were correctly refused while writes went straight through. An existing
+target is now resolved and checked exactly like a read, and a dangling symlink is refused rather
+than created. This is the defect the slice existed to prevent, found because the test was written
+from the attacker's side rather than the caller's.
+
+*`ToolInput::string()` returns `?string` even for fields `rules()` marks required*, which forced a
+cast at every call site that lied about the contract. Added `requiredString()`, which states it.
+
+*The agent-skills pivot could not be `attach()`ed.* Every Pandora table carries a ULID primary key,
+and Eloquent's `attach()` writes the pivot with a raw insert that knows nothing about that. Rather
+than leave a NOT NULL failure waiting for the first host that tries it, `Agent::attachSkill()` is
+the supported path.
+
+**One existing test failed correctly and was updated, not silenced.** `AgentDetailTest` asserted
+that Memory names "Phase 5" as a tab not yet built. It is built, so the assertion now checks the
+inverse — that memory, skills and workspace are absent from `PENDING_TABS` — and the still-pending
+tabs keep their promises tested.
+
+**Decisions worth recording.**
+
+*A vector store takes no scope, tenant or actor in `search()`.* There is nothing useful an
+implementation could do with them, and an implementation that tried would be the second place
+visibility is decided — one place too many. Everything it proposes joins the candidate set inside
+the scope constraint, which is asserted against a real pgvector server rather than a mock.
+
+*A memory is embedded on approval, not on write.* Embedding a suggestion would put an unapproved
+claim into the vector index, where the scope re-filter keeps it out of answers but a store dump
+still contains it.
+
+*The agent's Memory tab shows agent-scoped memory only.* Showing everything the agent can retrieve
+would mean showing user-scoped memory belonging to whoever it has spoken to, and an admin page has
+no "who is standing here" to bound that by.
+
+*The default embedding provider is offline and deterministic.* It hashes tokens into buckets and is
+not a language model. A null provider means the vector path is never exercised; a hosted provider
+means the suite makes paid calls, so it gets skipped. Both are the same blind spot.
+
+**An environment note, not a code defect.** Running the package suite inside the Docker container
+writes root-owned files into `vendor/orchestra/testbench-core`, which then breaks
+`InstallationTest` on the host until they are removed. Worth knowing before somebody spends an hour
+on it.
+
+**Verified:** `vendor/bin/pest` → 1,159 passed, 8 skipped (3,867 assertions) on SQLite. 1,047 passed
+and 0 skipped on `pgvector/pg17`. MySQL 8.4 and PostgreSQL 17 green. `phpstan` clean at level 8 with
+no `@phpstan-ignore` and no baseline entries. `pint` clean.
+
+**Not done:** the host walkthrough, and `phase-5-walkthrough.md` to drive it from.
+
+---
+
 ## 2026-08-06 — Phase 5 slice 3: the context pipeline
 
 Criteria 20 to 24 verified; 12 of 28 now ticked.

@@ -13,7 +13,7 @@
 | 3 | Providers and routing | ✅ 41/41 — database matrix now genuinely green on MySQL, MariaDB and PostgreSQL |
 | 3.5 | Agents page | 🔨 20/20 acceptance criteria verified; host walkthrough outstanding (Q9) |
 | 4 | Automation | ✅ 26/26 on all four engines; host walkthrough complete |
-| 5 | Memory and context | ⬜ |
+| 5 | Memory and context | 🔨 28/28 acceptance criteria verified, incl. a real pgvector CI leg; host walkthrough outstanding |
 | 6 | Multi-agent and MCP | ⬜ |
 | 7 | Channels and extensions | ⬜ |
 | 8 | Hardening and release | ⬜ |
@@ -253,7 +253,7 @@ automation left running long enough to exercise the misfire policy against a gen
 
 ---
 
-## Phase 5 — Memory and context ⬜
+## Phase 5 — Memory and context 🔨
 
 Full context provider pipeline with budgeting, redaction and attribute allowlisting · context files
 from configured roots only · conversation summarisation · `MemoryItem` with all scopes and types ·

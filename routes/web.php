@@ -10,11 +10,13 @@ use Pandora\Pandora\UI\Livewire\AutomationDetail;
 use Pandora\Pandora\UI\Livewire\AutomationsIndex;
 use Pandora\Pandora\UI\Livewire\Chat;
 use Pandora\Pandora\UI\Livewire\Dashboard;
+use Pandora\Pandora\UI\Livewire\MemoryIndex;
 use Pandora\Pandora\UI\Livewire\ProvidersIndex;
 use Pandora\Pandora\UI\Livewire\RunDetail;
 use Pandora\Pandora\UI\Livewire\RunsIndex;
 use Pandora\Pandora\UI\Livewire\ToolsIndex;
 use Pandora\Pandora\UI\Livewire\UsageIndex;
+use Pandora\Pandora\UI\Livewire\WorkspacesIndex;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,5 +39,7 @@ Route::get('/runs', RunsIndex::class)->name('runs');
 Route::get('/runs/{run}', RunDetail::class)->name('runs.show');
 Route::get('/tools', ToolsIndex::class)->name('tools');
 Route::get('/approvals', ApprovalsIndex::class)->name('approvals');
+Route::get('/memory', MemoryIndex::class)->name('memory');
+Route::get('/workspaces', WorkspacesIndex::class)->name('workspaces');
 Route::get('/providers', ProvidersIndex::class)->name('providers');
 Route::get('/usage', UsageIndex::class)->name('usage');

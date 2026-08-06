@@ -9,15 +9,21 @@ use Pandora\Pandora\Agents\AgentRegistry;
 use Pandora\Pandora\Audit\AuditLog;
 use Pandora\Pandora\Core\Tenancy\TenantContext;
 use Pandora\Pandora\Core\Tenancy\TenantManager;
+use Pandora\Pandora\Memory\Enums\MemoryScope;
+use Pandora\Pandora\Memory\Enums\MemorySource;
+use Pandora\Pandora\Memory\Enums\MemoryType;
+use Pandora\Pandora\Memory\MemoryItem;
 use Pandora\Pandora\Runs\Enums\AutonomyLevel;
 use Pandora\Pandora\Runs\Enums\RunState;
 use Pandora\Pandora\Runs\Run;
+use Pandora\Pandora\Skills\Skill;
 use Pandora\Pandora\Tests\Fixtures\AgentFactory;
 use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
 use Pandora\Pandora\Tests\Fixtures\EchoAgent;
 use Pandora\Pandora\UI\Livewire\AgentDetail;
 use Pandora\Pandora\UI\Livewire\AgentsIndex;
 use Pandora\Pandora\Usage\UsageRecord;
+use Pandora\Pandora\Workspaces\Workspace;
 
 /**
  * Phase 3.5 -- the agent editor.
@@ -450,11 +456,22 @@ it('names the phase that fills each tab that is not built yet', function (): voi
 
     // An operator who cannot find where tools are granted should learn that
     // the page is coming, not conclude that agents cannot be granted tools.
+    //
+    // Memory, Skills and Workspace were on this list until Phase 5 built them,
+    // and their absence here is the assertion that they are no longer
+    // promises.
     Livewire::test(AgentDetail::class, ['agent' => 'support'])
         ->call('selectTab', 'tools')
         ->assertSee('Phase 3.5+')
-        ->call('selectTab', 'memory')
-        ->assertSee('Phase 5');
+        ->call('selectTab', 'channels')
+        ->assertSee('Phase 7')
+        ->call('selectTab', 'permissions')
+        ->assertSee('Phase 6');
+
+    expect(array_keys(AgentDetail::PENDING_TABS))
+        ->not->toContain('memory')
+        ->and(array_keys(AgentDetail::PENDING_TABS))->not->toContain('skills')
+        ->and(array_keys(AgentDetail::PENDING_TABS))->not->toContain('workspace');
 });
 
 // ------------------------------------------------------------- automations
@@ -501,4 +518,103 @@ it('says plainly when nothing starts the agent on its own', function (): void {
     Livewire::test(AgentDetail::class, ['agent' => 'support'])
         ->call('selectTab', 'automations')
         ->assertSee('Nothing starts this agent on its own');
+});
+
+// ------------------------------------------------- Phase 5 tabs
+
+it('shows what this agent has written down, and nothing belonging to a person', function (): void {
+    $agent = AgentFactory::database();
+
+    $this->actingAsUser();
+    Gate::define('pandora.memory.manage', static fn (): bool => true);
+
+    MemoryItem::query()->create([
+        'scope' => MemoryScope::Agent->value,
+        'scope_id' => $agent->getKey(),
+        'type' => MemoryType::AgentCurated->value,
+        'content' => 'deploy notes are filed under the release date',
+        'source' => MemorySource::Agent->value,
+    ]);
+
+    MemoryItem::query()->create([
+        'scope' => MemoryScope::User->value,
+        'scope_id' => 'App\\Models\\User#1',
+        'type' => MemoryType::UserFact->value,
+        'content' => 'they prefer the aisle seat',
+        'source' => MemorySource::User->value,
+    ]);
+
+    // An admin page has no "who is standing here" to bound personal memory by,
+    // so it does not show any. That lives on the Memory page, filtered by
+    // scope, behind pandora.memory.manage.
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'memory')
+        ->assertSee('deploy notes are filed under the release date')
+        ->assertDontSee('they prefer the aisle seat');
+});
+
+it('says an agent with no workspace can reach no files', function (): void {
+    $agent = AgentFactory::database();
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'workspace')
+        ->assertSee('can reach no files at all');
+});
+
+it('shows the workspace an agent has', function (): void {
+    $agent = AgentFactory::database();
+
+    /** @var Workspace $workspace */
+    $workspace = Workspace::query()->create([
+        'name' => 'Scratch',
+        'slug' => 'scratch',
+        'disk' => 'local',
+        'root_path' => sys_get_temp_dir(),
+        'quota_bytes' => 4096,
+    ]);
+
+    $agent->update(['workspace_id' => $workspace->getKey()]);
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'workspace')
+        ->assertSee('Scratch')
+        ->assertSee('4,096');
+});
+
+it('lists attached skills and flags the tools the agent cannot call', function (): void {
+    $agent = AgentFactory::database(['tool_policy' => ['allow' => ['ask_user']]]);
+
+    /** @var Skill $skill */
+    $skill = Skill::query()->create([
+        'name' => 'Release notes',
+        'slug' => 'release-notes',
+        'instructions' => 'Summarise merged pull requests since the last tag.',
+        'required_tools' => ['ask_user', 'send_notification'],
+    ]);
+
+    $agent->attachSkill($skill);
+
+    $this->actingAsUser();
+
+    // Surfaced, never resolved: granting a tool because a skill asked for it
+    // would make the skill the authority on what the agent may do.
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'skills')
+        ->assertSee('Release notes')
+        ->assertSee('send_notification')
+        ->assertSee('cannot call the tools in red');
+});
+
+it('says so when an agent has no skills', function (): void {
+    $agent = AgentFactory::database();
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'skills')
+        ->assertSee('adds to what this agent knows how to do, and grants it nothing');
 });

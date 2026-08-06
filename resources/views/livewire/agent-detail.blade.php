@@ -68,6 +68,9 @@
                 'models' => 'Models',
                 'limits' => 'Limits & Autonomy',
                 'automations' => 'Automations',
+                'skills' => 'Skills',
+                'memory' => 'Memory',
+                'workspace' => 'Workspace',
                 'runs' => 'Runs',
                 'usage' => 'Usage',
             ];
@@ -487,6 +490,159 @@
                 The <a class="pd-link" href="{{ route('pandora.usage') }}" wire:navigate>Usage page</a>
                 breaks this down by model and period.
             </p>
+        </x-pandora::card>
+    @endif
+
+    {{-- ---------------------------------------------------------- skills --}}
+    @if ($tab === 'skills')
+        <x-pandora::card title="Skills" :padded="false">
+            <x-slot:actions>
+                <span class="pd-muted">Instructions, never code — ADR-0008</span>
+            </x-slot:actions>
+
+            @if ($skills->isEmpty())
+                <div class="pd-card-body pd-muted">
+                    No skills attached. A skill is a reusable body of instructions; attaching one
+                    adds to what this agent knows how to do, and grants it nothing.
+                </div>
+            @else
+                <div class="pd-table-wrap">
+                    <table class="pd-table">
+                        <thead>
+                            <tr><th>Skill</th><th>Version</th><th>Requires</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($skills as $skill)
+                                <tr wire:key="agent-skill-{{ $skill->id }}">
+                                    <td>
+                                        <div class="pd-strong">{{ $skill->name }}</div>
+                                        <div class="pd-mono pd-faint">{{ $skill->slug }}</div>
+                                        @if ($skill->description)
+                                            <div class="pd-muted">{{ $skill->description }}</div>
+                                        @endif
+                                    </td>
+                                    <td class="pd-mono">{{ $skill->version }}</td>
+                                    <td>
+                                        @php $unmet = $skill->unmetToolRequirements($agent); @endphp
+
+                                        @if (($skill->required_tools ?? []) === [])
+                                            <span class="pd-muted">nothing</span>
+                                        @else
+                                            @foreach ($skill->required_tools as $tool)
+                                                <x-pandora::badge :tone="in_array($tool, $unmet, true) ? 'danger' : 'muted'">{{ $tool }}</x-pandora::badge>
+                                            @endforeach
+                                        @endif
+
+                                        @if ($unmet !== [])
+                                            {{-- Surfaced, never resolved. Granting a tool because a
+                                                 skill asked for it would make the skill the authority
+                                                 on what the agent may do, which is exactly backwards. --}}
+                                            <div class="pd-muted">This agent cannot call the tools in red.</div>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if ($skill->enabled)
+                                            <x-pandora::badge tone="success">Enabled</x-pandora::badge>
+                                        @else
+                                            <x-pandora::badge>Disabled</x-pandora::badge>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </x-pandora::card>
+    @endif
+
+    {{-- ---------------------------------------------------------- memory --}}
+    @if ($tab === 'memory')
+        <x-pandora::card title="What this agent has written down" :padded="false">
+            <x-slot:actions>
+                @if ($canManageMemory)
+                    <a class="pd-btn pd-btn-ghost" href="{{ route('pandora.memory') }}" wire:navigate>All memory</a>
+                @endif
+            </x-slot:actions>
+
+            <div class="pd-card-body pd-muted">
+                Agent-scoped memory only. What this agent can RETRIEVE also depends on who it is
+                talking to, and an admin page has no "who is standing here" to bound that by —
+                so anything belonging to a person lives on the Memory page, filtered by scope.
+            </div>
+
+            @if ($memories->isEmpty())
+                <div class="pd-card-body pd-muted">Nothing yet.</div>
+            @else
+                <div class="pd-table-wrap">
+                    <table class="pd-table">
+                        <thead>
+                            <tr><th>Memory</th><th>Type</th><th>Status</th><th>Used</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($memories as $memory)
+                                <tr wire:key="agent-memory-{{ $memory->id }}">
+                                    <td>
+                                        @if ($memory->title)
+                                            <div class="pd-strong">{{ $memory->title }}</div>
+                                        @endif
+                                        <div>{{ $memory->content }}</div>
+                                    </td>
+                                    <td>{{ $memory->type->label() }}</td>
+                                    <td>{{ $memory->status->label() }}</td>
+                                    <td>{{ $memory->retrieval_count }}&times;</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </x-pandora::card>
+    @endif
+
+    {{-- -------------------------------------------------------- workspace --}}
+    @if ($tab === 'workspace')
+        <x-pandora::card title="Workspace">
+            @if ($workspace === null)
+                <p class="pd-muted">
+                    This agent has no workspace, so it can reach no files at all. That is the
+                    default, and it is the right one for an agent nobody has thought about yet.
+                </p>
+            @else
+                <dl class="pd-details">
+                    <dt>Name</dt>
+                    <dd>{{ $workspace->name }}</dd>
+
+                    <dt>Disk</dt>
+                    <dd class="pd-mono">{{ $workspace->disk }}</dd>
+
+                    <dt>Root</dt>
+                    <dd class="pd-mono">{{ $workspace->root_path }}</dd>
+
+                    <dt>Used</dt>
+                    <dd>
+                        {{ number_format($workspace->used_bytes) }} bytes
+                        @if ($workspace->hasQuota())
+                            of {{ number_format((int) $workspace->quota_bytes) }}
+                        @else
+                            (no quota)
+                        @endif
+                    </dd>
+
+                    <dt>Allowed types</dt>
+                    <dd>
+                        @if (($workspace->allowed_mime_types ?? []) === [])
+                            <span class="pd-muted">any</span>
+                        @else
+                            {{ implode(', ', $workspace->allowed_mime_types) }}
+                        @endif
+                    </dd>
+                </dl>
+
+                <a class="pd-btn pd-btn-ghost"
+                   href="{{ route('pandora.workspaces', ['workspace' => $workspace->slug]) }}"
+                   wire:navigate>Browse files</a>
+            @endif
         </x-pandora::card>
     @endif
 

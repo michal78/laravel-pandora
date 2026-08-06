@@ -4,6 +4,53 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## Phase 5 — Memory and context (unreleased)
+
+An agent that remembers is an agent that will repeat something, so the security
+question changes from "may this actor do this?" to "whose was this, and who is
+standing here now?" — asked at retrieval, about a fact written by someone no
+longer in the room.
+
+### Added
+
+- **`MemoryItem`** with six scopes (global, tenant, user, agent, conversation,
+  workspace), six types, provenance, confidence, sensitivity and expiry.
+- **Scoped retrieval.** Scope is derived from the run's session and can never be
+  named by a tool argument. The `recall` tool has one parameter and it is the
+  search text.
+- **Lexical retrieval needing no vector database** — portable across SQLite,
+  MySQL, MariaDB and PostgreSQL with nothing installed. This is the shipped
+  path, not a fallback.
+- **`EmbeddingProvider` and `VectorStore` contracts**, a portable brute-force
+  store, and a **pgvector adapter** with its own mandatory CI leg. A store is an
+  accelerator, never an authority: everything it proposes is re-filtered by
+  scope before it is returned, and an unreachable store degrades to lexical and
+  records the degradation.
+- **Curation.** Credentials are never stored in any status; every claim about a
+  person waits for a human. Forgetting hard-deletes the vector and soft-deletes
+  the row. Expiry is a retrieval predicate first and a sweep second.
+- **`remember` and `recall` tools**, and `pandora:memory:sweep` / `:forget` /
+  `:export`.
+- **Context pipeline**: `AttributeAllowlist` (no `toArray()` path to a prompt),
+  context files resolved against configured roots only, conversation
+  summarisation as a stored artefact, and redaction inside `ContextBuilder`.
+- **Workspaces** with path containment checked after resolution on every
+  operation, quotas claimed by conditional increment, and MIME matched on the
+  detected type rather than the extension.
+- **Memory and Workspaces pages**, and the agent's Skills, Memory and Workspace
+  tabs.
+
+### Fixed
+
+- A global memory written inside a tenant became permanently invisible:
+  `BelongsToTenant` stamps `tenant_id` on `creating` and the guard ran on
+  `saving`, one hook too early.
+- PostgreSQL retrieval silently missed everything written with a capital
+  letter — its `LIKE` is case-sensitive and the other three engines' are not.
+- A write through a symlink escaped the workspace root, because resolving a
+  path for creation checked only the parent directory.
+
 ## [Unreleased]
 
 ### Added

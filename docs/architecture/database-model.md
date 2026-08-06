@@ -46,7 +46,7 @@
 soft deletes
 Unique `(tenant_id, slug)`. Index `(tenant_id, enabled)`.
 
-**`pandora_workspaces`** — P5
+**`pandora_workspaces`** — **P5**
 `id` · `tenant_id?` · `name` · `slug` · `disk` · `root_path` · `quota_bytes?` · `used_bytes` ·
 `allowed_mime_types` json · `metadata` json · timestamps
 
@@ -131,18 +131,26 @@ Index `(tenant_id, status, expires_at)`.
 
 ### Knowledge
 
-**`pandora_memory_items`** — P5
+**`pandora_memory_items`** — **P5**
 `id` · `tenant_id?` · `scope` · `scope_id?` · `agent_id?` · `type` · `title?` · `content` ·
 `structured` json · `source` · `source_run_id?` · `provenance` json · `confidence` · `sensitivity` ·
-`status` (active/suggested/rejected/expired) · `expires_at?` · `embedding_id?` · `metadata` json ·
-timestamps · soft deletes
+`status` (active/suggested/rejected/expired) · `approval_id?` · `expires_at?` · `embedding_id?` ·
+`last_retrieved_at?` · `retrieval_count` · `metadata` json · timestamps · soft deletes
+A `global`-scoped row carries a NULL `tenant_id` and the model refuses to write one that does not —
+a global row wearing a tenant id is one tenant's memory that no retrieval can ever return.
 Index `(tenant_id, scope, scope_id, status)`, `(tenant_id, agent_id, type)`.
 
-**`pandora_embeddings`** — P5
+**`pandora_embeddings`** — **P5**
 `id` · `tenant_id?` · `owner_type` · `owner_id` · `provider_key` · `model_key` · `dimensions` ·
-`vector` json (portable default; adapters use native types) · `content_hash` · timestamps
+`vector` json (portable default) · `content_hash` · timestamps
+Unique `(owner_type, owner_id, provider_key, model_key)` — a changed embedding model must REPLACE
+rather than accumulate; two vector spaces in one column makes every distance meaningless and nothing
+about the numbers would reveal it. On PostgreSQL a conditional migration adds `vector_native
+vector(n)` alongside, plus an HNSW index over cosine distance. The JSON column stays: it is what
+makes swapping adapters a configuration change rather than a re-embedding project, and it is the
+only copy readable without the extension installed.
 
-**`pandora_skills`** / **`pandora_skill_assignments`** — P5/P6
+**`pandora_skills`** / **`pandora_agent_skills`** — **P5** (store and attachment) / P6 (discovery from MCP)
 Skill: `id` · `tenant_id?` · `name` · `slug` · `version` · `author?` · `description` ·
 `instructions` longtext · `manifest` json · `trigger_hints` json · `required_tools` json ·
 `required_abilities` json · `files` json · `source` · `validation_status` · `validation_errors` json ·
