@@ -165,6 +165,19 @@ All notable changes to this project are documented here. The format follows
     audit actions.
 
 ### Fixed
+- **The CI database matrix was not testing databases.** All three "engine" jobs ran SQLite, because
+  the package test case hardcoded the connection and overrode the `DB_CONNECTION` the workflow set.
+  Three passing jobs that assert nothing are worse than no jobs at all. The suite now genuinely runs
+  on MySQL 8.4, MariaDB 11 and PostgreSQL 17, and making it real found three defects:
+  - An inbound webhook whose delivery insert hit any query error — a deadlock, a lock-wait timeout —
+    was answered "already processed" and dropped. Only a genuine uniqueness clash means replay now.
+  - Two test fixtures used 27- and 28-character ULIDs. SQLite stores an over-long value into
+    `char(26)`; MySQL refuses the insert.
+  - Two assertions compared JSON arrays by exact key order, which MySQL's native JSON type
+    normalises and SQLite preserves — they were asserting the engine, not the behaviour.
+- `migrate:rollback` in the portability test now works by path rather than by `--step`, whose meaning
+  has changed between Laravel versions. This test had been failing in CI for two phases while passing
+  locally against the committed lock file.
 - `pandora:install` publishes the migrations an existing installation is MISSING, instead of
   skipping the step because some are already present. An upgrade that added a table previously left
   the host on the old schema, and the first symptom was a missing-table error in a page nobody

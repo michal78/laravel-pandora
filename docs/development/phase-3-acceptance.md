@@ -1,11 +1,14 @@
 # Phase 3 — Acceptance Test Plan
 
-> **Status as of 2026-08-05: 40 of 41 criteria verified.** The exception is
-> breadth rather than behaviour — the database matrix beyond SQLite, which is
-> CI-only, and is tracked on the Phase 2 sheet for the same reason.
+> **Status as of 2026-08-06: 41 of 41 criteria verified.** The last one — the
+> database matrix beyond SQLite — closed on 2026-08-06, and it was not the
+> formality it looked like: all three "engine" jobs had been running SQLite
+> because `TestCase` hardcoded the connection. Making the matrix real found
+> three defects. See the 2026-08-06 entry in `progress.md`.
 >
 > ```
-> vendor/bin/pest        -> Tests: 728 passed (2,509 assertions)
+> vendor/bin/pest        -> Tests: 926 passed (3,175 assertions)   [SQLite]
+>                        -> MySQL 8.4 · MariaDB 11 · PostgreSQL 17 green in CI
 > vendor/bin/phpstan     -> [OK] No errors  (level 8, checkModelProperties on)
 > vendor/bin/pint --test -> passed
 > ```

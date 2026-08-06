@@ -5,6 +5,78 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-06 — The database matrix was not testing databases
+
+Asked whether the two outstanding items were worth clearing before Phase 5. Checking rather than
+guessing turned up something worse than either of them.
+
+**CI had been red since Phase 3.5 and nobody looked.** One test — `it rolls migrations back cleanly`
+— failing on every job. I had reported "925 green" from local runs without checking that the push
+went green. That is the process failure worth recording; the rest follows from it.
+
+**The three "engine" jobs were running SQLite.** The workflow sets `DB_CONNECTION=mysql` and friends,
+and `TestCase::defineEnvironment()` hardcoded `sqlite :memory:`, overriding it. Confirmed by running
+locally with the matrix environment set and no MySQL reachable: six passed, having connected to
+nothing. Three green jobs asserting nothing is worse than no jobs at all — it is why "database matrix
+outstanding" sat in the roadmap since Phase 2 without urgency.
+
+**Making it real cost more than expected**, and each step was its own small lesson:
+
+- Honouring the env meant testbench re-migrating per test: free on `:memory:`, forty minutes on a
+  server engine. The schema is now built once and truncated between tests. Truncation rather than a
+  wrapping transaction, because Pandora catches unique violations as normal control flow and on
+  PostgreSQL a failed statement poisons the surrounding transaction.
+- `loadLaravelMigrations()` registers a rollback on application destruction — right for a throwaway
+  database, fatal for a shared one. The symptom was a truncate failing on a table that had existed a
+  moment earlier.
+- `PortabilityTest` deliberately rolls every migration back, which on a shared schema deletes the
+  database out from under every test that follows. The harness now verifies the schema exists rather
+  than trusting a flag, and heals itself.
+- `Schema::getTableListing()` lists every schema the credentials can see, which on a developer
+  machine includes unrelated databases on the same server. Scoped to the connection's own database.
+
+**Three real defects, all previously hidden by SQLite's tolerance:**
+
+1. `WebhookReceiver` caught every `QueryException` and answered "already processed". On MySQL a
+   deadlock or lock-wait timeout would therefore drop a delivery while telling the sender it landed —
+   silent loss, surfacing months later as "some webhooks don't arrive". Detection is now narrow and
+   shared with the automation claim through `DetectsUniqueViolations`.
+2. Two hand-written ULIDs in fixtures were 27 and 28 characters. SQLite stores an over-long value
+   into `char(26)`; MySQL in strict mode refuses the insert. Fixed, with a test so it cannot drift.
+3. Two assertions compared JSON arrays with `toBe()`. MySQL's native JSON type normalises key order
+   and SQLite keeps the text verbatim, so those tests were asserting the engine, not the behaviour.
+
+**And the original red test.** `migrate:rollback --step=N` has meant "N batches" and "N migrations"
+in different Laravel versions, and neither is the count of Pandora's own files once the host's share
+the migrations table — which is exactly why it passed against the committed lock and failed on CI's
+resolved dependencies. Rolling back by `--path` says what the test means, and it now asserts every
+table is gone rather than sampling one.
+
+**Verified.**
+
+```
+sqlite (local + CI, PHP 8.3 and 8.4)  -> 926 passed (3,175 assertions)
+MySQL 8.4     (CI)                    -> 925 passed, 1 failed  [the rollback test, now fixed]
+MariaDB 11    (CI)                    -> 925 passed, 1 failed  [same]
+PostgreSQL 17 (CI)                    -> 925 passed, 1 failed  [same]
+```
+
+Every one of Phase 4's automation tests passes on all four engines. Two new portability rules are
+recorded in `database-model.md`: JSON key order is not preserved, and an over-long value is an error
+rather than a truncation.
+
+**SQLite stays supported**, and the installation guide now says so with the caveat that matters:
+Pandora's execution model is concurrent by design — row locks on runs, a unique-insert occurrence
+claim, replay protection that depends on two processes racing one index — and SQLite serialises
+writers, so those paths surface as `database is locked` under more than one worker. Development, CI
+and single-worker deployments: yes. Production with concurrency: a server engine.
+
+**Phase 4 host walkthrough** performed against `laravel-test` — see Q9 in `open-questions.md`. The
+scheduler entry registering itself with no host Kernel edit, and next-run times rendering in each
+automation's own timezone against a real clock, were both unobserved claims until now.
+
+---
+
 ## 2026-08-06 — Phase 4: Automation 🔨 (26 of 26 criteria verified)
 
 **What changed about the product.** Every phase before this one runs because a person pressed

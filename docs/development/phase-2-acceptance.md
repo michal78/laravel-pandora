@@ -1,7 +1,9 @@
 # Phase 2 — Acceptance Test Plan
 
-> **Status as of 2026-08-05: 34 of 36 criteria verified.** The two exceptions are breadth rather
-> than behaviour — the database matrix beyond SQLite, and a human driving the new pages.
+> **Status as of 2026-08-06: 35 of 36 criteria verified.** The database matrix closed on
+> 2026-08-06 — the full suite now passes on MySQL 8.4, MariaDB 11 and PostgreSQL 17, and making the
+> matrix genuine found three defects (see `progress.md`). The one exception left is a human driving
+> the new pages.
 >
 > ```
 > vendor/bin/pest        -> Tests: 431 passed (1,580 assertions)
@@ -99,8 +101,10 @@ tempting the symmetry.
 - [x] `docs/guides/tools.md` written
 - [x] `docs/development/progress.md`, `docs/roadmap.md` and `CHANGELOG.md` updated
 - [x] Committed to `master` as focused milestone commits
-- [ ] **Database matrix** — SQLite verified; MySQL, MariaDB and PostgreSQL remain CI-only. The two
-      new tables use only portable types and short index names, but that is an argument, not a run.
+- [x] **Database matrix** — closed 2026-08-06. The whole suite passes on SQLite, MySQL 8.4,
+      MariaDB 11 and PostgreSQL 17. It had been an argument rather than a run for longer than
+      anybody realised: the three engine jobs were running SQLite, because `TestCase` hardcoded the
+      connection and overrode the workflow's `DB_CONNECTION`.
 - [ ] **Host-application walkthrough** — a human granting a tool to an agent, watching a call pause,
       approving it from the Approvals page and seeing the run resume. Every step has an automated
       equivalent that passes; none of them is a person using the product.

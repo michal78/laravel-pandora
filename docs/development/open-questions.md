@@ -123,7 +123,38 @@ not see were found and fixed (commit `09d96ac`):
    on every page of a real installation, invisible to `Livewire::test()`, which renders no layout.
 3. `symfony/uid` was pinned to `^7.0`, so the package would not install alongside Laravel 13.
 
+### Phase 4 walkthrough — 2026-08-06
+
+Repeated against the same host for the automation surfaces, because Phase 4 is the first phase whose
+correctness depends on things no test can reach: a real cron, a route outside the control center's
+middleware, and a real `APP_KEY` encrypting a secret.
+
+Verified live in `laravel-test`:
+
+- `pandora:install` published the five new migrations into an installation that already had fifteen —
+  the Phase 3 installer fix working on a real upgrade rather than in a test.
+- All five ran on MySQL 8.4, including the `ALTER TABLE` adding `autonomy_level` and `automation_id`
+  to a populated `pandora_runs`.
+- **The scheduler entry registered itself** — `schedule:list` shows `* * * * * pandora:automation:tick`
+  with no edit to the host's own console routes. This is the claim the design rests on and it had
+  never been observed outside a unit test.
+- `pandora:status` reports the Automation section; `pandora:automation:list` renders next-run times in
+  each automation's own timezone (a UTC `01:17` showing as `03:17` Europe/Copenhagen — the offset
+  correct against a real clock, not a frozen one).
+- `pandora:automation:run --sync` produced a genuine run against a real OpenAI model, stamped
+  `trigger=schedule`, `autonomy=observe_only`, with the occurrence recorded `dispatched`.
+- The webhook endpoint over real HTTP: **202** with a run id, **409** on a byte-identical replay,
+  **401** on a wrong secret — criteria 21, 22 and 23 outside the test harness.
+
+No defects found this time, which is a weaker result than Phase 1's but not a null one: the
+scheduler self-registration and the timezone rendering were both unobserved claims until now.
+
 **Still not verified:** a live Reverb server (the host broadcasts to `log`, so the UI is running on
 its polling fallback — which is precisely the degraded mode acceptance criterion 22 requires to
-remain correct), and a real paid provider endpoint. The DB matrix now covers SQLite and MySQL 8.4;
-PostgreSQL and MariaDB remain CI-only.
+remain correct), a real paid provider under an automation firing unattended on the cron, and the
+control-center Automations pages driven by a human in a browser.
+
+**The DB matrix is now real** (2026-08-06). It previously ran SQLite in all three "engine" jobs
+because `TestCase` hardcoded the connection; it now honours `DB_CONNECTION` and the full suite passes
+on MySQL 8.4, MariaDB 11 and PostgreSQL 17. Making it real immediately found three defects — see the
+Phase 4 entry in `progress.md`.

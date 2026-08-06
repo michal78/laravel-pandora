@@ -9,10 +9,10 @@
 |---|---|---|
 | 0 | Discovery and architecture | ✅ |
 | 1 | Kernel vertical slice | 🔨 21/22 acceptance criteria verified; host walkthrough blocked (Q9) |
-| 2 | Tools and approvals | 🔨 34/36 acceptance criteria verified; database matrix and host walkthrough outstanding |
-| 3 | Providers and routing | 🔨 39/40 acceptance criteria verified; database matrix outstanding |
+| 2 | Tools and approvals | 🔨 35/36 acceptance criteria verified; host walkthrough outstanding |
+| 3 | Providers and routing | ✅ 41/41 — database matrix now genuinely green on MySQL, MariaDB and PostgreSQL |
 | 3.5 | Agents page | 🔨 20/20 acceptance criteria verified; host walkthrough outstanding (Q9) |
-| 4 | Automation | 🔨 26/26 acceptance criteria verified; host walkthrough outstanding (Q9) |
+| 4 | Automation | 🔨 26/26 acceptance criteria verified on all four engines; browser walkthrough outstanding |
 | 5 | Memory and context | ⬜ |
 | 6 | Multi-agent and MCP | ⬜ |
 | 7 | Channels and extensions | ⬜ |
@@ -93,13 +93,13 @@ Eloquent query, config read, dispatch job, emit event, send notification).
 on approval, is denied correctly, and is fully audited. Tenant and actor authorization are proven by
 security tests. Argument modification appears as a diff in the UI and in the audit log.
 
-**Status:** 34 of 36 criteria in `docs/development/phase-2-acceptance.md` are verified by automated
-test. The two outstanding are breadth rather than behaviour: the database matrix beyond SQLite, and
-a human driving the new pages in a host application.
+**Status:** 35 of 36 criteria in `docs/development/phase-2-acceptance.md` are verified by automated
+test. The database matrix closed on 2026-08-06 — the full suite now passes on MySQL 8.4, MariaDB 11
+and PostgreSQL 17. The one still outstanding is a human driving the new pages in a host application.
 
 ---
 
-## Phase 3 — Providers and routing 🔨
+## Phase 3 — Providers and routing ✅
 
 Anthropic adapter · Gemini adapter · OpenRouter and Ollama through the OpenAI-compatible adapter ·
 shared provider contract test suite · `Model` catalog with capabilities and pricing ·
@@ -112,9 +112,11 @@ per-tenant and per-agent resolution, rotation · Providers and Usage UI pages ·
 context overflow are each tested. Budget breaches stop execution. No test touches a paid API. Secrets
 never appear in any log, trace, broadcast or API response — asserted, not assumed.
 
-**Status:** 39 of 40 criteria in `docs/development/phase-3-acceptance.md` are verified by automated
-test. The one outstanding is the database matrix beyond SQLite, which is CI-only breadth rather than
-behaviour — the same item still open for Phase 2.
+**Status:** all 41 criteria in `docs/development/phase-3-acceptance.md` are verified by automated
+test. The last one — the database matrix beyond SQLite — was closed on 2026-08-06, and closing it
+was not the formality it looked like: the matrix had been running SQLite in all three engine jobs
+because `TestCase` hardcoded the connection, and making it real found three defects. See the
+2026-08-06 entry in `progress.md`.
 
 Gemini moved from official extension to core during this phase. It is the third genuinely distinct
 dialect, and it is the one that issues no tool-call ids at all; building it was what forced the
@@ -232,10 +234,15 @@ load-bearing ones: two schedulers firing simultaneously produce exactly one run;
 exhausting its autonomy budget disables itself and notifies an admin; a replayed webhook is
 rejected; and an automation can never raise the autonomy of the agent it binds to.
 
-**Status:** all 26 criteria verified by automated test. ADR-0009's autonomy levels are also now
-*enforced* rather than merely stored — `ToolGatekeeper` gained an autonomy layer, and every run
-records the level it ran at. The host walkthrough (Q9) is outstanding, as it is for Phases 1, 2 and
-3.5: nobody has yet watched a real cron fire a real automation against a real deployment.
+**Status:** all 26 criteria verified by automated test, on SQLite, MySQL 8.4, MariaDB 11 and
+PostgreSQL 17. ADR-0009's autonomy levels are also now *enforced* rather than merely stored —
+`ToolGatekeeper` gained an autonomy layer, and every run records the level it ran at.
+
+The console and HTTP halves of the host walkthrough were performed on 2026-08-06 (Q9): the scheduler
+entry registers itself with no host Kernel edit, occurrences render in their own timezone against a
+real clock, a real run was produced by `pandora:automation:run`, and the webhook endpoint answered
+202 / 409 / 401 over real HTTP. What remains is a human driving the Automations **pages** in a
+browser, and an automation firing unattended on a real cron.
 
 ---
 
