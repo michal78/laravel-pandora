@@ -115,13 +115,19 @@ it('rejects a replayed delivery and creates no second run', function (): void {
 
 it('accepts a second delivery with its own signature', function (): void {
     // The guard has to be tight enough to stop a replay and loose enough that
-    // two genuine deliveries in the same second both land.
+    // two genuine deliveries close together both land.
+    //
+    // The clock is read ONCE. Reading it per request looks equivalent and is
+    // not: `now - 1` evaluated a second later is the same instant as the first
+    // request's `now`, which makes the same signature, which is a real replay
+    // and a correct 409. That version passed locally for as long as both calls
+    // fell inside one second and failed on a slow runner -- the exact shape of
+    // a test that flakes forever and gets re-run rather than read.
     $body = json_encode(['order' => 'ORD-9']);
+    $at = Carbon::now()->getTimestamp();
 
-    postWebhook($body, WebhookSignature::sign(WEBHOOK_SECRET, $body, Carbon::now()->getTimestamp()))
-        ->assertStatus(202);
-    postWebhook($body, WebhookSignature::sign(WEBHOOK_SECRET, $body, Carbon::now()->getTimestamp() - 1))
-        ->assertStatus(202);
+    postWebhook($body, WebhookSignature::sign(WEBHOOK_SECRET, $body, $at))->assertStatus(202);
+    postWebhook($body, WebhookSignature::sign(WEBHOOK_SECRET, $body, $at - 5))->assertStatus(202);
 
     expect(Run::query()->count())->toBe(2);
 });
