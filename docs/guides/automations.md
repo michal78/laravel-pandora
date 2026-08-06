@@ -255,4 +255,19 @@ its level.
 | `pandora.prompts.view` | Reading and editing what an automation asks the agent |
 
 `pandora.automations.manage` is **denied by default**, on a fresh installation, to everybody. An
-automation acts unattended, so being able to create one is administrative by definition.
+automation acts unattended, so being able to create one is administrative by definition — which
+means a fresh install shows you the Automations page in read-only mode and no way to change
+anything until you say who may.
+
+Grant it by defining a gate of the same name anywhere in your application. Pandora registers its
+permissive fallbacks only where no gate exists, so yours always wins:
+
+```php
+// AppServiceProvider::boot()
+Gate::define('pandora.automations.manage', fn (User $user) => $user->isAdmin());
+Gate::define('pandora.prompts.view',       fn (User $user) => $user->isAdmin());
+```
+
+There is no configuration switch for this and deliberately so: who may schedule unattended work is
+an authorization decision, and authorization decisions belong in your code where they are reviewed,
+not in a config file where they are copied.
