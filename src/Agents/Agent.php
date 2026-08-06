@@ -42,6 +42,7 @@ use Pandora\Pandora\Support\Concerns\PandoraModel;
  * @property int|null $cost_budget_minor
  * @property string $currency
  * @property array<string, mixed>|null $memory_policy
+ * @property string|null $workspace_id
  * @property array<string, mixed>|null $tool_policy
  * @property array<string, mixed>|null $approval_policy
  * @property Carbon|null $created_at
@@ -67,7 +68,7 @@ final class Agent extends Model
         'default_provider', 'default_model', 'fallback_models', 'provider_options',
         'max_iterations', 'max_tool_calls', 'max_duration_seconds',
         'context_budget_tokens', 'token_budget', 'cost_budget_minor', 'currency',
-        'autonomy_level', 'memory_policy', 'tool_policy', 'approval_policy', 'metadata',
+        'autonomy_level', 'memory_policy', 'tool_policy', 'approval_policy', 'workspace_id', 'metadata',
     ];
 
     /**

@@ -32,10 +32,11 @@ final readonly class ScopeResolver
 
     /**
      * @param string|null $workspaceId the agent's workspace, when it has one.
-     *                                 Passed in rather than read off the agent
-     *                                 because the column arrives with the
-     *                                 workspaces slice; the scope is honoured
-     *                                 from the day it can be populated.
+     *                                 Passed rather than read off the agent so
+     *                                 a caller that has already loaded the
+     *                                 agent does not pay for a second query,
+     *                                 and so this class needs no opinion about
+     *                                 where an agent's workspace comes from.
      */
     public function forSession(Session $session, ?string $workspaceId = null): MemoryScopeSet
     {

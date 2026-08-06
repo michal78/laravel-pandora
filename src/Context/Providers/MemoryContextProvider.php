@@ -51,7 +51,10 @@ final class MemoryContextProvider implements ContextProvider
         }
 
         $results = $this->retriever->retrieve(
-            $this->scopes->forSession($request->session),
+            // The agent is already loaded on the request, so its workspace
+            // costs nothing to include here and would cost a query anywhere
+            // else.
+            $this->scopes->forSession($request->session, $request->agent->workspace_id),
             MemoryQuery::for($query),
         );
 

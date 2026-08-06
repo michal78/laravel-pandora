@@ -96,7 +96,7 @@ final class RecallTool extends Tool
         $results = app(MemoryRetriever::class)->retrieve(
             // Derived here, from the session. Nothing in `$input` reaches this
             // line, and nothing in `$input` could.
-            app(ScopeResolver::class)->forSession($context->session),
+            app(ScopeResolver::class)->forSession($context->session, $context->agent->workspace_id),
             $query,
         );
 

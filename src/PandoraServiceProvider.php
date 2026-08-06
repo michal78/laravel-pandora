@@ -65,7 +65,6 @@ use Pandora\Pandora\Memory\Embeddings\MemoryEmbedder;
 use Pandora\Pandora\Memory\MemoryCurator;
 use Pandora\Pandora\Memory\MemoryRetriever;
 use Pandora\Pandora\Memory\MemoryWriter;
-use Pandora\Pandora\Memory\ScopeResolver;
 use Pandora\Pandora\Memory\SensitivityClassifier;
 use Pandora\Pandora\Memory\Vector\DatabaseVectorStore;
 use Pandora\Pandora\Memory\Vector\PgvectorStore;

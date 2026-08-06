@@ -1,9 +1,9 @@
 # Phase 5 — Acceptance Test Plan
 
-> **Status as of 2026-08-06: 24 of 28 criteria verified.**
+> **Status as of 2026-08-06: 28 of 28 criteria verified.**
 >
 > ```
-> vendor/bin/pest        -> Tests: 1,087 passed, 8 skipped (3,708 assertions)  [SQLite]
+> vendor/bin/pest        -> Tests: 1,129 passed, 8 skipped (3,797 assertions)  [SQLite]
 >                        -> pgvector/pg17: 1,047 passed, 0 skipped -- the adapter tests really ran
 >                        -> MySQL 8.4 and PostgreSQL 17 green
 > vendor/bin/phpstan     -> [OK] No errors  (level 8, checkModelProperties on)
@@ -101,10 +101,10 @@ agent's **Skills**, **Memory** and **Workspace** tabs · `pandora:memory:forget`
 | 22 | ✅ **A context provider serialising a model exposes only allowlisted attributes** | `Context/AllowlistTest` |
 | 23 | ✅ **A context file outside the configured roots is refused — absolute path, `..` traversal and symlink alike** | `Context/ContextFileTest` |
 | 24 | ✅ Conversation summarisation produces a stored artefact, regenerated on threshold, not per request | `Context/SummarisationTest` |
-| 25 | ⬜ A workspace confines reads and writes to its root — **traversal and symlink escape both fail** | `Workspaces/ContainmentTest` |
-| 26 | ⬜ A write exceeding the quota is refused before it lands, and `used_bytes` stays accurate under concurrent writes | `Workspaces/QuotaTest` |
-| 27 | ⬜ A disallowed MIME type is refused on detected type, not on the claimed extension | `Workspaces/MimeTest` |
-| 28 | ⬜ **A tenant cannot see, read, write or export another tenant's workspace or memory through the UI** | `Memory/TenancyTest` |
+| 25 | ✅ A workspace confines reads and writes to its root — **traversal and symlink escape both fail** | `Workspaces/ContainmentTest` |
+| 26 | ✅ A write exceeding the quota is refused before it lands, and `used_bytes` stays accurate under concurrent writes | `Workspaces/QuotaTest` |
+| 27 | ✅ A disallowed MIME type is refused on detected type, not on the claimed extension | `Workspaces/MimeTest` |
+| 28 | ✅ **A tenant cannot see, read, write or export another tenant's workspace or memory through the UI** | `Memory/TenancyTest` |
 
 Test files: `Memory/MemoryItemTest` · `ScopingTest` · `LexicalRetrievalTest` · `ExpiryTest` ·
 `CurationTest` · `RedactionTest` · `ForgettingTest` · `ExportTest` · `VectorStoreTest` ·
@@ -135,7 +135,7 @@ Phase 6. Workspace file *versioning*.
 
 ## Definition of done
 
-- [ ] All 28 criteria have tests, and they pass
+- [x] All 28 criteria have tests, and they pass
 - [ ] `vendor/bin/pest` green on all four engines, **including the pgvector CI leg**
 - [ ] `vendor/bin/phpstan analyse` clean at level 8
 - [ ] `vendor/bin/pint --test` clean
