@@ -9,6 +9,7 @@ use Pandora\Pandora\Providers\Data\ChatMessage;
 use Pandora\Pandora\Providers\Data\ChatRequest;
 use Pandora\Pandora\Providers\Data\ToolCall;
 use Pandora\Pandora\Providers\Data\ToolDefinition;
+use Pandora\Pandora\Tools\ToolRegistry;
 
 /**
  * The request side of tool use.
@@ -166,4 +167,85 @@ it('preserves tools across withStreaming and withTools', function (): void {
         ->and($request->stream)->toBeTrue()
         ->and($request->withTools([])->tools)->toBe([])
         ->and($request->withTools([])->stream)->toBeTrue();
+});
+
+/**
+ * A tool that takes no arguments.
+ *
+ * Phase 5's walkthrough found this one against the live OpenAI API, and the
+ * suite could not have: PHP cannot distinguish an empty map from an empty
+ * list, `json_encode` resolves the ambiguity as `[]`, and every assertion in
+ * this file until now read `$request['tools']` -- which decodes `{}` back to
+ * `[]` and agrees with itself.
+ *
+ * The failure is also worse than it sounds. A strict provider rejects the
+ * whole request, so one parameterless tool disables every other tool in it.
+ *
+ *     Invalid schema for function 'inspect_run_status':
+ *     [] is not of type 'object'.
+ *
+ * These assertions read the encoded body, because the bug only exists there.
+ */
+it('encodes an empty properties map as a JSON object, not an empty array', function (): void {
+    fakeCompletion();
+
+    toolProvider()->chat(new ChatRequest(
+        model: 'gpt-4o-mini',
+        messages: [ChatMessage::user('What is happening?')],
+        tools: [new ToolDefinition(
+            name: 'inspect_run_status',
+            description: 'Report on the current run.',
+            schema: ['type' => 'object', 'properties' => [], 'additionalProperties' => false],
+        )],
+    ));
+
+    Http::assertSent(function ($request): bool {
+        expect($request->body())->toContain('"properties":{}')
+            ->and($request->body())->not->toContain('"properties":[]');
+
+        return true;
+    });
+});
+
+it('leaves an empty required list as a JSON array', function (): void {
+    $definition = new ToolDefinition('t', 'd', [
+        'type' => 'object',
+        'properties' => [],
+        'required' => [],
+    ]);
+
+    expect(json_encode($definition->encodableSchema()))
+        ->toBe('{"type":"object","properties":{},"required":[]}');
+});
+
+it('objectifies a nested empty properties map too', function (): void {
+    $definition = new ToolDefinition('t', 'd', [
+        'type' => 'object',
+        'properties' => [
+            'options' => ['type' => 'object', 'properties' => []],
+        ],
+    ]);
+
+    expect(json_encode($definition->encodableSchema()))
+        ->toContain('"options":{"type":"object","properties":{}}');
+});
+
+it('objectifies an empty schema inside a list of schemas', function (): void {
+    $definition = new ToolDefinition('t', 'd', ['anyOf' => [[], ['type' => 'string']]]);
+
+    expect(json_encode($definition->encodableSchema()))
+        ->toBe('{"anyOf":[{},{"type":"string"}]}');
+});
+
+it('encodes every built-in tool with an object for properties', function (): void {
+    $registry = app(ToolRegistry::class);
+
+    $definitions = $registry->describe($registry->all());
+
+    expect($definitions)->not->toBeEmpty();
+
+    foreach ($definitions as $definition) {
+        expect(json_encode($definition->encodableSchema()))
+            ->not->toContain('"properties":[]', "{$definition->name} advertises properties as an array");
+    }
 });

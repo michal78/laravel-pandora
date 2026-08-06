@@ -266,7 +266,7 @@ final class OpenAiCompatibleProvider implements ModelCatalogProvider, StreamingP
                     'function' => [
                         'name' => $t->name,
                         'description' => $t->description,
-                        'parameters' => $t->schema,
+                        'parameters' => $t->encodableSchema(),
                     ],
                 ],
                 $request->tools,

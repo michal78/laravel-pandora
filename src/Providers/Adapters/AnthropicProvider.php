@@ -301,7 +301,7 @@ final class AnthropicProvider implements ModelCatalogProvider, StreamingProvider
                 static fn (ToolDefinition $tool): array => [
                     'name' => $tool->name,
                     'description' => $tool->description,
-                    'input_schema' => $tool->schema,
+                    'input_schema' => $tool->encodableSchema(),
                 ],
                 $request->tools,
             );

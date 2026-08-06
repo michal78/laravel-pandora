@@ -103,6 +103,25 @@ listed because the first run of this walkthrough hit every one of them:
 - [ ] Stop the database mid-conversation. The agent answers with worse recall
       rather than failing, and `memory.retrieval_degraded` is recorded.
 
+## Defects found
+
+**1. A parameterless tool made every tool unusable.** (`ProviderRejectedRequest`:
+*Invalid schema for function 'inspect_run_status': [] is not of type 'object'.*)
+
+`RuleSchemaGenerator` emits `'properties' => []` for a tool that takes no
+arguments, which is correct PHP and, once encoded, the wrong JSON: PHP cannot
+tell an empty map from an empty list and `json_encode` resolves it as `[]`.
+OpenAI validates every tool in the request and rejects the whole call, so one
+parameterless tool disabled the other ten — including `remember`, which is why
+this surfaced on the first memory check rather than as a tool bug.
+
+The suite could not see it. `ToolSerializationTest` asserted against
+`$request['tools']`, and decoding `{}` yields `[]`, so the assertion agreed
+with the bug. `FakeProvider` validates nothing. The fix converts the schema
+once, in `ToolDefinition::encodableSchema()`, rather than in each of the three
+adapters that pass it to `json_encode`; the new tests read the encoded body,
+and all five fail without it.
+
 ## Notes
 
 Anything found here goes in `progress.md` with the same honesty Phase 4 used:

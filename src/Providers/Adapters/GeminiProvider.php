@@ -284,7 +284,7 @@ final class GeminiProvider implements ModelCatalogProvider, StreamingProvider
                     static fn (ToolDefinition $tool): array => [
                         'name' => $tool->name,
                         'description' => $tool->description,
-                        'parameters' => $tool->schema,
+                        'parameters' => $tool->encodableSchema(),
                     ],
                     $request->tools,
                 ),
