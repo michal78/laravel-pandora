@@ -120,6 +120,22 @@ it('finds a memory from a capitalised query', function (): void {
         ->and($results[0]->item->getKey())->toBe($item->getKey());
 });
 
+it('does not stem, so a singular query misses a plural memory', function (): void {
+    // An asserted limitation, not an accident. Stemming needs a per-language
+    // model; guessing the language wrong corrupts the index in a way nobody
+    // can debug from the outside, and the tokeniser has to behave identically
+    // in PHP and in SQL across four engines.
+    //
+    // This is the recall gap a vector store closes, and the honest reason the
+    // contracts exist. If this test ever starts failing because someone added
+    // stemming, that is a decision to make deliberately -- read the
+    // Tokeniser's docblock first.
+    lexicalMemory('Deploys go out on Thursday afternoons.');
+
+    expect($this->retriever->retrieve($this->scopes, MemoryQuery::for('deploy')))->toBe([]);
+    expect($this->retriever->retrieve($this->scopes, MemoryQuery::for('deploys')))->toHaveCount(1);
+});
+
 it('does not match a token inside a longer word', function (): void {
     lexicalMemory('The catalogue is published quarterly.');
 

@@ -6,6 +6,8 @@ namespace Pandora\Pandora\Context;
 
 use Illuminate\Contracts\Container\Container;
 use Pandora\Pandora\Contracts\ContextProvider;
+use Pandora\Pandora\Providers\Data\ChatMessage;
+use Pandora\Pandora\Support\Redactor;
 
 /**
  * Runs the registered context providers in order, within the agent's token
@@ -65,6 +67,8 @@ final class ContextBuilder
                 continue;
             }
 
+            $section = $this->redact($section);
+
             foreach ($section->messages as $message) {
                 $messages[] = $message;
             }
@@ -85,5 +89,34 @@ final class ContextBuilder
             estimatedTokens: $used,
             budget: $request->tokenBudget,
         );
+    }
+
+    /**
+     * Strip credential-shaped strings from a section before it is sent.
+     *
+     * Belt and braces, and knowingly so: the real defence is providers not
+     * putting secrets in context, and `AttributeAllowlist` is what makes that
+     * enforceable. This catches what neither can -- a bearer token a user
+     * pasted into a message, or one echoed back inside a tool result, which
+     * arrives as ordinary conversation text and would otherwise be forwarded
+     * to a third party and stored in their logs.
+     *
+     * Applied after the budget check on purpose. Redaction only ever shortens
+     * a section, so checking first is the conservative order; re-estimating
+     * afterwards would let a section that was refused sneak back in at a
+     * smaller size, which makes the trace disagree with what was sent.
+     */
+    private function redact(ContextSection $section): ContextSection
+    {
+        $redactor = $this->container->make(Redactor::class);
+
+        $messages = array_map(
+            static fn (ChatMessage $message): ChatMessage => $message->withContent(
+                $redactor->redactText($message->content),
+            ),
+            $section->messages,
+        );
+
+        return new ContextSection($section->key, $messages, $section->estimatedTokens);
     }
 }

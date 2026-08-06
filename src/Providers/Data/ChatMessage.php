@@ -64,6 +64,25 @@ final readonly class ChatMessage implements \JsonSerializable
         return new self(MessageRole::Tool, $content, toolCallId: $toolCallId, name: $name);
     }
 
+    /**
+     * The same message with different content.
+     *
+     * Everything else is carried over verbatim -- particularly `toolCallId`
+     * and `toolCalls`, because a rewritten assistant turn that loses its tool
+     * calls, or a tool result that loses the id it answers, is rejected by
+     * every provider.
+     */
+    public function withContent(string $content): self
+    {
+        return new self(
+            role: $this->role,
+            content: $content,
+            toolCallId: $this->toolCallId,
+            name: $this->name,
+            toolCalls: $this->toolCalls,
+        );
+    }
+
     public function requestsTools(): bool
     {
         return $this->toolCalls !== [];

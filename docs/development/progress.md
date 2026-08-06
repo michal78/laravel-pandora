@@ -5,6 +5,57 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-06 — Phase 5 slice 3: the context pipeline
+
+Criteria 20 to 24 verified; 12 of 28 now ticked.
+
+**Shipped:** `AttributeAllowlist`, the enforceable version of an instruction `ContextProvider` has
+carried in a docblock since Phase 1 — no `all()`, no `except()`, no way to pass a model through, and
+a nested value reached through an allowlisted name renders as `[not exposed]` rather than
+serialising whatever is inside it. `ContextFiles`, which resolves before it contains.
+`ContextFilesProvider` and `MemoryContextProvider`, both registered in the default pipeline.
+`Summariser`, storing summaries as ordinary `MemoryItem`s so they expire, redact, export and are
+forgotten by the same machinery as everything else. `ChatMessage::withContent()`. Redaction in
+`ContextBuilder`.
+
+**Decisions worth recording.**
+
+*Memory sits before recent messages in the provider order.* When the budget runs out, the thing worth
+keeping is what the agent knows and would otherwise never recall — not the tail of a transcript the
+user was present for and can simply repeat.
+
+*Redaction runs after the budget check, not before.* Redaction only shortens a section, so checking
+first is the conservative order. Re-estimating afterwards would let a section that was already
+refused sneak back in at a smaller size, and then the trace disagrees with what was actually sent.
+
+*A refused context file and a missing one give the same answer.* A distinct "no such file" turns the
+refusal into an oracle for probing the filesystem outside the allowed roots.
+
+*A summary is built from the session's messages, never the conversation's.* Otherwise summarisation
+is a laundering route around session isolation: unreadable messages in, readable summary out.
+
+**Found while building.** PHPStan caught that a configured `max_bytes` of `0` — a plausible typo in
+a published config file — would reach `fread()` and throw mid-run, taking down every agent with a
+context file. Clamped at construction.
+
+One test was wrong rather than the code: the "no oracle" test compared whole exception messages,
+which differ only by the path the caller themselves supplied. It now compares the refusal reason
+with the echoed path removed, which is the property that actually matters.
+
+**An asserted limitation, not an accident.** The tokeniser does not stem, so a query of `deploy`
+does not match a memory saying `deploys`. This surfaced as two failing tests written on the
+assumption that it would. Rather than quietly adjust the queries, the behaviour is now pinned by a
+test that says so and explains why: stemming needs a per-language model, guessing the language wrong
+corrupts the index in a way nobody can debug from outside, and the tokeniser must behave identically
+in PHP and in SQL on four engines. This is the recall gap the vector store closes, and the honest
+reason those contracts exist.
+
+**Verified:** `vendor/bin/pest` → 1,018 passed (3,474 assertions) on SQLite. `tests/Memory` and
+`tests/Context` — 81 tests — green on MySQL 8.4 and PostgreSQL 17. `phpstan` clean at level 8.
+`pint` clean.
+
+---
+
 ## 2026-08-06 — Phase 5 opened: memory items, scoping and lexical retrieval
 
 `docs/development/phase-5-acceptance.md` written first, as every phase before it. 28 criteria, none

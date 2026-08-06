@@ -1,9 +1,10 @@
 # Phase 5 — Acceptance Test Plan
 
-> **Status as of 2026-08-06: 0 of 28 criteria verified. Phase opened.**
+> **Status as of 2026-08-06: 12 of 28 criteria verified.**
 >
 > ```
-> vendor/bin/pest        -> Tests: 937 passed (3,205 assertions)   [baseline, pre-phase]
+> vendor/bin/pest        -> Tests: 1,018 passed (3,474 assertions)   [SQLite]
+>                        -> MySQL 8.4 and PostgreSQL 17 green for tests/Memory + tests/Context
 > vendor/bin/phpstan     -> [OK] No errors  (level 8, checkModelProperties on)
 > vendor/bin/pint --test -> passed
 > ```
@@ -75,14 +76,14 @@ agent's **Skills**, **Memory** and **Workspace** tabs · `pandora:memory:forget`
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 1 | ⬜ A `MemoryItem` persists every scope and type, with tenancy, soft deletes and provenance | `Memory/MemoryItemTest` |
-| 2 | ⬜ **A retrieval in one user's session returns none of another user's memories** | `Memory/ScopingTest` |
-| 3 | ⬜ **A retrieval in one tenant returns none of another tenant's memories, on every scope** | `Memory/ScopingTest` |
+| 1 | ✅ A `MemoryItem` persists every scope and type, with tenancy, soft deletes and provenance | `Memory/MemoryItemTest` |
+| 2 | ✅ **A retrieval in one user's session returns none of another user's memories** | `Memory/ScopingTest` |
+| 3 | ✅ **A retrieval in one tenant returns none of another tenant's memories, on every scope** | `Memory/ScopingTest` |
 | 4 | ⬜ **The `recall` tool cannot name a scope; an argument attempting to is refused, not widened** | `Memory/ScopingTest` |
-| 5 | ⬜ Agent-scoped memory is visible to that agent only; shared scope is visible across agents in the tenant | `Memory/ScopingTest` |
-| 6 | ⬜ Lexical retrieval ranks by token overlap and returns a bounded, deterministic result set | `Memory/LexicalRetrievalTest` |
-| 7 | ⬜ **A default install with no vector store configured retrieves memory successfully** | `Memory/LexicalRetrievalTest` |
-| 8 | ⬜ Retrieval excludes `suggested`, `rejected`, expired and soft-deleted items | `Memory/LexicalRetrievalTest` |
+| 5 | ✅ Agent-scoped memory is visible to that agent only; shared scope is visible across agents in the tenant | `Memory/ScopingTest` |
+| 6 | ✅ Lexical retrieval ranks by token overlap and returns a bounded, deterministic result set | `Memory/LexicalRetrievalTest` |
+| 7 | ✅ **A default install with no vector store configured retrieves memory successfully** | `Memory/LexicalRetrievalTest` |
+| 8 | ✅ Retrieval excludes `suggested`, `rejected`, expired and soft-deleted items | `Memory/LexicalRetrievalTest` |
 | 9 | ⬜ An expired item is excluded by the retrieval predicate even when the sweep has not run | `Memory/ExpiryTest` |
 | 10 | ⬜ The expiry sweep transitions items to `expired` and deletes their embeddings | `Memory/ExpiryTest` |
 | 11 | ⬜ Writing a fact classified sensitive creates a `suggested` item and an approval, and stores nothing active | `Memory/CurationTest` |
@@ -94,11 +95,11 @@ agent's **Skills**, **Memory** and **Workspace** tabs · `pandora:memory:forget`
 | 17 | ⬜ **The pgvector adapter returns nearest neighbours, and its results are re-filtered by scope before use** | `Memory/PgvectorTest` |
 | 18 | ⬜ Unchanged content is not re-embedded; a changed embedding model invalidates and re-embeds | `Memory/EmbeddingCacheTest` |
 | 19 | ⬜ A vector store that is unreachable degrades to lexical retrieval and records the degradation | `Memory/VectorStoreTest` |
-| 20 | ⬜ The memory context provider contributes a section within the agent's budget and is traced | `Context/MemoryProviderTest` |
-| 21 | ⬜ A provider exceeding the remaining budget is dropped with `budget_exhausted`, never truncated | `Context/BudgetTest` |
-| 22 | ⬜ **A context provider serialising a model exposes only allowlisted attributes** | `Context/AllowlistTest` |
-| 23 | ⬜ **A context file outside the configured roots is refused — absolute path, `..` traversal and symlink alike** | `Context/ContextFileTest` |
-| 24 | ⬜ Conversation summarisation produces a stored artefact, regenerated on threshold, not per request | `Context/SummarisationTest` |
+| 20 | ✅ The memory context provider contributes a section within the agent's budget and is traced | `Context/MemoryProviderTest` |
+| 21 | ✅ A provider exceeding the remaining budget is dropped with `budget_exhausted`, never truncated | `Context/BudgetTest` |
+| 22 | ✅ **A context provider serialising a model exposes only allowlisted attributes** | `Context/AllowlistTest` |
+| 23 | ✅ **A context file outside the configured roots is refused — absolute path, `..` traversal and symlink alike** | `Context/ContextFileTest` |
+| 24 | ✅ Conversation summarisation produces a stored artefact, regenerated on threshold, not per request | `Context/SummarisationTest` |
 | 25 | ⬜ A workspace confines reads and writes to its root — **traversal and symlink escape both fail** | `Workspaces/ContainmentTest` |
 | 26 | ⬜ A write exceeding the quota is refused before it lands, and `used_bytes` stays accurate under concurrent writes | `Workspaces/QuotaTest` |
 | 27 | ⬜ A disallowed MIME type is refused on detected type, not on the claimed extension | `Workspaces/MimeTest` |

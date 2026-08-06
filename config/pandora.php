@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 use Pandora\Pandora\Automation\Notifications\AutomationDisabled;
+use Pandora\Pandora\Context\Providers\ContextFilesProvider;
 use Pandora\Pandora\Context\Providers\EnvironmentContextProvider;
+use Pandora\Pandora\Context\Providers\MemoryContextProvider;
 use Pandora\Pandora\Context\Providers\RecentMessagesProvider;
 use Pandora\Pandora\Context\Providers\SystemInstructionsProvider;
 use Pandora\Pandora\Core\Actor\GuardActorResolver;
@@ -609,11 +611,39 @@ return [
         'providers' => [
             SystemInstructionsProvider::class,
             EnvironmentContextProvider::class,
+            ContextFilesProvider::class,
+            // Memory before recent messages: when the budget runs out, the
+            // thing worth keeping is what the agent knows and would otherwise
+            // never recall, not the tail of a transcript the user was present
+            // for and can repeat.
+            MemoryContextProvider::class,
             RecentMessagesProvider::class,
         ],
 
         'recent_messages' => [
             'limit' => 40,
+        ],
+
+        /*
+        | Context files are read ONLY from the roots listed here, after the
+        | path has been resolved with realpath(). An empty list permits
+        | nothing -- an allowlist that falls open when unconfigured is not an
+        | allowlist. Paths themselves live on the agent, which is edited in a
+        | browser, so they are treated as untrusted all the way down.
+        */
+        'files' => [
+            'roots' => [],
+            'max_bytes' => 65536,
+        ],
+
+        /*
+        | A summary is regenerated once this many messages have been added
+        | since the last one -- not per request. Per-request summarisation
+        | costs a model call every turn and makes the same conversation
+        | produce different context twice.
+        */
+        'summarisation' => [
+            'threshold' => 20,
         ],
     ],
 
