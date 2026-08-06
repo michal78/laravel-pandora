@@ -70,8 +70,24 @@ listed because the first run of this walkthrough hit every one of them:
 
 ## Workspaces
 
-- [ ] Create a workspace pointing at a real directory, attach it to an agent.
-- [ ] The **Workspaces** page lists it with its usage and quota.
+- [ ] Create a workspace pointing at a real directory and attach it to an agent.
+      **In code, not in the UI** — see `docs/guides/workspaces.md`. `disk` and
+      `root_path` are operator configuration, and a form that accepts a root
+      path is a form that accepts `/`; the Workspaces page browses and never
+      creates. If you want a walkthrough one:
+
+      ```php
+      $workspace = Workspace::query()->create([
+          'name' => 'Walkthrough', 'slug' => 'walkthrough', 'disk' => 'local',
+          'root_path' => storage_path('app/pandora-workspace'),
+          'quota_bytes' => 10 * 1024 * 1024, 'allowed_mime_types' => [],
+      ]);
+
+      $agent->update(['workspace_id' => $workspace->getKey()]);
+      ```
+- [ ] The **Workspaces** page lists it with its usage and quota. Usage reads 0
+      until something writes through `WorkspaceFiles` or you press **Recount** —
+      files placed on disk by hand are not counted before then.
 - [ ] Browsing shows the files that are there, and descending into a folder works.
 - [ ] `ln -s /etc/passwd <root>/innocent.txt`, then refresh. **The symlink does
       not appear in the listing**, and the audit log records a
