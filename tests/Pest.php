@@ -18,6 +18,9 @@ uses(TestCase::class)->in(
     'Tools',
     'Approvals',
     'Automation',
+    'Memory',
+    'Context',
+    'Workspaces',
 );
 
 /**

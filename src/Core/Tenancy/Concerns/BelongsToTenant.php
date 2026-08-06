@@ -37,6 +37,10 @@ trait BelongsToTenant
     /**
      * Escape the tenant scope. Every call site is a potential cross-tenant
      * leak, so this is deliberately verbose and greppable.
+     *
+     * Left un-generic on purpose: `Builder<static>` does not type-check,
+     * because Eloquent's `TModel` is not covariant. A model that needs the
+     * precise type overrides this with `Builder<self>` -- see `MemoryItem`.
      */
     public static function acrossAllTenants(): Builder
     {

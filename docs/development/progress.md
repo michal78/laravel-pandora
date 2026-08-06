@@ -5,6 +5,58 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-06 — Phase 5 opened: memory items, scoping and lexical retrieval
+
+`docs/development/phase-5-acceptance.md` written first, as every phase before it. 28 criteria, none
+ticked yet. The three properties it commits to: a memory is retrieved by the scope the runner is
+*in* and never one anyone asked for; a default install works with no vector database; a path is
+contained after it is resolved, not before.
+
+One decision taken deliberately against the grain of the last phase. The vector store is optional at
+runtime and **mandatory in CI**. Phase 4 produced seven defects, and not one was reachable by the
+suite as configured; "optional, therefore untested" is that shape exactly, and Phase 5 adds an
+optional dependency on purpose.
+
+**Shipped:** `pandora_memory_items` and `pandora_embeddings`; `MemoryItem`, `Embedding`, and the
+five enums (scope, type, status, sensitivity, source); `MemoryScopeSet`, which owns the entire
+visibility constraint including the tenant predicate; `ScopeResolver`, the one place a scope may be
+derived; `MemoryRetriever` and `Tokeniser`; a `memory` config block.
+
+**Three defects found while building, all of which would have shipped.**
+
+**1. A global memory written inside a tenant became permanently invisible.** `BelongsToTenant`
+stamps `tenant_id` on `creating`, and `saving` runs *before* that. The guard was on `saving`, so it
+inspected a row whose tenant had not been applied yet, passed it, and let the stamp land. The result
+is the worst kind of row: present in the table, absent from every answer, and impossible to notice
+from either end. Now checked on `creating` and `updating`, after the trait has had its say.
+
+**2. The tokeniser violated its own `list<string>` contract.** Tokens are de-duplicated through
+array keys, and PHP casts a numeric-looking key to `int` — so the token `42` came back as an integer
+and broke every strict comparison downstream of it.
+
+**3. PostgreSQL would have silently forgotten everything written with a capital letter.** Postgres's
+`LIKE` is case-sensitive; SQLite's, MySQL's and MariaDB's are not. A bare `LIKE` therefore retrieves
+correctly on three engines and returns nothing on the fourth, with no error and no empty-result
+signal to distinguish it from a genuinely empty corpus. This was not reasoned about and left at
+that — it was measured: with a bare `LIKE`, five tests in `Memory/LexicalRetrievalTest` pass on
+SQLite and MySQL and **fail on PostgreSQL 17**. Now `lower(column) LIKE ?`, which every engine
+supports. `lower()` is ASCII-only in a SQLite built without ICU, so non-ASCII case folding stays
+engine-dependent; that is stated in the code and belongs in the memory guide, not papered over.
+
+Worth noting which of the three the package suite caught on its own: the second, immediately. The
+first needed a test written specifically to distrust hook ordering. The third needed a different
+engine — the same lesson Phase 4 closed on, arriving in the first slice of Phase 5.
+
+**Verified:** `vendor/bin/pest` → 978 passed (3,371 assertions) on SQLite. `tests/Memory` and
+`tests/Database` green on MySQL 8.4 and PostgreSQL 17. `phpstan` clean at level 8, with no
+`@phpstan-ignore` and no baseline entries added. `pint --test` clean.
+
+**Not done yet:** slices 3 to 7 — context pipeline (redaction, attribute allowlisting, context files
+from configured roots, summarisation), `EmbeddingProvider` / `VectorStore` and the pgvector adapter
+plus its CI leg, curation, workspaces, and the UI.
+
+---
+
 ## 2026-08-06 — Phase 4 closed by a human with a browser
 
 The walkthrough ran. All twenty checks pass, and it found three defects the

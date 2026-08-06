@@ -619,6 +619,37 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Memory
+    |--------------------------------------------------------------------------
+    |
+    | Retrieval is lexical and needs nothing installed -- no vector database,
+    | no search extension, no full-text index. That is the shipped path, and it
+    | works identically on SQLite, MySQL, MariaDB and PostgreSQL.
+    |
+    | A vector store is an ACCELERATOR. It changes the order results come back
+    | in; it never changes which results are visible, because every candidate
+    | it proposes is re-filtered against the session's scope before anything is
+    | returned. Leaving `vector_store` null is a supported production
+    | configuration, not a degraded one.
+    |
+    */
+
+    'memory' => [
+        // null = lexical retrieval only. Name a configured store to accelerate.
+        'vector_store' => env('PANDORA_VECTOR_STORE'),
+
+        'retrieval' => [
+            // Returned to the caller.
+            'limit' => 10,
+
+            // Rows considered for ranking before the limit applies. Bounded so
+            // a broad query cannot pull a whole tenant's memory into PHP.
+            'candidate_limit' => 200,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Queues
     |--------------------------------------------------------------------------
     |
