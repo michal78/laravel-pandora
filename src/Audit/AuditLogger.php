@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Audit;
+namespace Pandora\Audit;
 
 use Illuminate\Http\Request;
-use Pandora\Pandora\Core\Actor\ActorManager;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Support\CorrelationId;
-use Pandora\Pandora\Support\Redactor;
+use Pandora\Core\Actor\ActorManager;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Support\CorrelationId;
+use Pandora\Support\Redactor;
 
 /**
  * Writes audit records.

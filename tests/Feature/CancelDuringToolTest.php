@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Approvals\Approval;
-use Pandora\Pandora\Jobs\ExecuteToolCall;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunCanceller;
-use Pandora\Pandora\Tests\Fixtures\Tools\CountingTool;
-use Pandora\Pandora\Tests\Fixtures\Tools\RefundOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
-use Pandora\Pandora\Tools\Enums\ToolExecutionStatus;
-use Pandora\Pandora\Tools\ToolExecution;
+use Pandora\Approvals\Approval;
+use Pandora\Jobs\ExecuteToolCall;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunCanceller;
+use Pandora\Tests\Fixtures\Tools\CountingTool;
+use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
+use Pandora\Tests\Support\MakesTools;
+use Pandora\Tools\Enums\ToolExecutionStatus;
+use Pandora\Tools\ToolExecution;
 
 /**
  * Phase 2 acceptance criterion 35 — cancelling a run with tools outstanding.

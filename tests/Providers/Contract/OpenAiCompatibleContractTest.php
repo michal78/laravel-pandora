@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Testing\ProviderContractTests;
-use Pandora\Pandora\Tests\Providers\Contract\OpenAiCompatibleFixtures;
+use Pandora\Testing\ProviderContractTests;
+use Pandora\Tests\Providers\Contract\OpenAiCompatibleFixtures;
 
 /**
  * Phase 3 acceptance criterion 1, for the workhorse adapter.

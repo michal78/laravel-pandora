@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation;
+namespace Pandora\Automation;
 
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Notifications\Notification;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Automation\Enums\OccurrenceStatus;
-use Pandora\Pandora\Automation\Notifications\AutomationDisabled;
-use Pandora\Pandora\Exceptions\AutomationRefused;
+use Pandora\Audit\AuditLogger;
+use Pandora\Automation\Enums\OccurrenceStatus;
+use Pandora\Automation\Notifications\AutomationDisabled;
+use Pandora\Exceptions\AutomationRefused;
 
 /**
  * How often an automation may wake, and what happens when it has woken enough.

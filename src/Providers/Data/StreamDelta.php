@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Data;
+namespace Pandora\Providers\Data;
 
 /**
  * One increment of a streamed response.

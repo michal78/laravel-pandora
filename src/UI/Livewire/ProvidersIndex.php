@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
-use Pandora\Pandora\Providers\Catalog\CatalogModel;
-use Pandora\Pandora\Providers\Catalog\ModelCatalog;
-use Pandora\Pandora\Providers\Credentials\CredentialManager;
-use Pandora\Pandora\Providers\Credentials\ProviderCredential;
-use Pandora\Pandora\Providers\Health\ProviderHealthMonitor;
-use Pandora\Pandora\Providers\ProviderManager;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Providers\Catalog\CatalogModel;
+use Pandora\Providers\Catalog\ModelCatalog;
+use Pandora\Providers\Credentials\CredentialManager;
+use Pandora\Providers\Credentials\ProviderCredential;
+use Pandora\Providers\Health\ProviderHealthMonitor;
+use Pandora\Providers\ProviderManager;
+use Pandora\UI\PandoraGate;
 
 /**
  * What this deployment can talk to, whether it is answering, and what it

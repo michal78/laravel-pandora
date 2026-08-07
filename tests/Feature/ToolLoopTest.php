@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Exceptions\BudgetExceeded;
-use Pandora\Pandora\Messages\Enums\MessageRole;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Enums\RunStepType;
-use Pandora\Pandora\Tests\Fixtures\Tools\LookupOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
-use Pandora\Pandora\Tools\Enums\ToolExecutionStatus;
-use Pandora\Pandora\Tools\ToolExecution;
+use Pandora\Exceptions\BudgetExceeded;
+use Pandora\Messages\Enums\MessageRole;
+use Pandora\Messages\Message;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\RunStepType;
+use Pandora\Tests\Fixtures\Tools\LookupOrderTool;
+use Pandora\Tests\Support\MakesTools;
+use Pandora\Tools\Enums\ToolExecutionStatus;
+use Pandora\Tools\ToolExecution;
 
 /**
  * Phase 2 acceptance criteria 25 and 26 — the whole loop, end to end.

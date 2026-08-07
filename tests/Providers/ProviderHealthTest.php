@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Http;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Jobs\ProbeProviderHealth;
-use Pandora\Pandora\Providers\Data\ProviderHealth;
-use Pandora\Pandora\Providers\Health\ProviderHealthMonitor;
-use Pandora\Pandora\Providers\ProviderManager;
+use Pandora\Audit\AuditLog;
+use Pandora\Jobs\ProbeProviderHealth;
+use Pandora\Providers\Data\ProviderHealth;
+use Pandora\Providers\Health\ProviderHealthMonitor;
+use Pandora\Providers\ProviderManager;
 
 /**
  * Phase 3 acceptance criteria 24 and 25 -- degradation, recovery, and a probe

@@ -3,12 +3,12 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Http;
-use Pandora\Pandora\Exceptions\Provider\ProviderQuotaExhausted;
-use Pandora\Pandora\Providers\Data\ChatMessage;
-use Pandora\Pandora\Providers\Data\ChatRequest;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Testing\ProviderContractTests;
-use Pandora\Pandora\Tests\Providers\Contract\AnthropicFixtures;
+use Pandora\Exceptions\Provider\ProviderQuotaExhausted;
+use Pandora\Providers\Data\ChatMessage;
+use Pandora\Providers\Data\ChatRequest;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Testing\ProviderContractTests;
+use Pandora\Tests\Providers\Contract\AnthropicFixtures;
 
 /**
  * Phase 3 acceptance criteria 1 and 11.

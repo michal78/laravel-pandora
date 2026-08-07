@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory\Enums;
+namespace Pandora\Memory\Enums;
 
 /**
  * Who a memory belongs to.

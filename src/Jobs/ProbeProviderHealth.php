@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Jobs;
+namespace Pandora\Jobs;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Pandora\Pandora\Exceptions\PandoraException;
-use Pandora\Pandora\Providers\Health\ProviderHealthMonitor;
-use Pandora\Pandora\Providers\ProviderManager;
+use Pandora\Exceptions\PandoraException;
+use Pandora\Providers\Health\ProviderHealthMonitor;
+use Pandora\Providers\ProviderManager;
 
 /**
  * Ask every configured provider whether it is there.

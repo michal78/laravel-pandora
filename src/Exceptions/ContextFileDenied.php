@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Exceptions;
+namespace Pandora\Exceptions;
 
 /**
  * A context file was refused.

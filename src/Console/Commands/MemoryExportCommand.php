@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Console\Commands;
+namespace Pandora\Console\Commands;
 
 use Illuminate\Console\Command;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\MemoryExporter;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\MemoryExporter;
 
 /**
  * Export one scope's memory as versioned JSON.

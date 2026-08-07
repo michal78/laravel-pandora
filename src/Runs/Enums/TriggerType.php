@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Runs\Enums;
+namespace Pandora\Runs\Enums;
 
 /**
  * What caused a run. Every run has one -- there is no such thing as an

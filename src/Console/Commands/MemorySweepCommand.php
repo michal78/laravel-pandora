@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Console\Commands;
+namespace Pandora\Console\Commands;
 
 use Illuminate\Console\Command;
-use Pandora\Pandora\Memory\MemoryCurator;
+use Pandora\Memory\MemoryCurator;
 
 /**
  * Expire memories past their date, and delete their vectors.

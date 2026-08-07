@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools\BuiltIn;
+namespace Pandora\Tools\BuiltIn;
 
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Notifications\Notification;
-use Pandora\Pandora\Tools\Enums\RiskLevel;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolInput;
-use Pandora\Pandora\Tools\ToolResult;
+use Pandora\Tools\Enums\RiskLevel;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolInput;
+use Pandora\Tools\ToolResult;
 
 /**
  * Notify the person this run is acting for.

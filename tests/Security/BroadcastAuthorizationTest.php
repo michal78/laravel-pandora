@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Core\Tenancy\TenantContext;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Realtime\ChannelAuthorizer;
-use Pandora\Pandora\Tests\Fixtures\TestUser;
-use Pandora\Pandora\Tests\Support\MakesRuns;
+use Pandora\Core\Tenancy\TenantContext;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Realtime\ChannelAuthorizer;
+use Pandora\Tests\Fixtures\TestUser;
+use Pandora\Tests\Support\MakesRuns;
 
 uses(MakesRuns::class);
 

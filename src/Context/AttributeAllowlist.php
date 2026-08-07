@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Context;
+namespace Pandora\Context;
 
 use Illuminate\Database\Eloquent\Model;
 

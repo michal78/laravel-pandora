@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Approvals\Approval;
-use Pandora\Pandora\Approvals\Enums\ApprovalStatus;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\Tools\LookupOrderTool;
-use Pandora\Pandora\Tests\Fixtures\Tools\RefundOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
-use Pandora\Pandora\UI\Livewire\Chat;
+use Pandora\Agents\AgentRunner;
+use Pandora\Approvals\Approval;
+use Pandora\Approvals\Enums\ApprovalStatus;
+use Pandora\Conversations\Conversation;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\Tools\LookupOrderTool;
+use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
+use Pandora\Tests\Support\MakesTools;
+use Pandora\UI\Livewire\Chat;
 
 /**
  * Phase 2 acceptance criterion 32 — tool and approval cards in the thread.

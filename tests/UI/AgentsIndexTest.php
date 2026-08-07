@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRegistry;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\AgentFactory;
-use Pandora\Pandora\Tests\Fixtures\EchoAgent;
-use Pandora\Pandora\UI\Livewire\AgentsIndex;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRegistry;
+use Pandora\Audit\AuditLog;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\AgentFactory;
+use Pandora\Tests\Fixtures\EchoAgent;
+use Pandora\UI\Livewire\AgentsIndex;
 
 /**
  * Phase 3.5 -- the agent roster, and creating one.

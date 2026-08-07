@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRegistry;
-use Pandora\Pandora\Exceptions\AgentNotFound;
-use Pandora\Pandora\Tests\Fixtures\EchoAgent;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRegistry;
+use Pandora\Exceptions\AgentNotFound;
+use Pandora\Tests\Fixtures\EchoAgent;
 
 /** Acceptance criterion 4 -- class and database agent definitions. */
 it('synchronises a class definition into the database', function (): void {

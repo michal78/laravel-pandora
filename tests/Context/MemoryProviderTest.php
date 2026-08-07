@@ -3,19 +3,19 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Str;
-use Pandora\Pandora\Context\ContextBuilder;
-use Pandora\Pandora\Context\ContextRequest;
-use Pandora\Pandora\Context\Providers\MemoryContextProvider;
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryStatus;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\AgentFactory;
+use Pandora\Context\ContextBuilder;
+use Pandora\Context\ContextRequest;
+use Pandora\Context\Providers\MemoryContextProvider;
+use Pandora\Conversations\Session;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryStatus;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryItem;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\AgentFactory;
 
 /**
  * Phase 5, criterion 20 -- memory reaches the prompt, and only the right

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Context;
+namespace Pandora\Context;
 
-use Pandora\Pandora\Exceptions\ContextFileDenied;
+use Pandora\Exceptions\ContextFileDenied;
 
 /**
  * Loads context files, and only from the roots an operator configured.

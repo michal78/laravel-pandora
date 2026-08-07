@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
-use Pandora\Pandora\Core\Tenancy\TenantContext;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Providers\Credentials\CredentialManager;
-use Pandora\Pandora\Providers\Credentials\CredentialSource;
-use Pandora\Pandora\Providers\Credentials\ProviderCredential;
+use Pandora\Core\Tenancy\TenantContext;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Providers\Credentials\CredentialManager;
+use Pandora\Providers\Credentials\CredentialSource;
+use Pandora\Providers\Credentials\ProviderCredential;
 
 /**
  * Phase 3 acceptance criteria 31 and 32 -- resolution order, and encryption

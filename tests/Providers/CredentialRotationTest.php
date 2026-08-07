@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Providers\Credentials\CredentialManager;
-use Pandora\Pandora\Providers\Credentials\ProviderCredential;
+use Pandora\Audit\AuditLog;
+use Pandora\Providers\Credentials\CredentialManager;
+use Pandora\Providers\Credentials\ProviderCredential;
 
 /**
  * Phase 3 acceptance criterion 33 -- rotation with a grace window.

@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRegistry;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Skills\Skill;
-use Pandora\Pandora\UI\Feature;
-use Pandora\Pandora\UI\PandoraGate;
-use Pandora\Pandora\Usage\UsageRecord;
-use Pandora\Pandora\Workspaces\Workspace;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRegistry;
+use Pandora\Audit\AuditLogger;
+use Pandora\Automation\Automation;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\MemoryItem;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Runs\Run;
+use Pandora\Skills\Skill;
+use Pandora\UI\Feature;
+use Pandora\UI\PandoraGate;
+use Pandora\Usage\UsageRecord;
+use Pandora\Workspaces\Workspace;
 
 /**
  * One agent: what it is, what it is told, what it runs on, and how far it may
@@ -91,28 +91,28 @@ final class AgentDetail extends Component
     public string $autonomyLevel = '';
 
     /**
-     * Tabs that exist as headings before the phase that fills them.
+     * Tabs that exist as headings before the work that fills them.
      *
      * Listing them is deliberate. An operator who cannot find where tools are
      * granted should learn that the page is coming, not conclude that agents
      * cannot be granted tools.
      *
-     * @var array<string, array{label: string, phase: string, note: string}>
+     * No release number is quoted to the operator. A date we might miss is
+     * worth less to them than knowing the capability exists and where it will
+     * live, and a number left unrevised is how a page ends up promising a
+     * release that shipped months ago.
+     *
+     * @var array<string, array{label: string, note: string}>
      */
     public const PENDING_TABS = [
-        // Pencilled in for Phase 3.5, which shipped the agents page without
-        // it. Left unnumbered rather than promised to a phase again.
         'tools' => [
             'label' => 'Tools',
-            'phase' => 'a later phase',
             'note' => 'Tool grants are stored on the agent and enforced today; this tab will edit them rather than requiring a class definition or a seeder.',
         ],
 
-        // Was pencilled in as Phase 7 before Phase 7 became workspaces. Left
-        // unnumbered rather than renumbered onto a phase nobody has scoped.
-        'channels' => ['label' => 'Channels', 'phase' => 'a later phase', 'note' => 'Where this agent can be reached, and which identities map to it.'],
+        'channels' => ['label' => 'Channels', 'note' => 'Where this agent can be reached, and which identities map to it.'],
 
-        'permissions' => ['label' => 'Permissions', 'phase' => 'Phase 6', 'note' => 'Delegation, MCP access and the abilities required to run it.'],
+        'permissions' => ['label' => 'Permissions', 'note' => 'Delegation, MCP access and the abilities required to run it.'],
     ];
 
     /**
@@ -123,7 +123,7 @@ final class AgentDetail extends Component
      * const holds what was never built; this adds what is finished and
      * withheld, and the tab returns to the live list when the flag flips.
      *
-     * @return array<string, array{label: string, phase: string, note: string}>
+     * @return array<string, array{label: string, note: string}>
      */
     public static function pendingTabs(): array
     {
@@ -132,7 +132,6 @@ final class AgentDetail extends Component
         if (Feature::disabled('workspaces')) {
             $pending['workspace'] = [
                 'label' => 'Workspace',
-                'phase' => 'Phase 7',
                 'note' => 'A directory this agent may read and write inside, bounded by a root it cannot escape, a quota it cannot exceed and a list of types it cannot widen. Until then it reaches no files, which is what it would do with no workspace attached in any case.',
             ];
         }

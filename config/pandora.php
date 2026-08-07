@@ -1,18 +1,18 @@
 <?php
 
 declare(strict_types=1);
-use Pandora\Pandora\Automation\Notifications\AutomationDisabled;
-use Pandora\Pandora\Context\Providers\ContextFilesProvider;
-use Pandora\Pandora\Context\Providers\EnvironmentContextProvider;
-use Pandora\Pandora\Context\Providers\MemoryContextProvider;
-use Pandora\Pandora\Context\Providers\RecentMessagesProvider;
-use Pandora\Pandora\Context\Providers\SystemInstructionsProvider;
-use Pandora\Pandora\Core\Actor\GuardActorResolver;
-use Pandora\Pandora\Core\Tenancy\NullTenantResolver;
-use Pandora\Pandora\Memory\Embeddings\HashEmbeddingProvider;
-use Pandora\Pandora\Providers\Credentials\DatabaseCredentialResolver;
-use Pandora\Pandora\Providers\Routing\DeterministicModelRouter;
-use Pandora\Pandora\Tools\Policies\RiskBasedToolPolicy;
+use Pandora\Automation\Notifications\AutomationDisabled;
+use Pandora\Context\Providers\ContextFilesProvider;
+use Pandora\Context\Providers\EnvironmentContextProvider;
+use Pandora\Context\Providers\MemoryContextProvider;
+use Pandora\Context\Providers\RecentMessagesProvider;
+use Pandora\Context\Providers\SystemInstructionsProvider;
+use Pandora\Core\Actor\GuardActorResolver;
+use Pandora\Core\Tenancy\NullTenantResolver;
+use Pandora\Memory\Embeddings\HashEmbeddingProvider;
+use Pandora\Providers\Credentials\DatabaseCredentialResolver;
+use Pandora\Providers\Routing\DeterministicModelRouter;
+use Pandora\Tools\Policies\RiskBasedToolPolicy;
 
 /*
 |--------------------------------------------------------------------------

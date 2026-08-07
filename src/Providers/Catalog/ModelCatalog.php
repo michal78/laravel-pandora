@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Catalog;
+namespace Pandora\Providers\Catalog;
 
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Pandora\Pandora\Contracts\ModelCatalogProvider;
-use Pandora\Pandora\Contracts\Provider;
-use Pandora\Pandora\Exceptions\InvalidConfiguration;
-use Pandora\Pandora\Providers\Data\UsageData;
+use Pandora\Contracts\ModelCatalogProvider;
+use Pandora\Contracts\Provider;
+use Pandora\Exceptions\InvalidConfiguration;
+use Pandora\Providers\Data\UsageData;
 
 /**
  * The model catalog: what this deployment may route to, and what it costs.

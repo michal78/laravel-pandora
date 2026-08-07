@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Context;
+namespace Pandora\Context;
 
-use Pandora\Pandora\Providers\Data\ChatMessage;
+use Pandora\Providers\Data\ChatMessage;
 
 /**
  * One provider's contribution to a model request.

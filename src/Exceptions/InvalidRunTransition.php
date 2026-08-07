@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Exceptions;
+namespace Pandora\Exceptions;
 
-use Pandora\Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\RunState;
 
 /**
  * An illegal state transition was attempted.

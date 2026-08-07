@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Usage;
+namespace Pandora\Usage;
 
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Core\Actor\ActorManager;
-use Pandora\Pandora\Providers\Catalog\ModelCatalog;
-use Pandora\Pandora\Providers\Data\UsageData;
-use Pandora\Pandora\Runs\Run;
+use Pandora\Core\Actor\ActorManager;
+use Pandora\Providers\Catalog\ModelCatalog;
+use Pandora\Providers\Data\UsageData;
+use Pandora\Runs\Run;
 
 /**
  * Writes one row per model call.

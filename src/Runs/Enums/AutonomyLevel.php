@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Runs\Enums;
+namespace Pandora\Runs\Enums;
 
 /**
  * How much an agent may do without a human in the loop.

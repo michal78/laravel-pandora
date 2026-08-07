@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\Bus;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Automation\EventTriggerRegistry;
-use Pandora\Pandora\Jobs\RunAutomation;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\Runs\Enums\TriggerType;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\AgentFactory;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
-use Pandora\Pandora\Tests\Fixtures\OrderShipped;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Automation\EventTriggerRegistry;
+use Pandora\Jobs\RunAutomation;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Runs\Enums\TriggerType;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\AgentFactory;
+use Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\Tests\Fixtures\OrderShipped;
 
 /**
  * Phase 4, criteria 18, 19 and 20 -- events that start runs.

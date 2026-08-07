@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation;
+namespace Pandora\Automation;
 
 use Closure;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Runs\Enums\AutonomyLevel;
 
 /**
  * A code-declared reaction to a Laravel event.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Exceptions;
+namespace Pandora\Exceptions;
 
 /**
  * Somebody already decided about this proposal.

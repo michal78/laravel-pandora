@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Health;
+namespace Pandora\Providers\Health;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Providers\Data\ProviderHealth;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Providers\Data\ProviderHealth;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * The last thing we learned about a provider.

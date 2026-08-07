@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Usage;
+namespace Pandora\Usage;
 
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Exceptions\BudgetExceeded;
-use Pandora\Pandora\Runs\Run;
+use Pandora\Agents\Agent;
+use Pandora\Audit\AuditLogger;
+use Pandora\Exceptions\BudgetExceeded;
+use Pandora\Runs\Run;
 
 /**
  * Stops a run BEFORE it spends money it does not have.

@@ -13,7 +13,7 @@
 ])
 
 @php
-    $assets = \Pandora\Pandora\UI\Assets::class;
+    $assets = \Pandora\UI\Assets::class;
     $path = 'icons/svg/'.($name === 'pandora-mono' ? 'pandora-icon-mono.svg' : 'pandora-icon.svg');
 @endphp
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\QueryException;
-use Pandora\Pandora\Support\Concerns\ResolvesPandoraSchema;
+use Pandora\Support\Concerns\ResolvesPandoraSchema;
 
 /**
  * Adds a native pgvector column, on PostgreSQL only.

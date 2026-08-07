@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Exceptions;
+namespace Pandora\Exceptions;
 
 /**
  * The model sent arguments that failed the tool's validation rules.

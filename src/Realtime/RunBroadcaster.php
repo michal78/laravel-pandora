@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Realtime;
+namespace Pandora\Realtime;
 
 use Illuminate\Contracts\Events\Dispatcher;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Realtime\Events\AssistantDeltaReceived;
-use Pandora\Pandora\Realtime\Events\AssistantMessageCompleted;
-use Pandora\Pandora\Realtime\Events\MessageCreated;
-use Pandora\Pandora\Realtime\Events\RunStatusChanged;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
+use Pandora\Messages\Message;
+use Pandora\Realtime\Events\AssistantDeltaReceived;
+use Pandora\Realtime\Events\AssistantMessageCompleted;
+use Pandora\Realtime\Events\MessageCreated;
+use Pandora\Realtime\Events\RunStatusChanged;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
 
 /**
  * The single place runs are announced.

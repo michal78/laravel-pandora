@@ -3,16 +3,16 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Str;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Context\ContextBuilder;
-use Pandora\Pandora\Context\ContextRequest;
-use Pandora\Pandora\Context\ContextSection;
-use Pandora\Pandora\Contracts\ContextProvider;
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Providers\Data\ChatMessage;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\AgentFactory;
+use Pandora\Agents\Agent;
+use Pandora\Context\ContextBuilder;
+use Pandora\Context\ContextRequest;
+use Pandora\Context\ContextSection;
+use Pandora\Contracts\ContextProvider;
+use Pandora\Conversations\Session;
+use Pandora\Providers\Data\ChatMessage;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\AgentFactory;
 
 /**
  * Phase 5, criterion 21 -- a section that does not fit is dropped, never cut.

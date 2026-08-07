@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Routing;
+namespace Pandora\Providers\Routing;
 
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Providers\Data\ProviderCapabilities;
+use Pandora\Agents\Agent;
+use Pandora\Providers\Data\ProviderCapabilities;
 
 /**
  * Everything the router is allowed to consider.

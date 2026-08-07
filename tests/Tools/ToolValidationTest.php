@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
-use Pandora\Pandora\Exceptions\ToolInputInvalid;
-use Pandora\Pandora\Tests\Fixtures\Tools\LookupOrderTool;
-use Pandora\Pandora\Tools\ToolInput;
+use Pandora\Exceptions\ToolInputInvalid;
+use Pandora\Tests\Fixtures\Tools\LookupOrderTool;
+use Pandora\Tools\ToolInput;
 
 /**
  * Phase 2 acceptance criterion 3 — arguments a model invented are rejected

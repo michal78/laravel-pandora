@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Contracts;
+namespace Pandora\Contracts;
 
 /**
  * Turns text into a vector.

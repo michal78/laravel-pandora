@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Contracts\ModelRouter;
-use Pandora\Pandora\Exceptions\NoModelAvailable;
-use Pandora\Pandora\Providers\Catalog\ModelCatalog;
-use Pandora\Pandora\Providers\Data\ProviderCapabilities;
-use Pandora\Pandora\Providers\Health\ProviderHealthMonitor;
-use Pandora\Pandora\Providers\ProviderManager;
-use Pandora\Pandora\Providers\Routing\RoutingRequest;
-use Pandora\Pandora\Providers\Routing\RoutingSource;
-use Pandora\Pandora\Tests\Support\MakesRuns;
+use Pandora\Contracts\ModelRouter;
+use Pandora\Exceptions\NoModelAvailable;
+use Pandora\Providers\Catalog\ModelCatalog;
+use Pandora\Providers\Data\ProviderCapabilities;
+use Pandora\Providers\Health\ProviderHealthMonitor;
+use Pandora\Providers\ProviderManager;
+use Pandora\Providers\Routing\RoutingRequest;
+use Pandora\Providers\Routing\RoutingSource;
+use Pandora\Tests\Support\MakesRuns;
 
 uses(MakesRuns::class);
 

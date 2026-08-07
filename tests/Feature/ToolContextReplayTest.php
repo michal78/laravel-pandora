@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Context\ContextBuilder;
-use Pandora\Pandora\Context\ContextRequest;
-use Pandora\Pandora\Messages\Enums\MessageRole;
-use Pandora\Pandora\Messages\Enums\StreamingState;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Providers\Data\ChatMessage;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Support\MakesRuns;
+use Pandora\Context\ContextBuilder;
+use Pandora\Context\ContextRequest;
+use Pandora\Messages\Enums\MessageRole;
+use Pandora\Messages\Enums\StreamingState;
+use Pandora\Messages\Message;
+use Pandora\Providers\Data\ChatMessage;
+use Pandora\Runs\Run;
+use Pandora\Tests\Support\MakesRuns;
 
 /**
  * A tool loop is only coherent if the next model request contains what the

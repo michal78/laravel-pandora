@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Exceptions\ImmutableRecord;
-use Pandora\Pandora\Exceptions\Provider\ProviderUnavailable;
-use Pandora\Pandora\Providers\Adapters\FakeProvider;
-use Pandora\Pandora\Providers\Catalog\ModelCatalog;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Providers\Data\UsageData;
-use Pandora\Pandora\Providers\ProviderManager;
-use Pandora\Pandora\Tests\Support\MakesRuns;
-use Pandora\Pandora\Usage\UsageRecord;
+use Pandora\Agents\AgentRunner;
+use Pandora\Exceptions\ImmutableRecord;
+use Pandora\Exceptions\Provider\ProviderUnavailable;
+use Pandora\Providers\Adapters\FakeProvider;
+use Pandora\Providers\Catalog\ModelCatalog;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Providers\Data\UsageData;
+use Pandora\Providers\ProviderManager;
+use Pandora\Tests\Support\MakesRuns;
+use Pandora\Usage\UsageRecord;
 
 uses(MakesRuns::class);
 

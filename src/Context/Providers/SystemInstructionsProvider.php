@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Context\Providers;
+namespace Pandora\Context\Providers;
 
-use Pandora\Pandora\Context\ContextRequest;
-use Pandora\Pandora\Context\ContextSection;
-use Pandora\Pandora\Contracts\ContextProvider;
-use Pandora\Pandora\Providers\Data\ChatMessage;
+use Pandora\Context\ContextRequest;
+use Pandora\Context\ContextSection;
+use Pandora\Contracts\ContextProvider;
+use Pandora\Providers\Data\ChatMessage;
 
 /**
  * The agent's instructions, framework boundary first.

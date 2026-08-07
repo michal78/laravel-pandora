@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation;
+namespace Pandora\Automation;
 
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Automation\Enums\OccurrenceStatus;
-use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Automation\Enums\OccurrenceStatus;
+use Pandora\Core\Tenancy\Concerns\BelongsToTenant;
+use Pandora\Runs\Run;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * One occurrence of an automation, and what became of it.

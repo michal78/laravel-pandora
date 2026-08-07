@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Contracts;
+namespace Pandora\Contracts;
 
-use Pandora\Pandora\Agents\AgentBlueprint;
+use Pandora\Agents\AgentBlueprint;
 
 /**
  * A class-based agent definition.

@@ -3,17 +3,17 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Memory\Embeddings\HashEmbeddingProvider;
-use Pandora\Pandora\Memory\Embeddings\MemoryEmbedder;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\Memory\MemoryQuery;
-use Pandora\Pandora\Memory\MemoryRetriever;
-use Pandora\Pandora\Memory\MemoryScopeSet;
-use Pandora\Pandora\Memory\Vector\PgvectorStore;
+use Pandora\Audit\AuditLogger;
+use Pandora\Memory\Embeddings\HashEmbeddingProvider;
+use Pandora\Memory\Embeddings\MemoryEmbedder;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryItem;
+use Pandora\Memory\MemoryQuery;
+use Pandora\Memory\MemoryRetriever;
+use Pandora\Memory\MemoryScopeSet;
+use Pandora\Memory\Vector\PgvectorStore;
 
 /**
  * Phase 5, criterion 17 -- the pgvector adapter, exercised for real.

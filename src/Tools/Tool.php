@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools;
+namespace Pandora\Tools;
 
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use Illuminate\Validation\ValidationException;
-use Pandora\Pandora\Exceptions\ToolInputInvalid;
-use Pandora\Pandora\Tools\Enums\RiskLevel;
-use Pandora\Pandora\Tools\Schema\RuleSchemaGenerator;
+use Pandora\Exceptions\ToolInputInvalid;
+use Pandora\Tools\Enums\RiskLevel;
+use Pandora\Tools\Schema\RuleSchemaGenerator;
 
 /**
  * A capability an agent may request.

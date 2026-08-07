@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests\Fixtures;
+namespace Pandora\Tests\Fixtures;
 
 /**
  * A plain host application event.

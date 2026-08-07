@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Approvals\Enums;
+namespace Pandora\Approvals\Enums;
 
 enum ApprovalStatus: string
 {

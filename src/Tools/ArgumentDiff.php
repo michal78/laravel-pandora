@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools;
+namespace Pandora\Tools;
 
 /**
  * What a policy changed about a tool call's arguments.

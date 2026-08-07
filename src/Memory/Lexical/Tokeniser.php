@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory\Lexical;
+namespace Pandora\Memory\Lexical;
 
 /**
  * Splits text into the tokens lexical retrieval matches on.

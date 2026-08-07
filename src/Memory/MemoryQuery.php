@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory;
+namespace Pandora\Memory;
 
-use Pandora\Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\Enums\MemoryType;
 
 /**
  * What a retrieval asks for -- everything except who is allowed to see it.

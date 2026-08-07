@@ -3,14 +3,14 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Tests\Fixtures\TestUser;
-use Pandora\Pandora\Tests\Fixtures\Tools\GatedTool;
-use Pandora\Pandora\Tests\Fixtures\Tools\LookupOrderTool;
-use Pandora\Pandora\Tests\Fixtures\Tools\RefundOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
-use Pandora\Pandora\Tools\Enums\AuthorizationLayer;
-use Pandora\Pandora\Tools\ToolContext;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Tests\Fixtures\TestUser;
+use Pandora\Tests\Fixtures\Tools\GatedTool;
+use Pandora\Tests\Fixtures\Tools\LookupOrderTool;
+use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
+use Pandora\Tests\Support\MakesTools;
+use Pandora\Tools\Enums\AuthorizationLayer;
+use Pandora\Tools\ToolContext;
 
 /**
  * Phase 2 acceptance criteria 9 and 10 — layer 5, and the single most

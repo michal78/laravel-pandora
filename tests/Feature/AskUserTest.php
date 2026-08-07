@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Exceptions\InvalidRunTransition;
-use Pandora\Pandora\Facades\Pandora;
-use Pandora\Pandora\Messages\Enums\MessageRole;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Support\MakesTools;
-use Pandora\Pandora\Tools\BuiltIn\AskUserTool;
-use Pandora\Pandora\Tools\ToolInput;
+use Pandora\Exceptions\InvalidRunTransition;
+use Pandora\Facades\Pandora;
+use Pandora\Messages\Enums\MessageRole;
+use Pandora\Messages\Message;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\Tests\Support\MakesTools;
+use Pandora\Tools\BuiltIn\AskUserTool;
+use Pandora\Tools\ToolInput;
 
 /**
  * Phase 2 acceptance criterion 27 — an agent that is unsure stops and asks.

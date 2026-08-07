@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Memory\Embedding;
-use Pandora\Pandora\Memory\Embeddings\MemoryEmbedder;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryStatus;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryCurator;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\Memory\MemoryQuery;
-use Pandora\Pandora\Memory\MemoryRetriever;
-use Pandora\Pandora\Memory\MemoryScopeSet;
+use Pandora\Audit\AuditLog;
+use Pandora\Memory\Embedding;
+use Pandora\Memory\Embeddings\MemoryEmbedder;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryStatus;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryCurator;
+use Pandora\Memory\MemoryItem;
+use Pandora\Memory\MemoryQuery;
+use Pandora\Memory\MemoryRetriever;
+use Pandora\Memory\MemoryScopeSet;
 
 /**
  * Phase 5, criteria 9 and 10 -- expiry is a predicate, and the sweep is

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Pandora\Pandora\UI\Livewire\WorkspacesIndex;
-use Pandora\Pandora\Workspaces\Workspace;
+use Pandora\UI\Livewire\WorkspacesIndex;
+use Pandora\Workspaces\Workspace;
 
 /**
  * Phase 5 -- the Workspaces page.
@@ -183,7 +183,7 @@ it('says the feature is coming rather than listing workspaces', function (): voi
 
     Livewire::test(WorkspacesIndex::class)
         ->assertOk()
-        ->assertSee('coming in a later phase')
+        ->assertSee('not here yet')
         // The workspace exists in the database and is still not named here.
         ->assertDontSee('Scratch');
 });
@@ -207,6 +207,6 @@ it('withholds the page from an operator holding every ability', function (): voi
 
     Livewire::test(WorkspacesIndex::class)
         ->assertOk()
-        ->assertSee('coming in a later phase')
+        ->assertSee('not here yet')
         ->assertDontSee('Scratch');
 });

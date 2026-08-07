@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Testing;
+namespace Pandora\Testing;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
-use Pandora\Pandora\Exceptions\Provider\ContextOverflow;
-use Pandora\Pandora\Exceptions\Provider\ProviderAuthenticationFailed;
-use Pandora\Pandora\Exceptions\Provider\ProviderException;
-use Pandora\Pandora\Exceptions\Provider\ProviderRateLimited;
-use Pandora\Pandora\Exceptions\Provider\ProviderRejectedRequest;
-use Pandora\Pandora\Exceptions\Provider\ProviderTimeout;
-use Pandora\Pandora\Exceptions\Provider\ProviderUnavailable;
-use Pandora\Pandora\Providers\Data\ChatMessage;
-use Pandora\Pandora\Providers\Data\ChatRequest;
-use Pandora\Pandora\Providers\Data\FinishReason;
-use Pandora\Pandora\Providers\Data\StreamDelta;
-use Pandora\Pandora\Providers\Data\StreamDeltaType;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Providers\Data\ToolDefinition;
-use Pandora\Pandora\Providers\Data\UsageData;
+use Pandora\Exceptions\Provider\ContextOverflow;
+use Pandora\Exceptions\Provider\ProviderAuthenticationFailed;
+use Pandora\Exceptions\Provider\ProviderException;
+use Pandora\Exceptions\Provider\ProviderRateLimited;
+use Pandora\Exceptions\Provider\ProviderRejectedRequest;
+use Pandora\Exceptions\Provider\ProviderTimeout;
+use Pandora\Exceptions\Provider\ProviderUnavailable;
+use Pandora\Providers\Data\ChatMessage;
+use Pandora\Providers\Data\ChatRequest;
+use Pandora\Providers\Data\FinishReason;
+use Pandora\Providers\Data\StreamDelta;
+use Pandora\Providers\Data\StreamDeltaType;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Providers\Data\ToolDefinition;
+use Pandora\Providers\Data\UsageData;
 
 /**
  * The suite every adapter must pass.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Exceptions;
+namespace Pandora\Exceptions;
 
 /**
  * A tool declared a validation rule the schema generator cannot express.

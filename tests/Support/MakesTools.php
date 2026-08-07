@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests\Support;
+namespace Pandora\Tests\Support;
 
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\TestUser;
-use Pandora\Pandora\Tools\Enums\ToolExecutionStatus;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolDecision;
-use Pandora\Pandora\Tools\ToolExecution;
-use Pandora\Pandora\Tools\ToolGatekeeper;
-use Pandora\Pandora\Tools\ToolRegistry;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRunner;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\TestUser;
+use Pandora\Tools\Enums\ToolExecutionStatus;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolDecision;
+use Pandora\Tools\ToolExecution;
+use Pandora\Tools\ToolGatekeeper;
+use Pandora\Tools\ToolRegistry;
 
 /**
  * Scaffolding for tests that put a tool call through the gatekeeper.

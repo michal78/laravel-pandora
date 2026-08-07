@@ -3,14 +3,14 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Date;
-use Pandora\Pandora\Exceptions\InvalidMemoryScope;
-use Pandora\Pandora\Memory\Embedding;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySensitivity;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryStatus;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryItem;
+use Pandora\Exceptions\InvalidMemoryScope;
+use Pandora\Memory\Embedding;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySensitivity;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryStatus;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryItem;
 
 /**
  * Phase 5, criterion 1 -- the record itself.

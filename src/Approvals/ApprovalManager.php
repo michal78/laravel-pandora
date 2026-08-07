@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Approvals;
+namespace Pandora\Approvals;
 
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Database\ConnectionInterface;
-use Pandora\Pandora\Approvals\Enums\ApprovalKind;
-use Pandora\Pandora\Approvals\Enums\ApprovalScope;
-use Pandora\Pandora\Approvals\Enums\ApprovalStatus;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Exceptions\ApprovalNotPending;
-use Pandora\Pandora\Exceptions\AuthorizationDenied;
-use Pandora\Pandora\Jobs\ResumeApprovedRun;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tools\Enums\ToolExecutionStatus;
-use Pandora\Pandora\Tools\ToolDecision;
-use Pandora\Pandora\Tools\ToolExecution;
-use Pandora\Pandora\Tools\ToolInput;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Approvals\Enums\ApprovalKind;
+use Pandora\Approvals\Enums\ApprovalScope;
+use Pandora\Approvals\Enums\ApprovalStatus;
+use Pandora\Audit\AuditLogger;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Exceptions\ApprovalNotPending;
+use Pandora\Exceptions\AuthorizationDenied;
+use Pandora\Jobs\ResumeApprovedRun;
+use Pandora\Runs\Run;
+use Pandora\Tools\Enums\ToolExecutionStatus;
+use Pandora\Tools\ToolDecision;
+use Pandora\Tools\ToolExecution;
+use Pandora\Tools\ToolInput;
+use Pandora\UI\PandoraGate;
 
 /**
  * Requests and resolves the human decisions a run waits on.

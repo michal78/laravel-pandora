@@ -3,22 +3,22 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Str;
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryStatus;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\Memory\ScopeResolver;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\AgentFactory;
-use Pandora\Pandora\Tools\BuiltIn\BuiltInTools;
-use Pandora\Pandora\Tools\BuiltIn\RecallTool;
-use Pandora\Pandora\Tools\BuiltIn\RememberTool;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolInput;
+use Pandora\Conversations\Session;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryStatus;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryItem;
+use Pandora\Memory\ScopeResolver;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\AgentFactory;
+use Pandora\Tools\BuiltIn\BuiltInTools;
+use Pandora\Tools\BuiltIn\RecallTool;
+use Pandora\Tools\BuiltIn\RememberTool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolInput;
 
 /**
  * Phase 5, criterion 4 -- the tool cannot name a scope.

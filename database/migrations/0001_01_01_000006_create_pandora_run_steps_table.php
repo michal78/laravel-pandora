@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Pandora\Pandora\Support\Concerns\ResolvesPandoraSchema;
+use Pandora\Support\Concerns\ResolvesPandoraSchema;
 
 /**
  * Append-only. No `updated_at` column, because rows are never updated -- the

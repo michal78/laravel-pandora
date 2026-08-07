@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunStep;
-use Pandora\Pandora\Tests\Support\MakesRuns;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRunner;
+use Pandora\Conversations\Conversation;
+use Pandora\Messages\Message;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunStep;
+use Pandora\Tests\Support\MakesRuns;
 
 uses(MakesRuns::class);
 

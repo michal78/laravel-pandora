@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Approvals\Approval;
-use Pandora\Pandora\Approvals\ApprovalManager;
-use Pandora\Pandora\Approvals\Enums\ApprovalStatus;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Exceptions\ApprovalNotPending;
-use Pandora\Pandora\Jobs\ExecuteToolCall;
-use Pandora\Pandora\Jobs\ResumeApprovedRun;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Tests\Fixtures\Tools\RefundOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
-use Pandora\Pandora\Tools\ToolExecution;
+use Pandora\Approvals\Approval;
+use Pandora\Approvals\ApprovalManager;
+use Pandora\Approvals\Enums\ApprovalStatus;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Exceptions\ApprovalNotPending;
+use Pandora\Jobs\ExecuteToolCall;
+use Pandora\Jobs\ResumeApprovedRun;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
+use Pandora\Tests\Support\MakesTools;
+use Pandora\Tools\ToolExecution;
 
 /**
  * Phase 2 acceptance criteria 16 and 17 — threat T14.

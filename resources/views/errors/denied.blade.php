@@ -9,7 +9,7 @@
     docs/visual-identity.md shows how.
 --}}
 @php
-    $assets = \Pandora\Pandora\UI\Assets::class;
+    $assets = \Pandora\UI\Assets::class;
     $configuredTheme = config('pandora.ui.theme', 'system');
 @endphp
 <!DOCTYPE html>

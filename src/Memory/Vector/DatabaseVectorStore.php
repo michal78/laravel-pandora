@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory\Vector;
+namespace Pandora\Memory\Vector;
 
-use Pandora\Pandora\Contracts\VectorStore;
-use Pandora\Pandora\Memory\Embedding;
+use Pandora\Contracts\VectorStore;
+use Pandora\Memory\Embedding;
 
 /**
  * Brute-force cosine distance over the portable `vector` JSON column.

@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Approvals;
+namespace Pandora\Approvals;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Approvals\Enums\ApprovalKind;
-use Pandora\Pandora\Approvals\Enums\ApprovalScope;
-use Pandora\Pandora\Approvals\Enums\ApprovalStatus;
-use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
-use Pandora\Pandora\Tools\Enums\RiskLevel;
-use Pandora\Pandora\Tools\ToolExecution;
+use Pandora\Approvals\Enums\ApprovalKind;
+use Pandora\Approvals\Enums\ApprovalScope;
+use Pandora\Approvals\Enums\ApprovalStatus;
+use Pandora\Core\Tenancy\Concerns\BelongsToTenant;
+use Pandora\Runs\Run;
+use Pandora\Support\Concerns\PandoraModel;
+use Pandora\Tools\Enums\RiskLevel;
+use Pandora\Tools\ToolExecution;
 
 /**
  * A human decision a run is waiting for.

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
-use Pandora\Pandora\Agents\AgentRegistry;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Pandora;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Agents\AgentRegistry;
+use Pandora\Conversations\Conversation;
+use Pandora\Pandora;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\UI\PandoraGate;
 
 /**
  * Phase 1 dashboard: status, counts and recent activity.

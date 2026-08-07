@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
@@ -12,16 +12,16 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Automation\AutomationScheduler;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Automation\Observation;
-use Pandora\Pandora\Automation\ObservationManager;
-use Pandora\Pandora\Exceptions\ObservationNotPending;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Agents\Agent;
+use Pandora\Audit\AuditLogger;
+use Pandora\Automation\Automation;
+use Pandora\Automation\AutomationScheduler;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Automation\Observation;
+use Pandora\Automation\ObservationManager;
+use Pandora\Exceptions\ObservationNotPending;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\UI\PandoraGate;
 
 /**
  * Everything that runs without anybody typing, and what it is going to do next.

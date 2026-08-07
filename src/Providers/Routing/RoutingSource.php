@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Routing;
+namespace Pandora\Providers\Routing;
 
 /**
  * Why a model was chosen.

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation\Http;
+namespace Pandora\Automation\Http;
 
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Pandora\Pandora\Automation\Webhooks\WebhookReceiver;
-use Pandora\Pandora\Exceptions\WebhookRejected;
+use Pandora\Automation\Webhooks\WebhookReceiver;
+use Pandora\Exceptions\WebhookRejected;
 
 /**
  * The public edge of an automation.

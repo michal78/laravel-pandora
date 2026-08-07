@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Contracts;
+namespace Pandora\Contracts;
 
-use Pandora\Pandora\Core\Actor\ActorContext;
+use Pandora\Core\Actor\ActorContext;
 
 /**
  * Resolves the actor a run acts on behalf of, for authorization.

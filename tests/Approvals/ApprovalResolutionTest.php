@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Approvals\Approval;
-use Pandora\Pandora\Approvals\ApprovalManager;
-use Pandora\Pandora\Approvals\Enums\ApprovalStatus;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Exceptions\ApprovalExpired;
-use Pandora\Pandora\Messages\Enums\MessageRole;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Enums\RunStepType;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\Tools\RefundOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
-use Pandora\Pandora\Tools\Enums\ToolExecutionStatus;
-use Pandora\Pandora\Tools\ToolExecution;
+use Pandora\Approvals\Approval;
+use Pandora\Approvals\ApprovalManager;
+use Pandora\Approvals\Enums\ApprovalStatus;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Exceptions\ApprovalExpired;
+use Pandora\Messages\Enums\MessageRole;
+use Pandora\Messages\Message;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\RunStepType;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
+use Pandora\Tests\Support\MakesTools;
+use Pandora\Tools\Enums\ToolExecutionStatus;
+use Pandora\Tools\ToolExecution;
 
 /**
  * Phase 2 acceptance criteria 14, 15 and 19 — what a decision does.

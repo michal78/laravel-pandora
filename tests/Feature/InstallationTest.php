@@ -5,12 +5,12 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Contracts\ActorResolver;
-use Pandora\Pandora\Contracts\TenantResolver;
-use Pandora\Pandora\Pandora;
-use Pandora\Pandora\Providers\ProviderManager;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRunner;
+use Pandora\Contracts\ActorResolver;
+use Pandora\Contracts\TenantResolver;
+use Pandora\Pandora;
+use Pandora\Providers\ProviderManager;
 
 /** Acceptance criteria 1, 2, 3 -- installation. */
 it('boots with no configuration at all', function (): void {
@@ -22,7 +22,7 @@ it('boots with no configuration at all', function (): void {
 });
 
 it('exposes the facade', function (): void {
-    expect(\Pandora\Pandora\Facades\Pandora::version())->toBeString();
+    expect(\Pandora\Facades\Pandora::version())->toBeString();
 });
 
 it('creates every expected table', function (): void {

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests\Fixtures;
+namespace Pandora\Tests\Fixtures;
 
-use Pandora\Pandora\Agents\AgentBlueprint;
-use Pandora\Pandora\Contracts\AgentDefinition;
+use Pandora\Agents\AgentBlueprint;
+use Pandora\Contracts\AgentDefinition;
 
 /**
  * The example class-based agent, also used as the quick-start example in the

@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools;
+namespace Pandora\Tools;
 
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Approvals\ApprovalManager;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Jobs\ContinueAgentRun;
-use Pandora\Pandora\Jobs\ExecuteToolCall;
-use Pandora\Pandora\Messages\MessageWriter;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Realtime\RunBroadcaster;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Enums\RunStepStatus;
-use Pandora\Pandora\Runs\Enums\RunStepType;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunStepRecorder;
-use Pandora\Pandora\Support\Redactor;
-use Pandora\Pandora\Tools\Enums\AuthorizationLayer;
-use Pandora\Pandora\Tools\Enums\ToolExecutionStatus;
+use Pandora\Agents\Agent;
+use Pandora\Approvals\ApprovalManager;
+use Pandora\Audit\AuditLogger;
+use Pandora\Conversations\Conversation;
+use Pandora\Conversations\Session;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Jobs\ContinueAgentRun;
+use Pandora\Jobs\ExecuteToolCall;
+use Pandora\Messages\MessageWriter;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Realtime\RunBroadcaster;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\RunStepStatus;
+use Pandora\Runs\Enums\RunStepType;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunStepRecorder;
+use Pandora\Support\Redactor;
+use Pandora\Tools\Enums\AuthorizationLayer;
+use Pandora\Tools\Enums\ToolExecutionStatus;
 
 /**
  * Turns a model's tool REQUESTS into decided, recorded, dispatched work.

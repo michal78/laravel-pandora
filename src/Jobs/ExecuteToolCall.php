@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Jobs;
+namespace Pandora\Jobs;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -10,29 +10,29 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Core\Actor\ActorManager;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Exceptions\PandoraException;
-use Pandora\Pandora\Messages\MessageWriter;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Realtime\RunBroadcaster;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Enums\RunStepStatus;
-use Pandora\Pandora\Runs\Enums\RunStepType;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunStateMachine;
-use Pandora\Pandora\Runs\RunStepRecorder;
-use Pandora\Pandora\Support\Redactor;
-use Pandora\Pandora\Tools\Enums\ToolExecutionStatus;
-use Pandora\Pandora\Tools\ToolCallCoordinator;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolExecution;
-use Pandora\Pandora\Tools\ToolGatekeeper;
-use Pandora\Pandora\Tools\ToolResult;
+use Pandora\Agents\Agent;
+use Pandora\Audit\AuditLogger;
+use Pandora\Conversations\Conversation;
+use Pandora\Conversations\Session;
+use Pandora\Core\Actor\ActorManager;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Exceptions\PandoraException;
+use Pandora\Messages\MessageWriter;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Realtime\RunBroadcaster;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\RunStepStatus;
+use Pandora\Runs\Enums\RunStepType;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunStateMachine;
+use Pandora\Runs\RunStepRecorder;
+use Pandora\Support\Redactor;
+use Pandora\Tools\Enums\ToolExecutionStatus;
+use Pandora\Tools\ToolCallCoordinator;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolExecution;
+use Pandora\Tools\ToolGatekeeper;
+use Pandora\Tools\ToolResult;
 
 /**
  * Executes ONE authorized tool call.

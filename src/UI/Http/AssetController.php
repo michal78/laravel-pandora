@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Http;
+namespace Pandora\UI\Http;
 
-use Pandora\Pandora\UI\Assets;
+use Pandora\UI\Assets;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 

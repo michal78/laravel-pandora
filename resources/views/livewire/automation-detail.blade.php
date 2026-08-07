@@ -108,7 +108,7 @@
                 'history' => 'History',
             ];
 
-            if ($automation->trigger_type === \Pandora\Pandora\Automation\Enums\AutomationTrigger::Webhook) {
+            if ($automation->trigger_type === \Pandora\Automation\Enums\AutomationTrigger::Webhook) {
                 $tabs['webhook'] = 'Webhook';
             }
         @endphp
@@ -427,7 +427,7 @@
 
     {{-- ------------------------------------------------------------- history --}}
     @if ($tab === 'history')
-        @if ($automation->trigger_type === \Pandora\Pandora\Automation\Enums\AutomationTrigger::Webhook)
+        @if ($automation->trigger_type === \Pandora\Automation\Enums\AutomationTrigger::Webhook)
             {{--
                 Sends people to the right tab. A delivery refused before it
                 became an occurrence -- a bad signature, a replay -- has nothing
@@ -543,7 +543,7 @@
                             <tr wire:key="delivery-{{ $delivery->id }}">
                                 <td>{{ $delivery->created_at?->diffForHumans() }}</td>
                                 <td>
-                                    @if ($delivery->status === \Pandora\Pandora\Automation\WebhookDelivery::ACCEPTED)
+                                    @if ($delivery->status === \Pandora\Automation\WebhookDelivery::ACCEPTED)
                                         <x-pandora::badge tone="success">Accepted</x-pandora::badge>
                                     @else
                                         <x-pandora::badge tone="warning">Rejected</x-pandora::badge>

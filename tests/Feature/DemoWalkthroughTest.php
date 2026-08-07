@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Agents\AgentRegistry;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Facades\Pandora;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Tests\Fixtures\EchoAgent;
+use Pandora\Agents\AgentRegistry;
+use Pandora\Agents\AgentRunner;
+use Pandora\Audit\AuditLog;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Facades\Pandora;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Tests\Fixtures\EchoAgent;
 
 it('demonstrates the Phase 1 slice end to end', function (): void {
     $this->fakeProvider()->willRespondWith('Order 1234 shipped on Tuesday and arrives Thursday.');

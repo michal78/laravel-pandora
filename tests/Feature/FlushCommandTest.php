@@ -3,23 +3,23 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Core\Tenancy\TenantContext;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Exceptions\ImmutableRecord;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Providers\Catalog\CatalogModel;
-use Pandora\Pandora\Providers\Catalog\ModelCatalog;
-use Pandora\Pandora\Providers\Credentials\CredentialManager;
-use Pandora\Pandora\Providers\Credentials\ProviderCredential;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunStep;
-use Pandora\Pandora\Tests\Support\MakesRuns;
-use Pandora\Pandora\Tests\TestCase;
-use Pandora\Pandora\Usage\UsageRecord;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRunner;
+use Pandora\Audit\AuditLog;
+use Pandora\Conversations\Conversation;
+use Pandora\Core\Tenancy\TenantContext;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Exceptions\ImmutableRecord;
+use Pandora\Messages\Message;
+use Pandora\Providers\Catalog\CatalogModel;
+use Pandora\Providers\Catalog\ModelCatalog;
+use Pandora\Providers\Credentials\CredentialManager;
+use Pandora\Providers\Credentials\ProviderCredential;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunStep;
+use Pandora\Tests\Support\MakesRuns;
+use Pandora\Tests\TestCase;
+use Pandora\Usage\UsageRecord;
 
 uses(MakesRuns::class);
 

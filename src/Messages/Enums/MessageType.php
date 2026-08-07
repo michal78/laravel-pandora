@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Messages\Enums;
+namespace Pandora\Messages\Enums;
 
 enum MessageType: string
 {

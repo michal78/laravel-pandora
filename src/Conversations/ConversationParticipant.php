@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Conversations;
+namespace Pandora\Conversations;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Core\Tenancy\Concerns\BelongsToTenant;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * @property string $id

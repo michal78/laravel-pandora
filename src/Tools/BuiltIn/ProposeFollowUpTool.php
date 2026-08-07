@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools\BuiltIn;
+namespace Pandora\Tools\BuiltIn;
 
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Automation\Enums\ObservationStatus;
-use Pandora\Pandora\Automation\Observation;
-use Pandora\Pandora\Tools\Enums\RiskLevel;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolInput;
-use Pandora\Pandora\Tools\ToolResult;
+use Pandora\Audit\AuditLogger;
+use Pandora\Automation\Enums\ObservationStatus;
+use Pandora\Automation\Observation;
+use Pandora\Tools\Enums\RiskLevel;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolInput;
+use Pandora\Tools\ToolResult;
 
 /**
  * The goal queue, from the agent's side.

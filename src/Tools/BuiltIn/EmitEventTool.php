@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools\BuiltIn;
+namespace Pandora\Tools\BuiltIn;
 
 use Illuminate\Contracts\Events\Dispatcher;
-use Pandora\Pandora\Tools\Enums\RiskLevel;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolInput;
-use Pandora\Pandora\Tools\ToolResult;
+use Pandora\Tools\Enums\RiskLevel;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolInput;
+use Pandora\Tools\ToolResult;
 
 /**
  * Fire one of the application events a deployment has opened to agents.

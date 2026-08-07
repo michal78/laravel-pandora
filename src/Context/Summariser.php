@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Context;
+namespace Pandora\Context;
 
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\Messages\Enums\MessageRole;
-use Pandora\Pandora\Messages\Enums\StreamingState;
-use Pandora\Pandora\Messages\Message;
+use Pandora\Conversations\Session;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryItem;
+use Pandora\Messages\Enums\MessageRole;
+use Pandora\Messages\Enums\StreamingState;
+use Pandora\Messages\Message;
 
 /**
  * Compresses a conversation into a stored summary.

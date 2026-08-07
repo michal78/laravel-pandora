@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Messages;
+namespace Pandora\Messages;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
-use Pandora\Pandora\Messages\Enums\MessageRole;
-use Pandora\Pandora\Messages\Enums\MessageType;
-use Pandora\Pandora\Messages\Enums\StreamingState;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Conversations\Conversation;
+use Pandora\Core\Tenancy\Concerns\BelongsToTenant;
+use Pandora\Messages\Enums\MessageRole;
+use Pandora\Messages\Enums\MessageType;
+use Pandora\Messages\Enums\StreamingState;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Runs\Run;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * A persisted item in a conversation.

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Pandora\Pandora\Tests\Fixtures\Tools\LegacyLookupTool;
-use Pandora\Pandora\Tests\Fixtures\Tools\LookupOrderTool;
-use Pandora\Pandora\Tests\Fixtures\Tools\RefundOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
-use Pandora\Pandora\Tools\ToolRegistry;
-use Pandora\Pandora\UI\Livewire\ToolsIndex;
+use Pandora\Tests\Fixtures\Tools\LegacyLookupTool;
+use Pandora\Tests\Fixtures\Tools\LookupOrderTool;
+use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
+use Pandora\Tests\Support\MakesTools;
+use Pandora\Tools\ToolRegistry;
+use Pandora\UI\Livewire\ToolsIndex;
 
 /**
  * Phase 2 acceptance criteria 29 and 31 — the Tools page, and who may read a

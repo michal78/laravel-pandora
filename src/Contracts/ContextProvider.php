@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Contracts;
+namespace Pandora\Contracts;
 
-use Pandora\Pandora\Context\ContextRequest;
-use Pandora\Pandora\Context\ContextSection;
+use Pandora\Context\ContextRequest;
+use Pandora\Context\ContextSection;
 
 /**
  * Supplies one section of the context assembled for a model request.

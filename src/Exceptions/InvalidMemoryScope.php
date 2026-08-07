@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Exceptions;
+namespace Pandora\Exceptions;
 
-use Pandora\Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemoryScope;
 
 /**
  * A memory was written with a scope that does not identify anyone.

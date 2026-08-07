@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
-use Pandora\Pandora\Automation\AutomationDispatcher;
-use Pandora\Pandora\Automation\Enums\ConcurrencyPolicy;
-use Pandora\Pandora\Automation\Enums\OccurrenceStatus;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\AgentFactory;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\Automation\AutomationDispatcher;
+use Pandora\Automation\Enums\ConcurrencyPolicy;
+use Pandora\Automation\Enums\OccurrenceStatus;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\AgentFactory;
+use Pandora\Tests\Fixtures\AutomationFactory;
 
 /**
  * Phase 4, criterion 10 -- overlapping runs.

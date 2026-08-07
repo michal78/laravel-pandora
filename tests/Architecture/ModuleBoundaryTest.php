@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Contracts\ContextProvider;
-use Pandora\Pandora\Contracts\Provider;
-use Pandora\Pandora\Exceptions\PandoraException;
-use Pandora\Pandora\Jobs\ContinueAgentRun;
-use Pandora\Pandora\Jobs\ExecuteToolCall;
-use Pandora\Pandora\Realtime\Events\PandoraBroadcastEvent;
-use Pandora\Pandora\Runs\RunStateMachine;
-use Pandora\Pandora\Tools\BuiltIn\BuiltInTools;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolGatekeeper;
+use Pandora\Contracts\ContextProvider;
+use Pandora\Contracts\Provider;
+use Pandora\Exceptions\PandoraException;
+use Pandora\Jobs\ContinueAgentRun;
+use Pandora\Jobs\ExecuteToolCall;
+use Pandora\Realtime\Events\PandoraBroadcastEvent;
+use Pandora\Runs\RunStateMachine;
+use Pandora\Tools\BuiltIn\BuiltInTools;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolGatekeeper;
 
 /**
  * Acceptance guarantee 21 -- architectural invariants.
@@ -50,7 +50,7 @@ function pandoraSourceClasses(): array
         }
 
         $relative = substr($file->getPathname(), strlen($root) + 1, -4);
-        $class = 'Pandora\\Pandora\\'.str_replace('/', '\\', $relative);
+        $class = 'Pandora\\'.str_replace('/', '\\', $relative);
 
         if (class_exists($class) || interface_exists($class) || enum_exists($class) || trait_exists($class)) {
             $classes[$class] = $file->getPathname();
@@ -120,7 +120,7 @@ it('confines vendor SDK types to their own adapter directory', function (): void
 
 it('keeps everything in Contracts an interface', function (): void {
     foreach (array_keys(pandoraSourceClasses()) as $class) {
-        if (str_starts_with($class, 'Pandora\Pandora\Contracts\\')) {
+        if (str_starts_with($class, 'Pandora\Contracts\\')) {
             expect(interface_exists($class))->toBeTrue("{$class} must be an interface");
         }
     }
@@ -136,7 +136,7 @@ it('keeps everything in an Enums namespace an enum', function (): void {
 
 it('makes every provider data object readonly', function (): void {
     foreach (array_keys(pandoraSourceClasses()) as $class) {
-        if (! str_starts_with($class, 'Pandora\Pandora\Providers\Data\\') || enum_exists($class)) {
+        if (! str_starts_with($class, 'Pandora\Providers\Data\\') || enum_exists($class)) {
             continue;
         }
 
@@ -153,7 +153,7 @@ it('routes every broadcast through the redacting base class', function (): void 
             continue;
         }
 
-        if (str_starts_with($class, 'Pandora\Pandora\Realtime\Events\\')) {
+        if (str_starts_with($class, 'Pandora\Realtime\Events\\')) {
             expect(is_subclass_of($class, PandoraBroadcastEvent::class))
                 ->toBeTrue("{$class} must extend PandoraBroadcastEvent");
         }
@@ -162,7 +162,7 @@ it('routes every broadcast through the redacting base class', function (): void 
 
 it('derives every exception from the Pandora hierarchy', function (): void {
     foreach (array_keys(pandoraSourceClasses()) as $class) {
-        if (! str_starts_with($class, 'Pandora\Pandora\Exceptions\\')) {
+        if (! str_starts_with($class, 'Pandora\Exceptions\\')) {
             continue;
         }
 
@@ -177,7 +177,7 @@ it('derives every exception from the Pandora hierarchy', function (): void {
 
 it('keeps context providers behind their contract', function (): void {
     foreach (array_keys(pandoraSourceClasses()) as $class) {
-        if (str_starts_with($class, 'Pandora\Pandora\Context\Providers\\')) {
+        if (str_starts_with($class, 'Pandora\Context\Providers\\')) {
             expect(is_subclass_of($class, ContextProvider::class))
                 ->toBeTrue("{$class} must implement ContextProvider");
         }
@@ -188,11 +188,11 @@ it('keeps HTTP and Livewire out of the execution domain', function (): void {
     $offenders = [];
 
     foreach (pandoraSourceClasses() as $class => $path) {
-        $inDomain = str_starts_with($class, 'Pandora\Pandora\Runs\\')
-            || str_starts_with($class, 'Pandora\Pandora\Providers\\')
-            || str_starts_with($class, 'Pandora\Pandora\Context\\')
-            || str_starts_with($class, 'Pandora\Pandora\Tools\\')
-            || str_starts_with($class, 'Pandora\Pandora\Approvals\\');
+        $inDomain = str_starts_with($class, 'Pandora\Runs\\')
+            || str_starts_with($class, 'Pandora\Providers\\')
+            || str_starts_with($class, 'Pandora\Context\\')
+            || str_starts_with($class, 'Pandora\Tools\\')
+            || str_starts_with($class, 'Pandora\Approvals\\');
 
         if (! $inDomain) {
             continue;
@@ -235,7 +235,7 @@ it('keeps every tool behind the Tool base class', function (): void {
     // The base class is where validation, schema generation and the deny-by-
     // default authorize() live. A "tool" that skipped it would skip those.
     foreach (array_keys(pandoraSourceClasses()) as $class) {
-        if (! str_starts_with($class, 'Pandora\Pandora\Tools\BuiltIn\\')) {
+        if (! str_starts_with($class, 'Pandora\Tools\BuiltIn\\')) {
             continue;
         }
 
@@ -263,7 +263,7 @@ it('lets nothing but the gatekeeper decide a tool call', function (): void {
         // Calling a tool's authorize() outside the gatekeeper means some other
         // component decided a call was permitted on its own.
         if (preg_match('/->authorize\(\s*\$input/', $source) === 1
-            && ! str_starts_with($class, 'Pandora\Pandora\Tools\BuiltIn\\')) {
+            && ! str_starts_with($class, 'Pandora\Tools\BuiltIn\\')) {
             $offenders[] = $class;
         }
     }
@@ -278,7 +278,7 @@ it('executes a tool from exactly one place', function (): void {
     $offenders = [];
 
     foreach (pandoraSourceClasses() as $class => $path) {
-        if ($class === ExecuteToolCall::class || str_starts_with($class, 'Pandora\Pandora\Tools\\')) {
+        if ($class === ExecuteToolCall::class || str_starts_with($class, 'Pandora\Tools\\')) {
             continue;
         }
 
@@ -300,7 +300,7 @@ it('ships no god object', function (): void {
 
 it('keeps every adapter behind the Provider contract', function (): void {
     foreach (array_keys(pandoraSourceClasses()) as $class) {
-        if (! str_starts_with($class, 'Pandora\Pandora\Providers\Adapters\\')
+        if (! str_starts_with($class, 'Pandora\Providers\Adapters\\')
             || str_contains($class, '\\Concerns\\')) {
             continue;
         }
@@ -317,7 +317,7 @@ it('confines an adapter to translation', function (): void {
     $offenders = [];
 
     foreach (pandoraSourceClasses() as $class => $path) {
-        if (! str_starts_with($class, 'Pandora\Pandora\Providers\Adapters\\')) {
+        if (! str_starts_with($class, 'Pandora\Providers\Adapters\\')) {
             continue;
         }
 
@@ -344,15 +344,15 @@ it('reads a credential secret in exactly the places that send one', function ():
     // exist: every read is one greppable call, and the only legitimate readers
     // are the adapters that put it in a header.
     $permitted = [
-        'Pandora\Pandora\Providers\Credentials\Credential',
-        'Pandora\Pandora\Providers\Credentials\ProviderCredential',
+        'Pandora\Providers\Credentials\Credential',
+        'Pandora\Providers\Credentials\ProviderCredential',
     ];
 
     $offenders = [];
 
     foreach (pandoraSourceClasses() as $class => $path) {
         if (in_array($class, $permitted, true)
-            || str_starts_with($class, 'Pandora\Pandora\Providers\Adapters\\')) {
+            || str_starts_with($class, 'Pandora\Providers\Adapters\\')) {
             continue;
         }
 
@@ -370,7 +370,7 @@ it('records usage from exactly one place', function (): void {
     $offenders = [];
 
     foreach (pandoraSourceClasses() as $class => $path) {
-        if ($class === ContinueAgentRun::class || str_starts_with($class, 'Pandora\Pandora\Usage\\')) {
+        if ($class === ContinueAgentRun::class || str_starts_with($class, 'Pandora\Usage\\')) {
             continue;
         }
 

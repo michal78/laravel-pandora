@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Console\Commands;
+namespace Pandora\Console\Commands;
 
 use Illuminate\Console\Command;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Exceptions\AgentNotFound;
-use Pandora\Pandora\Runs\Enums\TriggerType;
-use Pandora\Pandora\Runs\Run;
+use Pandora\Agents\AgentRunner;
+use Pandora\Exceptions\AgentNotFound;
+use Pandora\Runs\Enums\TriggerType;
+use Pandora\Runs\Run;
 
 final class AgentRunCommand extends Command
 {

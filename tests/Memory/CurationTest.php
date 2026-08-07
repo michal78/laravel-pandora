@@ -6,20 +6,20 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Exceptions\InvalidMemoryScope;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySensitivity;
-use Pandora\Pandora\Memory\Enums\MemoryStatus;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryCurator;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\Memory\MemoryQuery;
-use Pandora\Pandora\Memory\MemoryRetriever;
-use Pandora\Pandora\Memory\MemoryWriter;
-use Pandora\Pandora\Memory\ScopeResolver;
-use Pandora\Pandora\Tests\Fixtures\AgentFactory;
+use Pandora\Audit\AuditLog;
+use Pandora\Conversations\Session;
+use Pandora\Exceptions\InvalidMemoryScope;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySensitivity;
+use Pandora\Memory\Enums\MemoryStatus;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryCurator;
+use Pandora\Memory\MemoryItem;
+use Pandora\Memory\MemoryQuery;
+use Pandora\Memory\MemoryRetriever;
+use Pandora\Memory\MemoryWriter;
+use Pandora\Memory\ScopeResolver;
+use Pandora\Tests\Fixtures\AgentFactory;
 
 /**
  * Phase 5, criteria 11 and 12 -- a human between the agent and the claim.

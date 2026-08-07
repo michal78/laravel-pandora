@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests\Fixtures;
+namespace Pandora\Tests\Fixtures;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 

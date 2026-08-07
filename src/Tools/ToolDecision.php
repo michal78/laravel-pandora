@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools;
+namespace Pandora\Tools;
 
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Tools\Enums\AuthorizationLayer;
-use Pandora\Pandora\Tools\Enums\PolicyOutcome;
-use Pandora\Pandora\Tools\Enums\RiskLevel;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Tools\Enums\AuthorizationLayer;
+use Pandora\Tools\Enums\PolicyOutcome;
+use Pandora\Tools\Enums\RiskLevel;
 
 /**
  * The gatekeeper's verdict on one tool call, after all five layers.

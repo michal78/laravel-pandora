@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Runs\Events;
+namespace Pandora\Runs\Events;
 
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
 
 /**
  * An internal domain event -- NOT a broadcast payload.

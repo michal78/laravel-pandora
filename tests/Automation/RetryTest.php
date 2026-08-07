@@ -3,12 +3,12 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Automation\AutomationDispatcher;
-use Pandora\Pandora\Automation\AutomationScheduler;
-use Pandora\Pandora\Automation\AutonomyBudget;
-use Pandora\Pandora\Jobs\RunAutomation;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\Automation\Automation;
+use Pandora\Automation\AutomationDispatcher;
+use Pandora\Automation\AutomationScheduler;
+use Pandora\Automation\AutonomyBudget;
+use Pandora\Jobs\RunAutomation;
+use Pandora\Tests\Fixtures\AutomationFactory;
 
 /**
  * Phase 4, criterion 17 -- an automation that keeps failing turns itself off.

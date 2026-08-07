@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation\Enums;
+namespace Pandora\Automation\Enums;
 
 /**
  * What happens to occurrences that were due while nothing was running.

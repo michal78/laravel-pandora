@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Console\Commands;
+namespace Pandora\Console\Commands;
 
 use Illuminate\Console\Command;
-use Pandora\Pandora\Automation\AutomationScheduler;
+use Pandora\Automation\AutomationScheduler;
 
 /**
  * The single scheduler entry.

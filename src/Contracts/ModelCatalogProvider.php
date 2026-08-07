@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Contracts;
+namespace Pandora\Contracts;
 
-use Pandora\Pandora\Exceptions\Provider\ProviderException;
-use Pandora\Pandora\Providers\Catalog\ModelDescriptor;
+use Pandora\Exceptions\Provider\ProviderException;
+use Pandora\Providers\Catalog\ModelDescriptor;
 
 /**
  * A provider that can list the models it offers.

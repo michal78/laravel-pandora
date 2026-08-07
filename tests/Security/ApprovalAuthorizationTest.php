@@ -3,16 +3,16 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
-use Pandora\Pandora\Approvals\Approval;
-use Pandora\Pandora\Approvals\ApprovalManager;
-use Pandora\Pandora\Approvals\Enums\ApprovalKind;
-use Pandora\Pandora\Approvals\Enums\ApprovalStatus;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Exceptions\AuthorizationDenied;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Tests\Fixtures\TestUser;
-use Pandora\Pandora\Tests\Fixtures\Tools\RefundOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
+use Pandora\Approvals\Approval;
+use Pandora\Approvals\ApprovalManager;
+use Pandora\Approvals\Enums\ApprovalKind;
+use Pandora\Approvals\Enums\ApprovalStatus;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Exceptions\AuthorizationDenied;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Tests\Fixtures\TestUser;
+use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
+use Pandora\Tests\Support\MakesTools;
 
 /**
  * Phase 2 acceptance criterion 20 — who may decide.

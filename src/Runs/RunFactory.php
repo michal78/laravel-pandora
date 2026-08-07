@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Runs;
+namespace Pandora\Runs;
 
 use Illuminate\Database\ConnectionInterface;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Enums\TriggerType;
-use Pandora\Pandora\Support\CorrelationId;
+use Pandora\Agents\Agent;
+use Pandora\Conversations\Conversation;
+use Pandora\Conversations\Session;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\TriggerType;
+use Pandora\Support\CorrelationId;
 
 /**
  * Creates runs in `pending`.

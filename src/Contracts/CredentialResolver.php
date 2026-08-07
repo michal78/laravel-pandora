@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Contracts;
+namespace Pandora\Contracts;
 
-use Pandora\Pandora\Providers\Credentials\Credential;
-use Pandora\Pandora\Providers\Credentials\ResolutionContext;
+use Pandora\Providers\Credentials\Credential;
+use Pandora\Providers\Credentials\ResolutionContext;
 
 /**
  * Resolves the credential an adapter should present for a provider.

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Core\Tenancy\TenantContext;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Providers\Credentials\CredentialManager;
+use Pandora\Core\Tenancy\TenantContext;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Providers\Credentials\CredentialManager;
 
 /**
  * Phase 3 acceptance criterion 34 -- one tenant's key is not another's.

@@ -253,4 +253,4 @@ independent Laravel-native reimplementation.
 
 ## License
 
-MIT — **provisional**, pending owner confirmation. See [`LICENSE.md`](LICENSE.md).
+MIT. See [`LICENSE.md`](LICENSE.md).

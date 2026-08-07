@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Exceptions\WorkspaceDenied;
-use Pandora\Pandora\Workspaces\Workspace;
-use Pandora\Pandora\Workspaces\WorkspaceFiles;
+use Pandora\Audit\AuditLog;
+use Pandora\Audit\AuditLogger;
+use Pandora\Exceptions\WorkspaceDenied;
+use Pandora\Workspaces\Workspace;
+use Pandora\Workspaces\WorkspaceFiles;
 
 /**
  * Phase 5, criterion 26 -- refused before it lands, and accurate under

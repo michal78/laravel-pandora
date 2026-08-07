@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Core\Tenancy;
+namespace Pandora\Core\Tenancy;
 
 /**
  * The tenant that owns a piece of work.

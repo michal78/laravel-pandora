@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Facades\Http;
-use Pandora\Pandora\Providers\Adapters\OpenAiCompatibleProvider;
-use Pandora\Pandora\Providers\Data\ChatMessage;
-use Pandora\Pandora\Providers\Data\ChatRequest;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Providers\Data\ToolDefinition;
-use Pandora\Pandora\Tools\ToolRegistry;
+use Pandora\Providers\Adapters\OpenAiCompatibleProvider;
+use Pandora\Providers\Data\ChatMessage;
+use Pandora\Providers\Data\ChatRequest;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Providers\Data\ToolDefinition;
+use Pandora\Tools\ToolRegistry;
 
 /**
  * The request side of tool use.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Credentials;
+namespace Pandora\Providers\Credentials;
 
 /**
  * A resolved secret, on its way to an HTTP header and nowhere else.

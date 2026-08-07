@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\Tests\Fixtures\AutomationFactory;
 
 /**
  * The sidebar offers no link that answers 403.

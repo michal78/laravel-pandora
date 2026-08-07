@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Runs\Enums;
+namespace Pandora\Runs\Enums;
 
 enum RunStepStatus: string
 {

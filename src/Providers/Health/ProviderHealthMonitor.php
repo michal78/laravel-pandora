@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Health;
+namespace Pandora\Providers\Health;
 
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Providers\Data\ProviderHealth;
+use Pandora\Audit\AuditLogger;
+use Pandora\Providers\Data\ProviderHealth;
 
 /**
  * What the router, the Providers page and `pandora:status` all read.

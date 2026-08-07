@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Automation\Schedule\NextRun;
-use Pandora\Pandora\Exceptions\InvalidConfiguration;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Automation\Schedule\NextRun;
+use Pandora\Exceptions\InvalidConfiguration;
+use Pandora\Tests\Fixtures\AutomationFactory;
 
 /**
  * Phase 4, criteria 1-3 -- when an automation is next due.

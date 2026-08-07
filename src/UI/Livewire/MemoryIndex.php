@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Pandora\Pandora\Exceptions\PandoraException;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySensitivity;
-use Pandora\Pandora\Memory\Enums\MemoryStatus;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryCurator;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Exceptions\PandoraException;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySensitivity;
+use Pandora\Memory\Enums\MemoryStatus;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryCurator;
+use Pandora\Memory\MemoryItem;
+use Pandora\UI\PandoraGate;
 
 /**
  * Everything the agents believe, and the queue of things they would like to.

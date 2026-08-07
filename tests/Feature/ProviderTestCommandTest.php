@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
-use Pandora\Pandora\Exceptions\Provider\ProviderQuotaExhausted;
-use Pandora\Pandora\Providers\Adapters\FakeProvider;
-use Pandora\Pandora\Providers\Credentials\Credential;
-use Pandora\Pandora\Providers\Health\ProviderHealthMonitor;
-use Pandora\Pandora\Providers\ProviderManager;
+use Pandora\Exceptions\Provider\ProviderQuotaExhausted;
+use Pandora\Providers\Adapters\FakeProvider;
+use Pandora\Providers\Credentials\Credential;
+use Pandora\Providers\Health\ProviderHealthMonitor;
+use Pandora\Providers\ProviderManager;
 
 /**
  * Phase 3 acceptance criterion 38 -- the one command that makes a real call,

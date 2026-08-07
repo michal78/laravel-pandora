@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Credentials;
+namespace Pandora\Providers\Credentials;
 
 use Illuminate\Contracts\Config\Repository as Config;
-use Pandora\Pandora\Contracts\CredentialResolver;
+use Pandora\Contracts\CredentialResolver;
 
 /**
  * The default resolver: stored credentials first, configuration second.

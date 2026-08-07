@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Conversations;
+namespace Pandora\Conversations;
 
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
+use Pandora\Agents\Agent;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Core\Tenancy\TenantManager;
 
 final class ConversationManager
 {

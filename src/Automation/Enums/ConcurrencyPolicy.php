@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation\Enums;
+namespace Pandora\Automation\Enums;
 
 /**
  * What an occurrence does when the previous run of the same automation has

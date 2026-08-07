@@ -3,12 +3,12 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Event;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Realtime\Events\AssistantDeltaReceived;
-use Pandora\Pandora\Realtime\Events\AssistantMessageCompleted;
-use Pandora\Pandora\Realtime\Events\RunStatusChanged;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Tests\Support\MakesRuns;
+use Pandora\Agents\AgentRunner;
+use Pandora\Realtime\Events\AssistantDeltaReceived;
+use Pandora\Realtime\Events\AssistantMessageCompleted;
+use Pandora\Realtime\Events\RunStatusChanged;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Tests\Support\MakesRuns;
 
 uses(MakesRuns::class);
 

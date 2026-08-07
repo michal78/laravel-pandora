@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Testing;
+namespace Pandora\Testing;
 
 /**
  * Thrown by the contract suite from inside a stream callback, to stand in for

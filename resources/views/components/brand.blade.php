@@ -23,7 +23,7 @@
         ? 'Laravel Pandora'
         : config('pandora.ui.brand');
 
-    $assets = \Pandora\Pandora\UI\Assets::class;
+    $assets = \Pandora\UI\Assets::class;
 @endphp
 
 @if ($variant === 'icon')

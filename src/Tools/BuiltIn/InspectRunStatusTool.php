@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools\BuiltIn;
+namespace Pandora\Tools\BuiltIn;
 
-use Pandora\Pandora\Tools\Enums\RiskLevel;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolInput;
-use Pandora\Pandora\Tools\ToolResult;
+use Pandora\Tools\Enums\RiskLevel;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolInput;
+use Pandora\Tools\ToolResult;
 
 /**
  * Let an agent see its own budget.

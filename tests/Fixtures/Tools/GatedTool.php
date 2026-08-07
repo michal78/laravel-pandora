@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests\Fixtures\Tools;
+namespace Pandora\Tests\Fixtures\Tools;
 
 use Illuminate\Support\Facades\Gate;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Tools\Enums\RiskLevel;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolInput;
-use Pandora\Pandora\Tools\ToolResult;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Tools\Enums\RiskLevel;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolInput;
+use Pandora\Tools\ToolResult;
 
 /**
  * A tool authorized the way a host developer would write it: an ordinary

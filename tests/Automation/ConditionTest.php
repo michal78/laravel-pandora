@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Automation\AutomationDispatcher;
-use Pandora\Pandora\Automation\ConditionRegistry;
-use Pandora\Pandora\Automation\Enums\OccurrenceStatus;
-use Pandora\Pandora\Exceptions\AutomationRefused;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\AlwaysTrueCondition;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\Automation\AutomationDispatcher;
+use Pandora\Automation\ConditionRegistry;
+use Pandora\Automation\Enums\OccurrenceStatus;
+use Pandora\Exceptions\AutomationRefused;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\AlwaysTrueCondition;
+use Pandora\Tests\Fixtures\AutomationFactory;
 
 /**
  * Phase 4, criteria 11 and 12 -- conditional polling.

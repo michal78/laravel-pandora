@@ -141,8 +141,8 @@ php artisan pandora:agent:list
 
 ## Changing the namespace
 
-The placeholder namespace is `Pandora\Pandora\`. To change it, edit two keys in `composer.json`
-(`autoload.psr-4` and `extra.laravel`), run a project-wide replace of `Pandora\Pandora` and
+The namespace is `Pandora\`, PSR-4 rooted at `src/`. To change it, edit two keys in `composer.json`
+(`autoload.psr-4` and `extra.laravel`), run a project-wide replace of `Pandora\` and
 `composer dump-autoload`. No namespace string is hard-coded in config, views or migrations.
 
 ---

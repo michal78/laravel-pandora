@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory\Vector;
+namespace Pandora\Memory\Vector;
 
 use Illuminate\Database\Connection;
 use Illuminate\Database\QueryException;
-use Pandora\Pandora\Contracts\VectorStore;
-use Pandora\Pandora\Memory\Embedding;
+use Pandora\Contracts\VectorStore;
+use Pandora\Memory\Embedding;
 
 /**
  * Nearest-neighbour search using PostgreSQL's `pgvector` extension.

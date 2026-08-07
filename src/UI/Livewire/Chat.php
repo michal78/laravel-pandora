@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Contracts\View\View;
@@ -10,25 +10,25 @@ use Illuminate\Support\Collection;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRegistry;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Approvals\Approval;
-use Pandora\Pandora\Approvals\ApprovalManager;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Conversations\ConversationManager;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Core\Actor\ActorManager;
-use Pandora\Pandora\Exceptions\ApprovalNotPending;
-use Pandora\Pandora\Exceptions\AuthorizationDenied;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Pandora;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Enums\TriggerType;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunCanceller;
-use Pandora\Pandora\Tools\ToolExecution;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRegistry;
+use Pandora\Agents\AgentRunner;
+use Pandora\Approvals\Approval;
+use Pandora\Approvals\ApprovalManager;
+use Pandora\Conversations\Conversation;
+use Pandora\Conversations\ConversationManager;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Core\Actor\ActorManager;
+use Pandora\Exceptions\ApprovalNotPending;
+use Pandora\Exceptions\AuthorizationDenied;
+use Pandora\Messages\Message;
+use Pandora\Pandora;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\TriggerType;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunCanceller;
+use Pandora\Tools\ToolExecution;
+use Pandora\UI\PandoraGate;
 
 /**
  * The chat surface.

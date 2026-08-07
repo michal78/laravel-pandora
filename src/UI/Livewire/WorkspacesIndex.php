@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Exceptions\WorkspaceDenied;
-use Pandora\Pandora\UI\Feature;
-use Pandora\Pandora\UI\PandoraGate;
-use Pandora\Pandora\Workspaces\Workspace;
-use Pandora\Pandora\Workspaces\WorkspaceFiles;
+use Pandora\Audit\AuditLogger;
+use Pandora\Exceptions\WorkspaceDenied;
+use Pandora\UI\Feature;
+use Pandora\UI\PandoraGate;
+use Pandora\Workspaces\Workspace;
+use Pandora\Workspaces\WorkspaceFiles;
 
 /**
  * The files agents can reach, and how full each workspace is.

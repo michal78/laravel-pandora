@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Data;
+namespace Pandora\Providers\Data;
 
-use Pandora\Pandora\Messages\Enums\MessageRole;
+use Pandora\Messages\Enums\MessageRole;
 
 /**
  * A message as sent TO a provider. Deliberately separate from the Message

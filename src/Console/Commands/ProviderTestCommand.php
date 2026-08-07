@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Console\Commands;
+namespace Pandora\Console\Commands;
 
 use Illuminate\Console\Command;
-use Pandora\Pandora\Contracts\ChatProvider;
-use Pandora\Pandora\Contracts\StreamingProvider;
-use Pandora\Pandora\Exceptions\PandoraException;
-use Pandora\Pandora\Providers\Credentials\CredentialManager;
-use Pandora\Pandora\Providers\Data\ChatMessage;
-use Pandora\Pandora\Providers\Data\ChatRequest;
-use Pandora\Pandora\Providers\Data\StreamDelta;
-use Pandora\Pandora\Providers\Data\StreamDeltaType;
-use Pandora\Pandora\Providers\Health\ProviderHealthMonitor;
-use Pandora\Pandora\Providers\ProviderManager;
-use Pandora\Pandora\Support\Redactor;
+use Pandora\Contracts\ChatProvider;
+use Pandora\Contracts\StreamingProvider;
+use Pandora\Exceptions\PandoraException;
+use Pandora\Providers\Credentials\CredentialManager;
+use Pandora\Providers\Data\ChatMessage;
+use Pandora\Providers\Data\ChatRequest;
+use Pandora\Providers\Data\StreamDelta;
+use Pandora\Providers\Data\StreamDeltaType;
+use Pandora\Providers\Health\ProviderHealthMonitor;
+use Pandora\Providers\ProviderManager;
+use Pandora\Support\Redactor;
 
 /**
  * A real round trip against a real provider.

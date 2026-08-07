@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Adapters\Concerns;
+namespace Pandora\Providers\Adapters\Concerns;
 
 use Illuminate\Http\Client\Response;
-use Pandora\Pandora\Exceptions\Provider\ContextOverflow;
-use Pandora\Pandora\Exceptions\Provider\ProviderAuthenticationFailed;
-use Pandora\Pandora\Exceptions\Provider\ProviderQuotaExhausted;
-use Pandora\Pandora\Exceptions\Provider\ProviderRateLimited;
-use Pandora\Pandora\Exceptions\Provider\ProviderRejectedRequest;
-use Pandora\Pandora\Exceptions\Provider\ProviderTimeout;
-use Pandora\Pandora\Exceptions\Provider\ProviderUnavailable;
+use Pandora\Exceptions\Provider\ContextOverflow;
+use Pandora\Exceptions\Provider\ProviderAuthenticationFailed;
+use Pandora\Exceptions\Provider\ProviderQuotaExhausted;
+use Pandora\Exceptions\Provider\ProviderRateLimited;
+use Pandora\Exceptions\Provider\ProviderRejectedRequest;
+use Pandora\Exceptions\Provider\ProviderTimeout;
+use Pandora\Exceptions\Provider\ProviderUnavailable;
 
 /**
  * Turning an HTTP failure into a Pandora exception.

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers;
+namespace Pandora\Providers;
 
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Http\Client\Factory;
-use Pandora\Pandora\Contracts\ChatProvider;
-use Pandora\Pandora\Contracts\Provider;
-use Pandora\Pandora\Exceptions\InvalidConfiguration;
-use Pandora\Pandora\Providers\Credentials\CredentialManager;
+use Pandora\Contracts\ChatProvider;
+use Pandora\Contracts\Provider;
+use Pandora\Exceptions\InvalidConfiguration;
+use Pandora\Providers\Credentials\CredentialManager;
 
 /**
  * Resolves configured providers, caching one instance per connection key.

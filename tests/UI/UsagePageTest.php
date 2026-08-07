@@ -5,8 +5,8 @@ declare(strict_types=1);
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Pandora\Pandora\UI\Livewire\UsageIndex;
-use Pandora\Pandora\Usage\UsageRecord;
+use Pandora\UI\Livewire\UsageIndex;
+use Pandora\Usage\UsageRecord;
 
 /**
  * Phase 3 acceptance criterion 37 -- volume and money are two abilities, not

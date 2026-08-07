@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Realtime\Events;
+namespace Pandora\Realtime\Events;
 
 /**
  * A coalesced chunk of streamed assistant output.

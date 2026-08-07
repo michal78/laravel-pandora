@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory;
+namespace Pandora\Memory;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Date;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Contracts\EmbeddingProvider;
-use Pandora\Pandora\Contracts\VectorStore;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\Lexical\Tokeniser;
+use Pandora\Audit\AuditLogger;
+use Pandora\Contracts\EmbeddingProvider;
+use Pandora\Contracts\VectorStore;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\Lexical\Tokeniser;
 
 /**
  * The only way memory is read.

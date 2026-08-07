@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Exceptions\Provider;
+namespace Pandora\Exceptions\Provider;
 
 /**
  * The request exceeded the model's context window. Not retryable as-is, but a

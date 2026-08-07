@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Runs;
+namespace Pandora\Runs;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
-use Pandora\Pandora\Runs\Enums\RunStepStatus;
-use Pandora\Pandora\Runs\Enums\RunStepType;
-use Pandora\Pandora\Support\Concerns\Immutable;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Core\Tenancy\Concerns\BelongsToTenant;
+use Pandora\Runs\Enums\RunStepStatus;
+use Pandora\Runs\Enums\RunStepType;
+use Pandora\Support\Concerns\Immutable;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * One ordered, timed, typed entry in a run's trace. Append-only.

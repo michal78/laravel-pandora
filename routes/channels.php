@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Broadcast;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Realtime\ChannelAuthorizer;
+use Pandora\Conversations\Conversation;
+use Pandora\Realtime\ChannelAuthorizer;
 
 /*
 |--------------------------------------------------------------------------

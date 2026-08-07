@@ -20,29 +20,26 @@ ordinary Composer dependency, installed and auto-discovered like any other.
 
 ---
 
-## Q2 — Open-source license ⚠ **owner decision required**
+## Q2 — Open-source license ✅ **settled**
 
-**Raised:** 2026-08-05 · **ADR:** 0012
+**Raised:** 2026-08-05 · **Settled:** 2026-08-07 · **ADR:** 0012
 
-`LICENSE.md` carries MIT marked explicitly as a placeholder pending confirmation.
-
-**Recommendation: MIT.** It matches Laravel, Livewire, Reverb, Hermes Agent and Hermes Studio. For a
-framework intended for broad adoption, matching the ecosystem default removes a procurement question
-that would otherwise deter commercial adopters.
-
-**Alternative: Apache-2.0.** Adds an explicit patent grant, which some enterprises prefer. Unusual in
-the Laravel ecosystem.
-
-Must be settled before any public release.
+**MIT**, confirmed by the owner. `LICENSE.md` now carries the full text with the copyright holder
+named and no placeholder notice above it. Apache-2.0 was the alternative — an explicit patent grant,
+at the cost of being unusual in this ecosystem — and was not chosen.
 
 ---
 
-## Q3 — Final Composer package name and namespace
+## Q3 — Final Composer package name and namespace ✅ **settled**
 
-**Raised:** 2026-08-05 · **ADR:** 0012
+**Raised:** 2026-08-05 · **Settled:** 2026-08-07 · **ADR:** 0012
 
-Currently `michal78/laravel-pandora` with namespace `Pandora\Pandora\`. Changing both is mechanical
-and documented. Needed before publishing to Packagist.
+**`michal78/laravel-pandora`**, namespace **`Pandora\`**, PSR-4 rooted at `src/`.
+
+The namespace was `Pandora\Pandora\` while the owner was unknown. The doubled segment bought nothing
+and read badly at every import, so it was dropped before the first release — the same shape Livewire
+uses, where `Livewire\Livewire` is the class and `Livewire\` is everything else. Done now because
+after a Packagist release it is a breaking change for every host application.
 
 ---
 

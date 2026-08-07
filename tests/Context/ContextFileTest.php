@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Context\ContextFiles;
-use Pandora\Pandora\Exceptions\ContextFileDenied;
+use Pandora\Context\ContextFiles;
+use Pandora\Exceptions\ContextFileDenied;
 
 /**
  * Phase 5, criterion 23 -- a path is contained after it is resolved.

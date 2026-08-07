@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolRegistry;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolRegistry;
+use Pandora\UI\PandoraGate;
 
 /**
  * What this application has installed, and what an agent could ask for.

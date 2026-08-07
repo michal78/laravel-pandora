@@ -2,30 +2,30 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Adapters;
+namespace Pandora\Providers\Adapters;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
-use Pandora\Pandora\Contracts\ModelCatalogProvider;
-use Pandora\Pandora\Contracts\StreamingProvider;
-use Pandora\Pandora\Exceptions\InvalidConfiguration;
-use Pandora\Pandora\Exceptions\Provider\ProviderTimeout;
-use Pandora\Pandora\Exceptions\Provider\ProviderUnavailable;
-use Pandora\Pandora\Providers\Adapters\Concerns\ClassifiesProviderFailures;
-use Pandora\Pandora\Providers\Catalog\ModelDescriptor;
-use Pandora\Pandora\Providers\Credentials\CredentialManager;
-use Pandora\Pandora\Providers\Data\ChatMessage;
-use Pandora\Pandora\Providers\Data\ChatRequest;
-use Pandora\Pandora\Providers\Data\ChatResponse;
-use Pandora\Pandora\Providers\Data\FinishReason;
-use Pandora\Pandora\Providers\Data\ProviderCapabilities;
-use Pandora\Pandora\Providers\Data\ProviderHealth;
-use Pandora\Pandora\Providers\Data\StreamDelta;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Providers\Data\ToolDefinition;
-use Pandora\Pandora\Providers\Data\UsageData;
+use Pandora\Contracts\ModelCatalogProvider;
+use Pandora\Contracts\StreamingProvider;
+use Pandora\Exceptions\InvalidConfiguration;
+use Pandora\Exceptions\Provider\ProviderTimeout;
+use Pandora\Exceptions\Provider\ProviderUnavailable;
+use Pandora\Providers\Adapters\Concerns\ClassifiesProviderFailures;
+use Pandora\Providers\Catalog\ModelDescriptor;
+use Pandora\Providers\Credentials\CredentialManager;
+use Pandora\Providers\Data\ChatMessage;
+use Pandora\Providers\Data\ChatRequest;
+use Pandora\Providers\Data\ChatResponse;
+use Pandora\Providers\Data\FinishReason;
+use Pandora\Providers\Data\ProviderCapabilities;
+use Pandora\Providers\Data\ProviderHealth;
+use Pandora\Providers\Data\StreamDelta;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Providers\Data\ToolDefinition;
+use Pandora\Providers\Data\UsageData;
 
 /**
  * The workhorse adapter: anything speaking the OpenAI chat-completions shape.

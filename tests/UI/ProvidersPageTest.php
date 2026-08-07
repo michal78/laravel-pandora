@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Pandora\Pandora\Providers\Catalog\ModelCatalog;
-use Pandora\Pandora\Providers\Credentials\CredentialManager;
-use Pandora\Pandora\Providers\Health\ProviderHealthMonitor;
-use Pandora\Pandora\Providers\ProviderManager;
-use Pandora\Pandora\UI\Livewire\ProvidersIndex;
+use Pandora\Providers\Catalog\ModelCatalog;
+use Pandora\Providers\Credentials\CredentialManager;
+use Pandora\Providers\Health\ProviderHealthMonitor;
+use Pandora\Providers\ProviderManager;
+use Pandora\UI\Livewire\ProvidersIndex;
 
 /**
  * Phase 3 acceptance criterion 36 -- the page shows configuration and health,

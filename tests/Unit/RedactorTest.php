@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Support\Redactor;
+use Pandora\Support\Redactor;
 
 /** Acceptance guarantee 18 -- secret redaction. */
 beforeEach(function (): void {

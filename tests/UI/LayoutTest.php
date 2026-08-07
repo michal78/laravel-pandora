@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Tests\Support\MakesRuns;
-use Pandora\Pandora\UI\Assets;
+use Pandora\Tests\Support\MakesRuns;
+use Pandora\UI\Assets;
 
 uses(MakesRuns::class);
 

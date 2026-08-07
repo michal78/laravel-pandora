@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Automation\Enums\ObservationStatus;
-use Pandora\Pandora\Automation\Observation;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\Tests\Fixtures\AgentFactory;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
-use Pandora\Pandora\UI\Livewire\AutomationsIndex;
+use Pandora\Audit\AuditLog;
+use Pandora\Automation\Automation;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Automation\Enums\ObservationStatus;
+use Pandora\Automation\Observation;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Tests\Fixtures\AgentFactory;
+use Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\UI\Livewire\AutomationsIndex;
 
 /**
  * Phase 4 -- the Automations index, and the goal queue that sits under it.

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation;
+namespace Pandora\Automation;
 
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Automation\Enums\MisfirePolicy;
-use Pandora\Pandora\Automation\Schedule\NextRun;
-use Pandora\Pandora\Jobs\RunAutomation;
+use Pandora\Automation\Enums\MisfirePolicy;
+use Pandora\Automation\Schedule\NextRun;
+use Pandora\Jobs\RunAutomation;
 
 /**
  * The one thing a clock talks to.

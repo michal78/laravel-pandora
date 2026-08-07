@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Messages;
+namespace Pandora\Messages;
 
 use Illuminate\Database\Connection;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Messages\Enums\MessageRole;
-use Pandora\Pandora\Messages\Enums\MessageType;
-use Pandora\Pandora\Messages\Enums\StreamingState;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Runs\Run;
+use Pandora\Conversations\Conversation;
+use Pandora\Messages\Enums\MessageRole;
+use Pandora\Messages\Enums\MessageType;
+use Pandora\Messages\Enums\StreamingState;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Runs\Run;
 
 /**
  * Creates messages and applies streamed deltas.

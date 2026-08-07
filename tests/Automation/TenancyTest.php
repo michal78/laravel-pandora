@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Bus;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Automation\AutomationDispatcher;
-use Pandora\Pandora\Automation\AutomationRun;
-use Pandora\Pandora\Automation\AutomationScheduler;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Automation\Webhooks\WebhookSignature;
-use Pandora\Pandora\Jobs\RunAutomation;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\Automation\Automation;
+use Pandora\Automation\AutomationDispatcher;
+use Pandora\Automation\AutomationRun;
+use Pandora\Automation\AutomationScheduler;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Automation\Webhooks\WebhookSignature;
+use Pandora\Jobs\RunAutomation;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\AutomationFactory;
 
 /**
  * Phase 4, criterion 26 -- one tenant's automations are not another's.

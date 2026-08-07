@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation;
+namespace Pandora\Automation;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Automation\Enums\ObservationStatus;
-use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Agents\Agent;
+use Pandora\Automation\Enums\ObservationStatus;
+use Pandora\Core\Tenancy\Concerns\BelongsToTenant;
+use Pandora\Runs\Run;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * Work an agent proposed for itself, waiting for a human.

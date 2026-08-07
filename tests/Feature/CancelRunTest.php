@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Jobs\ContinueAgentRun;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\RunCanceller;
-use Pandora\Pandora\Runs\RunStateMachine;
-use Pandora\Pandora\Tests\Support\MakesRuns;
+use Pandora\Jobs\ContinueAgentRun;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\RunCanceller;
+use Pandora\Runs\RunStateMachine;
+use Pandora\Tests\Support\MakesRuns;
 
 uses(MakesRuns::class);
 

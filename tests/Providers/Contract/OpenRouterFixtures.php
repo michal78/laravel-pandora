@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests\Providers\Contract;
+namespace Pandora\Tests\Providers\Contract;
 
 use Illuminate\Http\Client\Factory as HttpFactory;
-use Pandora\Pandora\Contracts\StreamingProvider;
-use Pandora\Pandora\Providers\Adapters\OpenAiCompatibleProvider;
+use Pandora\Contracts\StreamingProvider;
+use Pandora\Providers\Adapters\OpenAiCompatibleProvider;
 
 /**
  * OpenRouter through the OpenAI-compatible adapter.

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Credentials;
+namespace Pandora\Providers\Credentials;
 
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Contracts\CredentialResolver;
-use Pandora\Pandora\Core\Actor\ActorManager;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
+use Pandora\Audit\AuditLogger;
+use Pandora\Contracts\CredentialResolver;
+use Pandora\Core\Actor\ActorManager;
+use Pandora\Core\Tenancy\TenantManager;
 
 /**
  * The application-facing half of credential handling: resolution against the

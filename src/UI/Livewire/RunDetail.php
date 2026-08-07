@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunCanceller;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunCanceller;
+use Pandora\UI\PandoraGate;
 
 /**
  * The run trace.

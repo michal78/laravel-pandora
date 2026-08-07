@@ -65,8 +65,8 @@
             <div class="pd-timeline">
                 @forelse ($steps as $step)
                     @php
-                        $failed = $step->status === \Pandora\Pandora\Runs\Enums\RunStepStatus::Failed;
-                        $running = $step->status === \Pandora\Pandora\Runs\Enums\RunStepStatus::Started;
+                        $failed = $step->status === \Pandora\Runs\Enums\RunStepStatus::Failed;
+                        $running = $step->status === \Pandora\Runs\Enums\RunStepStatus::Started;
                     @endphp
 
                     <div class="pd-step {{ $failed ? 'pd-step-failed' : '' }} {{ $running ? 'pd-step-running' : '' }}"

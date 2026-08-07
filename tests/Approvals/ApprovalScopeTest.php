@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Approvals\Approval;
-use Pandora\Pandora\Approvals\ApprovalManager;
-use Pandora\Pandora\Approvals\Enums\ApprovalScope;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Tests\Fixtures\TestUser;
-use Pandora\Pandora\Tests\Fixtures\Tools\RefundOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
+use Pandora\Approvals\Approval;
+use Pandora\Approvals\ApprovalManager;
+use Pandora\Approvals\Enums\ApprovalScope;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Tests\Fixtures\TestUser;
+use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
+use Pandora\Tests\Support\MakesTools;
 
 /**
  * Phase 2 acceptance criterion 18 — how far a decision reaches.

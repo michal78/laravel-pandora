@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Console\Commands;
+namespace Pandora\Console\Commands;
 
 use Illuminate\Console\Command;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRegistry;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRegistry;
 
 final class AgentListCommand extends Command
 {

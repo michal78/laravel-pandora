@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests\Fixtures\Tools;
+namespace Pandora\Tests\Fixtures\Tools;
 
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolInput;
-use Pandora\Pandora\Tools\ToolResult;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolInput;
+use Pandora\Tools\ToolResult;
 
 /**
  * An earlier version of `lookup_order`, kept registered so conversations that

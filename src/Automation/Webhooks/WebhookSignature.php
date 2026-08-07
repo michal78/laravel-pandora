@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation\Webhooks;
+namespace Pandora\Automation\Webhooks;
 
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Exceptions\WebhookRejected;
+use Pandora\Exceptions\WebhookRejected;
 
 /**
  * The signature on an inbound webhook.

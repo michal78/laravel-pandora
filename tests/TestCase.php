@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests;
+namespace Pandora\Tests;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -12,10 +12,10 @@ use Livewire\LivewireServiceProvider;
 use function Orchestra\Testbench\default_migration_path;
 
 use Orchestra\Testbench\TestCase as Orchestra;
-use Pandora\Pandora\PandoraServiceProvider;
-use Pandora\Pandora\Providers\Adapters\FakeProvider;
-use Pandora\Pandora\Providers\ProviderManager;
-use Pandora\Pandora\Tests\Fixtures\TestUser;
+use Pandora\PandoraServiceProvider;
+use Pandora\Providers\Adapters\FakeProvider;
+use Pandora\Providers\ProviderManager;
+use Pandora\Tests\Fixtures\TestUser;
 
 abstract class TestCase extends Orchestra
 {

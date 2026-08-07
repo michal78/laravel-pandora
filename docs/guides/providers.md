@@ -70,7 +70,7 @@ package that read the environment anywhere else would break in production and
 work everywhere you tested it.
 
 ```php
-use Pandora\Pandora\Providers\Credentials\CredentialManager;
+use Pandora\Providers\Credentials\CredentialManager;
 
 $credentials = app(CredentialManager::class);
 
@@ -262,7 +262,7 @@ number nobody entered. Where prices are unknown, use a token budget.
 Implement `StreamingProvider`, then prove it:
 
 ```php
-use Pandora\Pandora\Testing\ProviderContractTests;
+use Pandora\Testing\ProviderContractTests;
 
 ProviderContractTests::for(new MyVendorFixtures);
 ```

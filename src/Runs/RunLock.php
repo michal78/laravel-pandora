@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Runs;
+namespace Pandora\Runs;
 
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
-use Pandora\Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\RunState;
 
 /**
  * Prevents two workers executing the same run concurrently.

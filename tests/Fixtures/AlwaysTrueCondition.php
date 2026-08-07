@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests\Fixtures;
+namespace Pandora\Tests\Fixtures;
 
 /**
  * A condition as a class rather than a closure in the config file.

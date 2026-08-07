@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory\Vector;
+namespace Pandora\Memory\Vector;
 
 /**
  * One candidate a vector store proposed.

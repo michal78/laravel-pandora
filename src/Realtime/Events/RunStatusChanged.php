@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Realtime\Events;
+namespace Pandora\Realtime\Events;
 
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
 
 /**
  * Covers RunQueued, RunStarted, RunCompleted, RunFailed and RunCancelled:

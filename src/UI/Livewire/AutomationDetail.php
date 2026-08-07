@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
@@ -12,23 +12,23 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Automation\AutomationDispatcher;
-use Pandora\Pandora\Automation\AutomationRun;
-use Pandora\Pandora\Automation\AutomationScheduler;
-use Pandora\Pandora\Automation\ConditionRegistry;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Automation\Enums\ConcurrencyPolicy;
-use Pandora\Pandora\Automation\Enums\MisfirePolicy;
-use Pandora\Pandora\Automation\Enums\OccurrenceStatus;
-use Pandora\Pandora\Automation\Schedule\NextRun;
-use Pandora\Pandora\Automation\WebhookDelivery;
-use Pandora\Pandora\Automation\Webhooks\WebhookSignature;
-use Pandora\Pandora\Exceptions\InvalidConfiguration;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Agents\Agent;
+use Pandora\Audit\AuditLogger;
+use Pandora\Automation\Automation;
+use Pandora\Automation\AutomationDispatcher;
+use Pandora\Automation\AutomationRun;
+use Pandora\Automation\AutomationScheduler;
+use Pandora\Automation\ConditionRegistry;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Automation\Enums\ConcurrencyPolicy;
+use Pandora\Automation\Enums\MisfirePolicy;
+use Pandora\Automation\Enums\OccurrenceStatus;
+use Pandora\Automation\Schedule\NextRun;
+use Pandora\Automation\WebhookDelivery;
+use Pandora\Automation\Webhooks\WebhookSignature;
+use Pandora\Exceptions\InvalidConfiguration;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\UI\PandoraGate;
 
 /**
  * One automation: what wakes it, what it is told, how far it may go, and what

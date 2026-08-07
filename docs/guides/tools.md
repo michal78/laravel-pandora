@@ -15,8 +15,8 @@ from the internet — because in effect it did.
 ## Writing one
 
 ```php
-use Pandora\Pandora\Tools\{Tool, ToolContext, ToolInput, ToolResult};
-use Pandora\Pandora\Tools\Enums\RiskLevel;
+use Pandora\Tools\{Tool, ToolContext, ToolInput, ToolResult};
+use Pandora\Tools\Enums\RiskLevel;
 use Illuminate\Support\Facades\Gate;
 
 final class LookupOrder extends Tool

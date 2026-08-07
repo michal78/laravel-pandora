@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Core\Tenancy;
+namespace Pandora\Core\Tenancy;
 
-use Pandora\Pandora\Contracts\TenantResolver;
+use Pandora\Contracts\TenantResolver;
 
 /**
  * The default: a single-tenant application.

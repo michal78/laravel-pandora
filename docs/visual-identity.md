@@ -42,7 +42,7 @@ Two routes to the same files, in this order:
    (`/pandora/assets/{path}`) serves them straight from `resources/dist`.
 
 The second exists so that a fresh install is never a broken-looking one.
-`Pandora\Pandora\UI\Assets::url()` picks between them; templates never hard-code
+`Pandora\UI\Assets::url()` picks between them; templates never hard-code
 a path, and no asset is ever base64-encoded into markup.
 
 The asset route sits outside the control center's middleware on purpose. These
@@ -160,7 +160,7 @@ Publish the views and add your own custom properties after the stylesheet in
 `resources/views/vendor/pandora/layouts/app.blade.php`:
 
 ```blade
-<style>{!! \Pandora\Pandora\UI\Assets::styles() !!}</style>
+<style>{!! \Pandora\UI\Assets::styles() !!}</style>
 <style>
     :root { --pandora-primary: #0F766E; --pandora-primary-hover: #0B5C56; }
     .dark { --pandora-primary: #5EEAD4; }

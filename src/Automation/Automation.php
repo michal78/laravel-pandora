@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation;
+namespace Pandora\Automation;
 
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,14 +11,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Automation\Enums\ConcurrencyPolicy;
-use Pandora\Pandora\Automation\Enums\MisfirePolicy;
-use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\Runs\Enums\TriggerType;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Agents\Agent;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Automation\Enums\ConcurrencyPolicy;
+use Pandora\Automation\Enums\MisfirePolicy;
+use Pandora\Core\Tenancy\Concerns\BelongsToTenant;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Runs\Enums\TriggerType;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * A standing instruction to start a run without anybody typing.

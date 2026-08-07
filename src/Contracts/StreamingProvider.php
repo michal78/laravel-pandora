@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Contracts;
+namespace Pandora\Contracts;
 
-use Pandora\Pandora\Exceptions\Provider\ProviderException;
-use Pandora\Pandora\Providers\Data\ChatRequest;
-use Pandora\Pandora\Providers\Data\ChatResponse;
-use Pandora\Pandora\Providers\Data\StreamDelta;
+use Pandora\Exceptions\Provider\ProviderException;
+use Pandora\Providers\Data\ChatRequest;
+use Pandora\Providers\Data\ChatResponse;
+use Pandora\Providers\Data\StreamDelta;
 
 interface StreamingProvider extends ChatProvider
 {

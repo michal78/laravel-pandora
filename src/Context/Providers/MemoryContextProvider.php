@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Context\Providers;
+namespace Pandora\Context\Providers;
 
-use Pandora\Pandora\Context\ContextRequest;
-use Pandora\Pandora\Context\ContextSection;
-use Pandora\Pandora\Contracts\ContextProvider;
-use Pandora\Pandora\Memory\MemoryQuery;
-use Pandora\Pandora\Memory\MemoryResult;
-use Pandora\Pandora\Memory\MemoryRetriever;
-use Pandora\Pandora\Memory\ScopeResolver;
-use Pandora\Pandora\Providers\Data\ChatMessage;
+use Pandora\Context\ContextRequest;
+use Pandora\Context\ContextSection;
+use Pandora\Contracts\ContextProvider;
+use Pandora\Memory\MemoryQuery;
+use Pandora\Memory\MemoryResult;
+use Pandora\Memory\MemoryRetriever;
+use Pandora\Memory\ScopeResolver;
+use Pandora\Providers\Data\ChatMessage;
 
 /**
  * What the agent remembers that bears on what was just asked.

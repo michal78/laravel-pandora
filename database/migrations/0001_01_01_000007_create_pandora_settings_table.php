@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Pandora\Pandora\Support\Concerns\ResolvesPandoraSchema;
+use Pandora\Support\Concerns\ResolvesPandoraSchema;
 
 /**
  * RUNTIME settings only -- values an operator may need to change at 2am

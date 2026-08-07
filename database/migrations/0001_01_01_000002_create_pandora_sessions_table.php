@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Pandora\Pandora\Support\Concerns\ResolvesPandoraSchema;
+use Pandora\Support\Concerns\ResolvesPandoraSchema;
 
 /**
  * Sessions are Pandora's SECURITY BOUNDARY, not a routing selector.

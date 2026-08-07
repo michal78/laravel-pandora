@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools\BuiltIn;
+namespace Pandora\Tools\BuiltIn;
 
-use Pandora\Pandora\Exceptions\InvalidMemoryScope;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryWriter;
-use Pandora\Pandora\Tools\Enums\RiskLevel;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolInput;
-use Pandora\Pandora\Tools\ToolResult;
+use Pandora\Exceptions\InvalidMemoryScope;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryWriter;
+use Pandora\Tools\Enums\RiskLevel;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolInput;
+use Pandora\Tools\ToolResult;
 
 /**
  * Write something down, for later.

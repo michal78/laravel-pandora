@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Support\Concerns;
+namespace Pandora\Support\Concerns;
 
 /**
  * Shared plumbing for Pandora's Eloquent models: ULID keys, the configured

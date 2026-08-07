@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Jobs;
+namespace Pandora\Jobs;
 
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Model;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Core\Actor\ActorManager;
-use Pandora\Pandora\Core\Tenancy\TenantContext;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Core\Actor\ActorManager;
+use Pandora\Core\Tenancy\TenantContext;
+use Pandora\Core\Tenancy\TenantManager;
 
 /**
  * Re-establishes tenant and actor context inside a queue worker.

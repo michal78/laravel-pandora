@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Data;
+namespace Pandora\Providers\Data;
 
 /**
  * A model's REQUEST to use a tool. Not an execution, and never an instruction:

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
-use Pandora\Pandora\Automation\Http\WebhookController;
+use Pandora\Automation\Http\WebhookController;
 
 /*
 |--------------------------------------------------------------------------

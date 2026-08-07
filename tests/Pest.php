@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Core\Tenancy\TenantContext;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Tests\TestCase;
+use Pandora\Core\Tenancy\TenantContext;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Tests\TestCase;
 
 uses(TestCase::class)->in(
     'Unit',

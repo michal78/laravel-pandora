@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Workspaces;
+namespace Pandora\Workspaces;
 
 use Illuminate\Database\Query\Builder;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Exceptions\WorkspaceDenied;
+use Pandora\Audit\AuditLogger;
+use Pandora\Exceptions\WorkspaceDenied;
 
 /**
  * Reads and writes inside a workspace, and nowhere else.

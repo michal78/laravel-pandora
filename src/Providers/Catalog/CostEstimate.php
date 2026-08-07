@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Catalog;
+namespace Pandora\Providers\Catalog;
 
 /**
  * What a model call cost, and how much that figure is worth believing.

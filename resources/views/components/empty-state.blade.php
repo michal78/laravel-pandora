@@ -16,7 +16,7 @@
     <div>
         @if ($mark)
             <div class="pd-empty-mark" aria-hidden="true">
-                <img src="{{ \Pandora\Pandora\UI\Assets::url('icons/svg/pandora-icon.svg') }}"
+                <img src="{{ \Pandora\UI\Assets::url('icons/svg/pandora-icon.svg') }}"
                      alt="" width="48" height="48">
             </div>
         @endif

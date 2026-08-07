@@ -3,18 +3,18 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Str;
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Exceptions\InvalidMemoryScope;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\Memory\MemoryQuery;
-use Pandora\Pandora\Memory\MemoryRetriever;
-use Pandora\Pandora\Memory\MemoryScopeSet;
-use Pandora\Pandora\Memory\ScopeResolver;
-use Pandora\Pandora\Tests\Fixtures\AgentFactory;
+use Pandora\Conversations\Session;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Exceptions\InvalidMemoryScope;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryItem;
+use Pandora\Memory\MemoryQuery;
+use Pandora\Memory\MemoryRetriever;
+use Pandora\Memory\MemoryScopeSet;
+use Pandora\Memory\ScopeResolver;
+use Pandora\Tests\Fixtures\AgentFactory;
 
 /**
  * Phase 5, criteria 2 to 5 -- the property the whole phase exists for.

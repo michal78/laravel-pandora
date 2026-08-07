@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Pandora\Pandora\Approvals\Approval;
-use Pandora\Pandora\Approvals\ApprovalManager;
-use Pandora\Pandora\Approvals\Enums\ApprovalScope;
-use Pandora\Pandora\Approvals\Enums\ApprovalStatus;
-use Pandora\Pandora\Core\Actor\ActorManager;
-use Pandora\Pandora\Exceptions\ApprovalNotPending;
-use Pandora\Pandora\Exceptions\AuthorizationDenied;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Approvals\Approval;
+use Pandora\Approvals\ApprovalManager;
+use Pandora\Approvals\Enums\ApprovalScope;
+use Pandora\Approvals\Enums\ApprovalStatus;
+use Pandora\Core\Actor\ActorManager;
+use Pandora\Exceptions\ApprovalNotPending;
+use Pandora\Exceptions\AuthorizationDenied;
+use Pandora\UI\PandoraGate;
 
 /**
  * The queue of decisions runs are waiting on.

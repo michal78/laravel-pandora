@@ -3,20 +3,20 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
-use Pandora\Pandora\UI\Livewire\AgentDetail;
-use Pandora\Pandora\UI\Livewire\AgentsIndex;
-use Pandora\Pandora\UI\Livewire\ApprovalsIndex;
-use Pandora\Pandora\UI\Livewire\AutomationDetail;
-use Pandora\Pandora\UI\Livewire\AutomationsIndex;
-use Pandora\Pandora\UI\Livewire\Chat;
-use Pandora\Pandora\UI\Livewire\Dashboard;
-use Pandora\Pandora\UI\Livewire\MemoryIndex;
-use Pandora\Pandora\UI\Livewire\ProvidersIndex;
-use Pandora\Pandora\UI\Livewire\RunDetail;
-use Pandora\Pandora\UI\Livewire\RunsIndex;
-use Pandora\Pandora\UI\Livewire\ToolsIndex;
-use Pandora\Pandora\UI\Livewire\UsageIndex;
-use Pandora\Pandora\UI\Livewire\WorkspacesIndex;
+use Pandora\UI\Livewire\AgentDetail;
+use Pandora\UI\Livewire\AgentsIndex;
+use Pandora\UI\Livewire\ApprovalsIndex;
+use Pandora\UI\Livewire\AutomationDetail;
+use Pandora\UI\Livewire\AutomationsIndex;
+use Pandora\UI\Livewire\Chat;
+use Pandora\UI\Livewire\Dashboard;
+use Pandora\UI\Livewire\MemoryIndex;
+use Pandora\UI\Livewire\ProvidersIndex;
+use Pandora\UI\Livewire\RunDetail;
+use Pandora\UI\Livewire\RunsIndex;
+use Pandora\UI\Livewire\ToolsIndex;
+use Pandora\UI\Livewire\UsageIndex;
+use Pandora\UI\Livewire\WorkspacesIndex;
 
 /*
 |--------------------------------------------------------------------------

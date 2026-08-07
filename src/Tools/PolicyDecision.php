@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools;
+namespace Pandora\Tools;
 
-use Pandora\Pandora\Tools\Enums\PolicyOutcome;
+use Pandora\Tools\Enums\PolicyOutcome;
 
 /**
  * A ToolPolicy's verdict on one call.

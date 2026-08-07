@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Core\Actor;
+namespace Pandora\Core\Actor;
 
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
-use Pandora\Pandora\Contracts\ActorResolver;
+use Pandora\Contracts\ActorResolver;
 
 /**
  * Resolves the actor from the application's configured guard.

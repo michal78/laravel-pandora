@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Contracts;
+namespace Pandora\Contracts;
 
-use Pandora\Pandora\Memory\Vector\VectorMatch;
+use Pandora\Memory\Vector\VectorMatch;
 
 /**
  * An index over stored vectors.

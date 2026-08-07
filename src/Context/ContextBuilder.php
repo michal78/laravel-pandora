@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Context;
+namespace Pandora\Context;
 
 use Illuminate\Contracts\Container\Container;
-use Pandora\Pandora\Contracts\ContextProvider;
-use Pandora\Pandora\Providers\Data\ChatMessage;
-use Pandora\Pandora\Support\Redactor;
+use Pandora\Contracts\ContextProvider;
+use Pandora\Providers\Data\ChatMessage;
+use Pandora\Support\Redactor;
 
 /**
  * Runs the registered context providers in order, within the agent's token

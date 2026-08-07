@@ -86,7 +86,7 @@ Wildcards are supported: `image/*` matches `image/png` but not `imagex/png`.
 ## Setup
 
 ```php
-use Pandora\Pandora\Workspaces\Workspace;
+use Pandora\Workspaces\Workspace;
 
 $workspace = Workspace::query()->create([
     'name' => 'Reports',
@@ -107,7 +107,7 @@ root an agent could influence is not a boundary, it is a suggestion.
 ## Reading and writing
 
 ```php
-use Pandora\Pandora\Workspaces\WorkspaceFiles;
+use Pandora\Workspaces\WorkspaceFiles;
 
 $files = new WorkspaceFiles($workspace, app(AuditLogger::class));
 

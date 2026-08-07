@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools;
+namespace Pandora\Tools;
 
 use Illuminate\Contracts\Container\Container;
-use Pandora\Pandora\Exceptions\InvalidConfiguration;
-use Pandora\Pandora\Exceptions\ToolNotFound;
-use Pandora\Pandora\Providers\Data\ToolDefinition;
-use Pandora\Pandora\Tools\Schema\RuleSchemaGenerator;
+use Pandora\Exceptions\InvalidConfiguration;
+use Pandora\Exceptions\ToolNotFound;
+use Pandora\Providers\Data\ToolDefinition;
+use Pandora\Tools\Schema\RuleSchemaGenerator;
 
 /**
  * The catalogue of tools this application has installed — authorization

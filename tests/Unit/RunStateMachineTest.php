@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Exceptions\InvalidRunTransition;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\RunStateMachine;
-use Pandora\Pandora\Tests\Support\MakesRuns;
+use Pandora\Exceptions\InvalidRunTransition;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\RunStateMachine;
+use Pandora\Tests\Support\MakesRuns;
 
 uses(MakesRuns::class);
 

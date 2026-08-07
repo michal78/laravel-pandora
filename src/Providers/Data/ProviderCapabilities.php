@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Data;
+namespace Pandora\Providers\Data;
 
 /**
  * Queried BEFORE routing, so the router never sends a vision request to a

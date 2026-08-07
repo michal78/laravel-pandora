@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Contracts;
+namespace Pandora\Contracts;
 
-use Pandora\Pandora\Providers\Data\ProviderCapabilities;
-use Pandora\Pandora\Providers\Data\ProviderHealth;
+use Pandora\Providers\Data\ProviderCapabilities;
+use Pandora\Providers\Data\ProviderHealth;
 
 /**
  * Base provider contract.

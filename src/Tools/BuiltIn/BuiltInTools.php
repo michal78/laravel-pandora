@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools\BuiltIn;
+namespace Pandora\Tools\BuiltIn;
 
-use Pandora\Pandora\Tools\Tool;
+use Pandora\Tools\Tool;
 
 /**
  * The tools Pandora ships with.

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Audit;
+namespace Pandora\Audit;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
-use Pandora\Pandora\Support\Concerns\Immutable;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Core\Tenancy\Concerns\BelongsToTenant;
+use Pandora\Support\Concerns\Immutable;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * An append-only security record.

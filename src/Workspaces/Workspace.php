@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Workspaces;
+namespace Pandora\Workspaces;
 
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
-use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Core\Tenancy\Concerns\BelongsToTenant;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * A bounded piece of filesystem an agent may use.

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Contracts\ModelRouter;
-use Pandora\Pandora\Exceptions\NoModelAvailable;
-use Pandora\Pandora\Providers\ProviderManager;
-use Pandora\Pandora\Providers\Routing\RoutingRequest;
-use Pandora\Pandora\Tests\Support\MakesRuns;
+use Pandora\Contracts\ModelRouter;
+use Pandora\Exceptions\NoModelAvailable;
+use Pandora\Providers\ProviderManager;
+use Pandora\Providers\Routing\RoutingRequest;
+use Pandora\Tests\Support\MakesRuns;
 
 uses(MakesRuns::class);
 

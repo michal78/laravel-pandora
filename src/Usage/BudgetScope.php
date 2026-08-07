@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Usage;
+namespace Pandora\Usage;
 
 /**
  * The scopes a budget can be drawn around.

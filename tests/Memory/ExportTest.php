@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryStatus;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryExporter;
-use Pandora\Pandora\Memory\MemoryItem;
+use Pandora\Audit\AuditLog;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryStatus;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryExporter;
+use Pandora\Memory\MemoryItem;
 
 /**
  * Phase 5, criterion 15 -- the most dangerous read in the system.

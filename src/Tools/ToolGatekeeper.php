@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools;
+namespace Pandora\Tools;
 
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
-use Pandora\Pandora\Contracts\ToolPolicy;
-use Pandora\Pandora\Exceptions\ToolInputInvalid;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Providers\Data\ToolDefinition;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\Tools\Enums\AuthorizationLayer;
-use Pandora\Pandora\Tools\Enums\PolicyOutcome;
+use Pandora\Contracts\ToolPolicy;
+use Pandora\Exceptions\ToolInputInvalid;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Providers\Data\ToolDefinition;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Tools\Enums\AuthorizationLayer;
+use Pandora\Tools\Enums\PolicyOutcome;
 
 /**
  * The layers a tool call must clear, in order.

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\UI\PandoraGate;
 
 final class RunsIndex extends Component
 {

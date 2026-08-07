@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Console\Commands;
+namespace Pandora\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Automation\AutomationDispatcher;
-use Pandora\Pandora\Automation\AutomationRun;
-use Pandora\Pandora\Automation\Enums\OccurrenceStatus;
+use Pandora\Automation\Automation;
+use Pandora\Automation\AutomationDispatcher;
+use Pandora\Automation\AutomationRun;
+use Pandora\Automation\Enums\OccurrenceStatus;
 
 /**
  * Fire an automation now.

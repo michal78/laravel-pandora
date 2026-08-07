@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Exceptions\Provider;
+namespace Pandora\Exceptions\Provider;
 
 final class ProviderUnavailable extends ProviderException
 {

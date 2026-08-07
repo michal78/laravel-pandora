@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Exceptions\Provider;
+namespace Pandora\Exceptions\Provider;
 
-use Pandora\Pandora\Exceptions\PandoraException;
+use Pandora\Exceptions\PandoraException;
 
 /**
  * Base for provider failures.

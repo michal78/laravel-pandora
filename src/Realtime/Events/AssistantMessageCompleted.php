@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Realtime\Events;
+namespace Pandora\Realtime\Events;
 
 /**
  * The assistant message is final. Carries no content: the client refetches

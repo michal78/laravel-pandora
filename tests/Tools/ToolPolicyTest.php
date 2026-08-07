@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Contracts\ToolPolicy;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Tests\Fixtures\Tools\LookupOrderTool;
-use Pandora\Pandora\Tests\Fixtures\Tools\RefundOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
-use Pandora\Pandora\Tools\Enums\AuthorizationLayer;
-use Pandora\Pandora\Tools\Enums\PolicyOutcome;
-use Pandora\Pandora\Tools\PolicyDecision;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolGatekeeper;
-use Pandora\Pandora\Tools\ToolInput;
+use Pandora\Contracts\ToolPolicy;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Tests\Fixtures\Tools\LookupOrderTool;
+use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
+use Pandora\Tests\Support\MakesTools;
+use Pandora\Tools\Enums\AuthorizationLayer;
+use Pandora\Tools\Enums\PolicyOutcome;
+use Pandora\Tools\PolicyDecision;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolGatekeeper;
+use Pandora\Tools\ToolInput;
 
 /**
  * Phase 2 acceptance criterion 8 — all five policy outcomes take effect.

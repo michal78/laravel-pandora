@@ -5,9 +5,9 @@ declare(strict_types=1);
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\StrayRequestException;
 use Illuminate\Support\Facades\Http;
-use Pandora\Pandora\Providers\Adapters\OpenAiCompatibleProvider;
-use Pandora\Pandora\Providers\Data\ChatMessage;
-use Pandora\Pandora\Providers\Data\ChatRequest;
+use Pandora\Providers\Adapters\OpenAiCompatibleProvider;
+use Pandora\Providers\Data\ChatMessage;
+use Pandora\Providers\Data\ChatRequest;
 
 /**
  * Phase 3 acceptance criterion 13 -- no test performs a real network request.

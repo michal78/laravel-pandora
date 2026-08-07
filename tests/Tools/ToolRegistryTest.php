@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Exceptions\InvalidConfiguration;
-use Pandora\Pandora\Exceptions\ToolNotFound;
-use Pandora\Pandora\Exceptions\UnsupportedValidationRule;
-use Pandora\Pandora\PandoraServiceProvider;
-use Pandora\Pandora\Tests\Fixtures\Tools\LegacyLookupTool;
-use Pandora\Pandora\Tests\Fixtures\Tools\LookupOrderTool;
-use Pandora\Pandora\Tests\Fixtures\Tools\RefundOrderTool;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolRegistry;
-use Pandora\Pandora\Tools\ToolResult;
+use Pandora\Exceptions\InvalidConfiguration;
+use Pandora\Exceptions\ToolNotFound;
+use Pandora\Exceptions\UnsupportedValidationRule;
+use Pandora\PandoraServiceProvider;
+use Pandora\Tests\Fixtures\Tools\LegacyLookupTool;
+use Pandora\Tests\Fixtures\Tools\LookupOrderTool;
+use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolRegistry;
+use Pandora\Tools\ToolResult;
 
 /**
  * Phase 2 acceptance criterion 4 — the catalogue resolves by name, alias and

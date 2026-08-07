@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory;
+namespace Pandora\Memory;
 
 use Illuminate\Database\Eloquent\Builder;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemoryScope;
 
 /**
  * The exact set of (tenant, scope, scope_id) triples a retrieval may see.

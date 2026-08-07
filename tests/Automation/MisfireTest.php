@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Bus;
-use Pandora\Pandora\Automation\AutomationScheduler;
-use Pandora\Pandora\Automation\Enums\MisfirePolicy;
-use Pandora\Pandora\Jobs\RunAutomation;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\Automation\AutomationScheduler;
+use Pandora\Automation\Enums\MisfirePolicy;
+use Pandora\Jobs\RunAutomation;
+use Pandora\Tests\Fixtures\AutomationFactory;
 
 /**
  * Phase 4, criterion 9 -- what happens to occurrences nobody was there for.

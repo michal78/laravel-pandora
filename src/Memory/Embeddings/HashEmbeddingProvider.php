@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory\Embeddings;
+namespace Pandora\Memory\Embeddings;
 
-use Pandora\Pandora\Contracts\EmbeddingProvider;
-use Pandora\Pandora\Memory\Lexical\Tokeniser;
+use Pandora\Contracts\EmbeddingProvider;
+use Pandora\Memory\Lexical\Tokeniser;
 
 /**
  * A deterministic, offline embedding provider.

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Testing;
+namespace Pandora\Testing;
 
-use Pandora\Pandora\Contracts\StreamingProvider;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Providers\Data\UsageData;
+use Pandora\Contracts\StreamingProvider;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Providers\Data\UsageData;
 
 /**
  * Everything the shared contract suite needs to know about ONE vendor's wire

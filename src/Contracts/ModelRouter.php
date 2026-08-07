@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Contracts;
+namespace Pandora\Contracts;
 
-use Pandora\Pandora\Exceptions\NoModelAvailable;
-use Pandora\Pandora\Providers\Routing\RoutingDecision;
-use Pandora\Pandora\Providers\Routing\RoutingRequest;
+use Pandora\Exceptions\NoModelAvailable;
+use Pandora\Providers\Routing\RoutingDecision;
+use Pandora\Providers\Routing\RoutingRequest;
 
 /**
  * Chooses which provider and model a request goes to.

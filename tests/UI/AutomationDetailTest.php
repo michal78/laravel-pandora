@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Automation\AutomationRun;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Automation\Enums\OccurrenceStatus;
-use Pandora\Pandora\Automation\Webhooks\WebhookSignature;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\AgentFactory;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
-use Pandora\Pandora\UI\Livewire\AutomationDetail;
+use Pandora\Audit\AuditLog;
+use Pandora\Automation\Automation;
+use Pandora\Automation\AutomationRun;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Automation\Enums\OccurrenceStatus;
+use Pandora\Automation\Webhooks\WebhookSignature;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\AgentFactory;
+use Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\UI\Livewire\AutomationDetail;
 
 /**
  * Phase 4 -- the automation editor.

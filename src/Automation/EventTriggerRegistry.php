@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation;
+namespace Pandora\Automation;
 
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Cache\Repository as Cache;
@@ -11,13 +11,13 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Exceptions\AgentNotFound;
-use Pandora\Pandora\Exceptions\PandoraException;
-use Pandora\Pandora\Jobs\RunAutomation;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\Runs\Enums\TriggerType;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRunner;
+use Pandora\Exceptions\AgentNotFound;
+use Pandora\Exceptions\PandoraException;
+use Pandora\Jobs\RunAutomation;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Runs\Enums\TriggerType;
 
 /**
  * Which Laravel events start a run, and what happens when one fires.

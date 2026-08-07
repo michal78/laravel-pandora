@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Core\Tenancy\Concerns;
+namespace Pandora\Core\Tenancy\Concerns;
 
 use Illuminate\Database\Eloquent\Builder;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
+use Pandora\Core\Tenancy\TenantManager;
 
 /**
  * Scopes a model to the current tenant and stamps `tenant_id` on create.

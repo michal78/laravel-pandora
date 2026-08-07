@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Exceptions\WorkspaceDenied;
-use Pandora\Pandora\Workspaces\Workspace;
-use Pandora\Pandora\Workspaces\WorkspaceFiles;
+use Pandora\Audit\AuditLogger;
+use Pandora\Exceptions\WorkspaceDenied;
+use Pandora\Workspaces\Workspace;
+use Pandora\Workspaces\WorkspaceFiles;
 
 /**
  * Phase 5, criterion 27 -- the detected type, never the claimed extension.

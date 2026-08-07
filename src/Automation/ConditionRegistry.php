@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation;
+namespace Pandora\Automation;
 
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
-use Pandora\Pandora\Exceptions\AutomationRefused;
+use Pandora\Exceptions\AutomationRefused;
 
 /**
  * Conditional polling: the check an automation runs before it decides it has

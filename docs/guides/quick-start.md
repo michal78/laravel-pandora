@@ -12,8 +12,8 @@ authoritative for the fields they set, so a deploy always restores intended beha
 
 namespace App\Agents;
 
-use Pandora\Pandora\Agents\AgentBlueprint;
-use Pandora\Pandora\Contracts\AgentDefinition;
+use Pandora\Agents\AgentBlueprint;
+use Pandora\Contracts\AgentDefinition;
 
 final class SupportAgent implements AgentDefinition
 {
@@ -57,7 +57,7 @@ php artisan pandora:agent:run support "Where is order 1234?" --trace
 From application code — **queued**, which is what a web request should always do:
 
 ```php
-use Pandora\Pandora\Facades\Pandora;
+use Pandora\Facades\Pandora;
 
 $run = Pandora::agent('support')
     ->forUser($user)
@@ -127,8 +127,8 @@ flight to lose.
 Never call a paid API from a test. Script the fake provider instead:
 
 ```php
-use Pandora\Pandora\Providers\Adapters\FakeProvider;
-use Pandora\Pandora\Providers\ProviderManager;
+use Pandora\Providers\Adapters\FakeProvider;
+use Pandora\Providers\ProviderManager;
 
 /** @var FakeProvider $provider */
 $provider = app(ProviderManager::class)->provider('fake');

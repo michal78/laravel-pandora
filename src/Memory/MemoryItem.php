@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory;
+namespace Pandora\Memory;
 
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -10,16 +10,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Date;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
-use Pandora\Pandora\Exceptions\InvalidMemoryScope;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySensitivity;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryStatus;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Agents\Agent;
+use Pandora\Core\Tenancy\Concerns\BelongsToTenant;
+use Pandora\Exceptions\InvalidMemoryScope;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySensitivity;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryStatus;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Runs\Run;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * One thing an agent knows, and the constraint on who it may be said to.

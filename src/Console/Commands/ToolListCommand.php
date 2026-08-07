@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Console\Commands;
+namespace Pandora\Console\Commands;
 
 use Illuminate\Console\Command;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolRegistry;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolRegistry;
 
 /**
  * What this application has installed, and what it will let an agent ask for.

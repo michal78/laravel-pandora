@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory;
+namespace Pandora\Memory;
 
 use Illuminate\Support\Facades\Date;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Exceptions\AuthorizationDenied;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Audit\AuditLogger;
+use Pandora\Exceptions\AuthorizationDenied;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\UI\PandoraGate;
 
 /**
  * Exports what an agent knows about somebody, as versioned JSON.

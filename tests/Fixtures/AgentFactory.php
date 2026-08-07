@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests\Fixtures;
+namespace Pandora\Tests\Fixtures;
 
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRegistry;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRegistry;
+use Pandora\Runs\Enums\AutonomyLevel;
 
 /**
  * The two kinds of agent, built the way production builds them.

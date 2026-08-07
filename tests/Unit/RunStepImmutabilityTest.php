@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Exceptions\ImmutableRecord;
-use Pandora\Pandora\Runs\Enums\RunStepStatus;
-use Pandora\Pandora\Runs\Enums\RunStepType;
-use Pandora\Pandora\Runs\RunStep;
-use Pandora\Pandora\Runs\RunStepRecorder;
-use Pandora\Pandora\Tests\Support\MakesRuns;
+use Pandora\Audit\AuditLog;
+use Pandora\Exceptions\ImmutableRecord;
+use Pandora\Runs\Enums\RunStepStatus;
+use Pandora\Runs\Enums\RunStepType;
+use Pandora\Runs\RunStep;
+use Pandora\Runs\RunStepRecorder;
+use Pandora\Tests\Support\MakesRuns;
 
 uses(MakesRuns::class);
 

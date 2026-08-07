@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools\Policies;
+namespace Pandora\Tools\Policies;
 
-use Pandora\Pandora\Contracts\ToolPolicy;
-use Pandora\Pandora\Tools\PolicyDecision;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolInput;
+use Pandora\Contracts\ToolPolicy;
+use Pandora\Tools\PolicyDecision;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolInput;
 
 /**
  * The default policy: read the agent's `approval_policy`, and otherwise raise

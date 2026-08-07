@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Support\Concerns;
+namespace Pandora\Support\Concerns;
 
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 

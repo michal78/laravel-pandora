@@ -1,17 +1,8 @@
-# License — PROVISIONAL
-
-> ⚠ **This license is a placeholder and has not been confirmed by the repository owner.**
->
-> MIT is recorded here as the *recommended* license (see `docs/adr/0012-namespace-and-license-pending.md`)
-> because it matches Laravel, Livewire and Reverb. It is **not** a final decision, and this file must
-> be confirmed or replaced before any public release. Do not rely on these terms until this notice is
-> removed. Tracked as Q2 in `docs/development/open-questions.md`.
-
----
+# License
 
 MIT License
 
-Copyright (c) 2026 <REPOSITORY OWNER TO BE CONFIRMED>
+Copyright (c) 2026 Michal Skogemann
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

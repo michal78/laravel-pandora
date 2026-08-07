@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Support;
+namespace Pandora\Support;
 
 /**
  * Removes sensitive values from arrays destined for logs, run traces,

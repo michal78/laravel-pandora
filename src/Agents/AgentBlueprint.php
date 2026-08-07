@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Agents;
+namespace Pandora\Agents;
 
 use Illuminate\Support\Str;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Runs\Enums\AutonomyLevel;
 
 /**
  * The fluent builder an AgentDefinition class configures.

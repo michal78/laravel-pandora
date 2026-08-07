@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Exceptions\Provider\ProviderUnavailable;
-use Pandora\Pandora\Tests\Support\MakesRuns;
+use Pandora\Agents\AgentRunner;
+use Pandora\Audit\AuditLog;
+use Pandora\Exceptions\Provider\ProviderUnavailable;
+use Pandora\Tests\Support\MakesRuns;
 
 uses(MakesRuns::class);
 

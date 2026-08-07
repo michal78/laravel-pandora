@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Routing;
+namespace Pandora\Providers\Routing;
 
 /**
  * Where one model request is going, and why.

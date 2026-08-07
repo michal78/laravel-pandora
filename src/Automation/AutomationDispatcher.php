@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation;
+namespace Pandora\Automation;
 
 use Carbon\CarbonInterface;
 use Illuminate\Database\QueryException;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Automation\Enums\ConcurrencyPolicy;
-use Pandora\Pandora\Automation\Enums\OccurrenceStatus;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Exceptions\AutomationRefused;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunCanceller;
-use Pandora\Pandora\Support\Concerns\DetectsUniqueViolations;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRunner;
+use Pandora\Audit\AuditLogger;
+use Pandora\Automation\Enums\ConcurrencyPolicy;
+use Pandora\Automation\Enums\OccurrenceStatus;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Exceptions\AutomationRefused;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunCanceller;
+use Pandora\Support\Concerns\DetectsUniqueViolations;
 
 /**
  * Turns one occurrence of an automation into at most one run.

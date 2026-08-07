@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Agents;
+namespace Pandora\Agents;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,12 +10,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Skills\Skill;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Conversations\Conversation;
+use Pandora\Core\Tenancy\Concerns\BelongsToTenant;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Runs\Run;
+use Pandora\Skills\Skill;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * A configured agent identity: instructions, model preferences, limits and

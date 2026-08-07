@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Facades\Http;
-use Pandora\Pandora\Exceptions\InvalidConfiguration;
-use Pandora\Pandora\Providers\Adapters\GeminiProvider;
-use Pandora\Pandora\Providers\Adapters\OpenAiCompatibleProvider;
-use Pandora\Pandora\Providers\Catalog\CatalogModel;
-use Pandora\Pandora\Providers\Catalog\ModelCatalog;
-use Pandora\Pandora\Providers\Data\ProviderCapabilities;
-use Pandora\Pandora\Providers\Data\UsageData;
+use Pandora\Exceptions\InvalidConfiguration;
+use Pandora\Providers\Adapters\GeminiProvider;
+use Pandora\Providers\Adapters\OpenAiCompatibleProvider;
+use Pandora\Providers\Catalog\CatalogModel;
+use Pandora\Providers\Catalog\ModelCatalog;
+use Pandora\Providers\Data\ProviderCapabilities;
+use Pandora\Providers\Data\UsageData;
 
 /**
  * Phase 3 acceptance criterion 14 -- the catalog seeds, prices and flags

@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRegistry;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRegistry;
+use Pandora\Audit\AuditLogger;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\UI\PandoraGate;
 
 /**
  * Every agent this deployment can run, and where each one came from.

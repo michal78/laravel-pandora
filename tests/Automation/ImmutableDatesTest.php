@@ -7,16 +7,16 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Automation\AutomationDispatcher;
-use Pandora\Pandora\Automation\AutomationRun;
-use Pandora\Pandora\Automation\AutomationScheduler;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Automation\Schedule\NextRun;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
-use Pandora\Pandora\UI\Livewire\AutomationDetail;
-use Pandora\Pandora\UI\Livewire\AutomationsIndex;
+use Pandora\Audit\AuditLog;
+use Pandora\Automation\Automation;
+use Pandora\Automation\AutomationDispatcher;
+use Pandora\Automation\AutomationRun;
+use Pandora\Automation\AutomationScheduler;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Automation\Schedule\NextRun;
+use Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\UI\Livewire\AutomationDetail;
+use Pandora\UI\Livewire\AutomationsIndex;
 
 /**
  * Pandora works in an application that uses immutable dates.

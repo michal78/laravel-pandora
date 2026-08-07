@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI;
+namespace Pandora\UI;
 
 /**
  * Whether a built-but-unreleased surface is reachable.

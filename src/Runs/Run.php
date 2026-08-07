@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Runs;
+namespace Pandora\Runs;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Core\Tenancy\Concerns\BelongsToTenant;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Enums\TriggerType;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Agents\Agent;
+use Pandora\Conversations\Conversation;
+use Pandora\Conversations\Session;
+use Pandora\Core\Tenancy\Concerns\BelongsToTenant;
+use Pandora\Messages\Message;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\TriggerType;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * One bounded execution of an agent. The central unit of work.

@@ -4,26 +4,26 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRegistry;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Core\Tenancy\TenantContext;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Skills\Skill;
-use Pandora\Pandora\Tests\Fixtures\AgentFactory;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
-use Pandora\Pandora\Tests\Fixtures\EchoAgent;
-use Pandora\Pandora\UI\Livewire\AgentDetail;
-use Pandora\Pandora\UI\Livewire\AgentsIndex;
-use Pandora\Pandora\Usage\UsageRecord;
-use Pandora\Pandora\Workspaces\Workspace;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRegistry;
+use Pandora\Audit\AuditLog;
+use Pandora\Core\Tenancy\TenantContext;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryItem;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\Skills\Skill;
+use Pandora\Tests\Fixtures\AgentFactory;
+use Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\Tests\Fixtures\EchoAgent;
+use Pandora\UI\Livewire\AgentDetail;
+use Pandora\UI\Livewire\AgentsIndex;
+use Pandora\Usage\UsageRecord;
+use Pandora\Workspaces\Workspace;
 
 /**
  * Phase 3.5 -- the agent editor.
@@ -449,7 +449,7 @@ it('answers 404 for an agent that does not exist', function (): void {
 
 // ------------------------------------------------------------ pending tabs
 
-it('names the phase that fills each tab that is not built yet', function (): void {
+it('says a tab is not built yet, without quoting a release at anyone', function (): void {
     AgentFactory::database();
 
     $this->actingAsUser();
@@ -457,16 +457,22 @@ it('names the phase that fills each tab that is not built yet', function (): voi
     // An operator who cannot find where tools are granted should learn that
     // the page is coming, not conclude that agents cannot be granted tools.
     //
-    // Memory, Skills and Workspace were on this list until Phase 5 built them,
+    // Memory, Skills and Workspace were on this list until they were built,
     // and their absence here is the assertion that they are no longer
     // promises.
+    //
+    // No phase or version number is quoted: a number left unrevised is how a
+    // page ends up promising a release that shipped months ago, which is
+    // exactly what the Tools tab did.
     Livewire::test(AgentDetail::class, ['agent' => 'support'])
         ->call('selectTab', 'tools')
-        ->assertSee('Tools arrives in a later phase')
+        ->assertSee('Tools is not here yet')
+        ->assertDontSee('Phase')
         ->call('selectTab', 'channels')
-        ->assertSee('a later phase')
+        ->assertSee('Channels is not here yet')
         ->call('selectTab', 'permissions')
-        ->assertSee('Phase 6');
+        ->assertSee('Permissions is not here yet')
+        ->assertDontSee('Phase');
 
     expect(array_keys(AgentDetail::PENDING_TABS))
         ->not->toContain('memory')
@@ -491,7 +497,7 @@ it('lists workspace among the tabs that are not here yet', function (): void {
 
     Livewire::test(AgentDetail::class, ['agent' => 'support'])
         ->call('selectTab', 'workspace')
-        ->assertSee('Phase 7')
+        ->assertSee('Workspace is not here yet')
         // Not a workspace page reporting that it is empty.
         ->assertDontSee('Root');
 });
@@ -508,7 +514,7 @@ it('returns workspace to the live tabs once the feature is enabled', function ()
     Livewire::test(AgentDetail::class, ['agent' => 'support'])
         ->call('selectTab', 'workspace')
         ->assertSee('can reach no files at all')
-        ->assertDontSee('Phase 7');
+        ->assertDontSee('is not here yet');
 });
 
 // ------------------------------------------------------------- automations

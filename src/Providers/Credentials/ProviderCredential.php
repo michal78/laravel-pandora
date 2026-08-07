@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Credentials;
+namespace Pandora\Providers\Credentials;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * A stored provider credential.

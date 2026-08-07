@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Facades\Http;
-use Pandora\Pandora\Exceptions\Provider\ContextOverflow;
-use Pandora\Pandora\Exceptions\Provider\ProviderAuthenticationFailed;
-use Pandora\Pandora\Exceptions\Provider\ProviderException;
-use Pandora\Pandora\Exceptions\Provider\ProviderQuotaExhausted;
-use Pandora\Pandora\Exceptions\Provider\ProviderRateLimited;
-use Pandora\Pandora\Exceptions\Provider\ProviderTimeout;
-use Pandora\Pandora\Exceptions\Provider\ProviderUnavailable;
-use Pandora\Pandora\Providers\Adapters\OpenAiCompatibleProvider;
-use Pandora\Pandora\Providers\Data\ChatMessage;
-use Pandora\Pandora\Providers\Data\ChatRequest;
+use Pandora\Exceptions\Provider\ContextOverflow;
+use Pandora\Exceptions\Provider\ProviderAuthenticationFailed;
+use Pandora\Exceptions\Provider\ProviderException;
+use Pandora\Exceptions\Provider\ProviderQuotaExhausted;
+use Pandora\Exceptions\Provider\ProviderRateLimited;
+use Pandora\Exceptions\Provider\ProviderTimeout;
+use Pandora\Exceptions\Provider\ProviderUnavailable;
+use Pandora\Providers\Adapters\OpenAiCompatibleProvider;
+use Pandora\Providers\Data\ChatMessage;
+use Pandora\Providers\Data\ChatRequest;
 
 /**
  * Classification decides retry and failover, so it is behaviour, not labelling.

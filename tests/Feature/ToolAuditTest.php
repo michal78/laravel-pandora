@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Approvals\Approval;
-use Pandora\Pandora\Approvals\ApprovalManager;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Contracts\ToolPolicy;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Tests\Fixtures\Tools\LookupOrderTool;
-use Pandora\Pandora\Tests\Fixtures\Tools\RefundOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
-use Pandora\Pandora\Tools\PolicyDecision;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolGatekeeper;
-use Pandora\Pandora\Tools\ToolInput;
+use Pandora\Approvals\Approval;
+use Pandora\Approvals\ApprovalManager;
+use Pandora\Audit\AuditLog;
+use Pandora\Contracts\ToolPolicy;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Tests\Fixtures\Tools\LookupOrderTool;
+use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
+use Pandora\Tests\Support\MakesTools;
+use Pandora\Tools\PolicyDecision;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolGatekeeper;
+use Pandora\Tools\ToolInput;
 
 /**
  * Phase 2 acceptance criterion 34 — everything attempted is recorded, whether

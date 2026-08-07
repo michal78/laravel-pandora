@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Contracts;
+namespace Pandora\Contracts;
 
-use Pandora\Pandora\Core\Tenancy\TenantContext;
+use Pandora\Core\Tenancy\TenantContext;
 
 /**
  * Resolves the tenant that owns the work currently being performed.

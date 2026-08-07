@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests\Fixtures;
+namespace Pandora\Tests\Fixtures;
 
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\Agents\Agent;
+use Pandora\Automation\Automation;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Runs\Enums\AutonomyLevel;
 
 /**
  * Automations, built the way the editor builds them.

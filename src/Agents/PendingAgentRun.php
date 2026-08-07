@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Agents;
+namespace Pandora\Agents;
 
 use Illuminate\Contracts\Auth\Access\Authorizable;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Conversations\ConversationManager;
-use Pandora\Pandora\Conversations\SessionResolver;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Core\Actor\ActorManager;
-use Pandora\Pandora\Jobs\StartAgentRun;
-use Pandora\Pandora\Messages\MessageWriter;
-use Pandora\Pandora\Realtime\RunBroadcaster;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Enums\TriggerType;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunFactory;
-use Pandora\Pandora\Runs\RunStateMachine;
+use Pandora\Conversations\Conversation;
+use Pandora\Conversations\ConversationManager;
+use Pandora\Conversations\SessionResolver;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Core\Actor\ActorManager;
+use Pandora\Jobs\StartAgentRun;
+use Pandora\Messages\MessageWriter;
+use Pandora\Realtime\RunBroadcaster;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\TriggerType;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunFactory;
+use Pandora\Runs\RunStateMachine;
 
 /**
  * The fluent builder behind `Pandora::agent('support')->...`.

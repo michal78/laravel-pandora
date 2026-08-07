@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Adapters;
+namespace Pandora\Providers\Adapters;
 
-use Pandora\Pandora\Contracts\StreamingProvider;
-use Pandora\Pandora\Providers\Data\ChatRequest;
-use Pandora\Pandora\Providers\Data\ChatResponse;
-use Pandora\Pandora\Providers\Data\FinishReason;
-use Pandora\Pandora\Providers\Data\ProviderCapabilities;
-use Pandora\Pandora\Providers\Data\ProviderHealth;
-use Pandora\Pandora\Providers\Data\StreamDelta;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Providers\Data\UsageData;
+use Pandora\Contracts\StreamingProvider;
+use Pandora\Providers\Data\ChatRequest;
+use Pandora\Providers\Data\ChatResponse;
+use Pandora\Providers\Data\FinishReason;
+use Pandora\Providers\Data\ProviderCapabilities;
+use Pandora\Providers\Data\ProviderHealth;
+use Pandora\Providers\Data\StreamDelta;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Providers\Data\UsageData;
 
 /**
  * A deterministic in-memory provider for local development and tests.

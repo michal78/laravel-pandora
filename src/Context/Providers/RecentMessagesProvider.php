@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Context\Providers;
+namespace Pandora\Context\Providers;
 
-use Pandora\Pandora\Context\ContextRequest;
-use Pandora\Pandora\Context\ContextSection;
-use Pandora\Pandora\Contracts\ContextProvider;
-use Pandora\Pandora\Messages\Enums\MessageRole;
-use Pandora\Pandora\Messages\Enums\StreamingState;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Providers\Data\ChatMessage;
-use Pandora\Pandora\Providers\Data\ToolCall;
+use Pandora\Context\ContextRequest;
+use Pandora\Context\ContextSection;
+use Pandora\Contracts\ContextProvider;
+use Pandora\Messages\Enums\MessageRole;
+use Pandora\Messages\Enums\StreamingState;
+use Pandora\Messages\Message;
+use Pandora\Providers\Data\ChatMessage;
+use Pandora\Providers\Data\ToolCall;
 
 /**
  * Recent conversation history, scoped to the run's SESSION.

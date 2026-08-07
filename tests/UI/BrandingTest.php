@@ -5,10 +5,10 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
-use Pandora\Pandora\PandoraServiceProvider;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Tests\Support\MakesRuns;
-use Pandora\Pandora\UI\Assets;
+use Pandora\PandoraServiceProvider;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Tests\Support\MakesRuns;
+use Pandora\UI\Assets;
 
 uses(MakesRuns::class);
 

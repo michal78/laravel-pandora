@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation\Schedule;
+namespace Pandora\Automation\Schedule;
 
 use Carbon\CarbonInterface;
 use Cron\CronExpression;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Exceptions\InvalidConfiguration;
+use Pandora\Automation\Automation;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Exceptions\InvalidConfiguration;
 
 /**
  * When an automation is next due.

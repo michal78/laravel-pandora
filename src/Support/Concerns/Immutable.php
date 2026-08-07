@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Support\Concerns;
+namespace Pandora\Support\Concerns;
 
-use Pandora\Pandora\Exceptions\ImmutableRecord;
+use Pandora\Exceptions\ImmutableRecord;
 
 /**
  * Append-only records: run steps and audit logs.

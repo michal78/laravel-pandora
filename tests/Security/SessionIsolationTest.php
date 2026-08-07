@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Context\ContextBuilder;
-use Pandora\Pandora\Context\ContextRequest;
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Conversations\SessionResolver;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Tests\Fixtures\TestUser;
-use Pandora\Pandora\Tests\Support\MakesRuns;
+use Pandora\Context\ContextBuilder;
+use Pandora\Context\ContextRequest;
+use Pandora\Conversations\Session;
+use Pandora\Conversations\SessionResolver;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Messages\Message;
+use Pandora\Tests\Fixtures\TestUser;
+use Pandora\Tests\Support\MakesRuns;
 
 uses(MakesRuns::class);
 

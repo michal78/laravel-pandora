@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\UI\Livewire;
+namespace Pandora\UI\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Pandora\Pandora\UI\PandoraGate;
-use Pandora\Pandora\Usage\UsageRecord;
+use Pandora\UI\PandoraGate;
+use Pandora\Usage\UsageRecord;
 
 /**
  * What has been spent, by whom, on which model.

@@ -3,17 +3,17 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Str;
-use Pandora\Pandora\Context\Summariser;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\Messages\Enums\MessageRole;
-use Pandora\Pandora\Messages\Enums\StreamingState;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Tests\Fixtures\AgentFactory;
+use Pandora\Context\Summariser;
+use Pandora\Conversations\Conversation;
+use Pandora\Conversations\Session;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryItem;
+use Pandora\Messages\Enums\MessageRole;
+use Pandora\Messages\Enums\StreamingState;
+use Pandora\Messages\Message;
+use Pandora\Tests\Fixtures\AgentFactory;
 
 /**
  * Phase 5, criterion 24 -- a summary is a stored artefact.

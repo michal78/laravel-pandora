@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Context\AttributeAllowlist;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\Tests\Fixtures\TestUser;
+use Pandora\Context\AttributeAllowlist;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryItem;
+use Pandora\Tests\Fixtures\TestUser;
 
 /**
  * Phase 5, criterion 22 -- a provider exposes only what it named.

@@ -3,17 +3,17 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Core\Tenancy\TenantContext;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Exceptions\BudgetExceeded;
-use Pandora\Pandora\Providers\Catalog\ModelCatalog;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Providers\Data\UsageData;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Tests\Support\MakesRuns;
-use Pandora\Pandora\Usage\UsageRecord;
+use Pandora\Agents\AgentRunner;
+use Pandora\Audit\AuditLog;
+use Pandora\Core\Tenancy\TenantContext;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Exceptions\BudgetExceeded;
+use Pandora\Providers\Catalog\ModelCatalog;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Providers\Data\UsageData;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Tests\Support\MakesRuns;
+use Pandora\Usage\UsageRecord;
 
 uses(MakesRuns::class);
 

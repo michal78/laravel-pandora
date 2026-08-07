@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Automation\AutomationRun;
-use Pandora\Pandora\Jobs\RunAutomation;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\Automation\AutomationRun;
+use Pandora\Jobs\RunAutomation;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\AutomationFactory;
 
 /**
  * Phase 4, criterion 6 -- a retried job does nothing twice.

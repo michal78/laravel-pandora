@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Routing;
+namespace Pandora\Providers\Routing;
 
 use Illuminate\Contracts\Config\Repository as Config;
-use Pandora\Pandora\Contracts\ModelRouter;
-use Pandora\Pandora\Exceptions\NoModelAvailable;
-use Pandora\Pandora\Providers\Catalog\ModelCatalog;
-use Pandora\Pandora\Providers\Health\ProviderHealthMonitor;
-use Pandora\Pandora\Providers\ProviderManager;
+use Pandora\Contracts\ModelRouter;
+use Pandora\Exceptions\NoModelAvailable;
+use Pandora\Providers\Catalog\ModelCatalog;
+use Pandora\Providers\Health\ProviderHealthMonitor;
+use Pandora\Providers\ProviderManager;
 
 /**
  * Routing you can read (ADR-0006).

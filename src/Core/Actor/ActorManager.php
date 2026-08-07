@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Core\Actor;
+namespace Pandora\Core\Actor;
 
-use Pandora\Pandora\Contracts\ActorResolver;
+use Pandora\Contracts\ActorResolver;
 
 /**
  * Holds the actor for the current process.

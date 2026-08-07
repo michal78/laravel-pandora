@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Realtime;
+namespace Pandora\Realtime;
 
 use Illuminate\Contracts\Auth\Access\Authorizable;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Conversations\ConversationParticipant;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Conversations\Conversation;
+use Pandora\Conversations\ConversationParticipant;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Runs\Run;
+use Pandora\UI\PandoraGate;
 
 /**
  * Decides who may subscribe to a Pandora broadcast channel.

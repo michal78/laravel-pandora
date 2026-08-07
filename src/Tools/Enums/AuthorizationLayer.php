@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools\Enums;
+namespace Pandora\Tools\Enums;
 
 /**
  * Which layer decided a tool call's fate.

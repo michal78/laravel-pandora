@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Exceptions\Provider\ProviderUnavailable;
-use Pandora\Pandora\Jobs\StartAgentRun;
-use Pandora\Pandora\Messages\Enums\MessageRole;
-use Pandora\Pandora\Messages\Enums\StreamingState;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Enums\RunStepType;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunStateMachine;
-use Pandora\Pandora\Tests\Support\MakesRuns;
+use Pandora\Agents\AgentRunner;
+use Pandora\Exceptions\Provider\ProviderUnavailable;
+use Pandora\Jobs\StartAgentRun;
+use Pandora\Messages\Enums\MessageRole;
+use Pandora\Messages\Enums\StreamingState;
+use Pandora\Messages\Message;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\RunStepType;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunStateMachine;
+use Pandora\Tests\Support\MakesRuns;
 
 uses(MakesRuns::class);
 

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation;
+namespace Pandora\Automation;
 
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Support\Str;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Automation\Enums\ObservationStatus;
-use Pandora\Pandora\Core\Actor\ActorManager;
-use Pandora\Pandora\Exceptions\ObservationNotPending;
-use Pandora\Pandora\Runs\Enums\AutonomyLevel;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Audit\AuditLogger;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Automation\Enums\ObservationStatus;
+use Pandora\Core\Actor\ActorManager;
+use Pandora\Exceptions\ObservationNotPending;
+use Pandora\Runs\Enums\AutonomyLevel;
+use Pandora\UI\PandoraGate;
 
 /**
  * The human half of the goal queue.

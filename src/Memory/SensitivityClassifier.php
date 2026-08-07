@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory;
+namespace Pandora\Memory;
 
-use Pandora\Pandora\Memory\Enums\MemorySensitivity;
-use Pandora\Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\Enums\MemorySensitivity;
+use Pandora\Memory\Enums\MemoryType;
 
 /**
  * Decides whether a memory is ordinary, needs a human, or must not be kept.

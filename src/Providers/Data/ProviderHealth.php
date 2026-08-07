@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Data;
+namespace Pandora\Providers\Data;
 
 final readonly class ProviderHealth implements \JsonSerializable
 {

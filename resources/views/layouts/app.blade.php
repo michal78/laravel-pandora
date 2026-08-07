@@ -12,7 +12,7 @@
     package if not.
 --}}
 @php
-    $assets = \Pandora\Pandora\UI\Assets::class;
+    $assets = \Pandora\UI\Assets::class;
     $configuredTheme = config('pandora.ui.theme', 'system');
 @endphp
 <!DOCTYPE html>
@@ -101,11 +101,11 @@
                         ['route' => 'pandora.tools',     'label' => 'Tools',     'glyph' => '◧', 'ability' => 'access'],
                         ['route' => 'pandora.memory',    'label' => 'Memory',    'glyph' => '◎', 'ability' => 'access'],
                         ['route' => 'pandora.workspaces', 'label' => 'Workspaces', 'glyph' => '▤', 'ability' => 'workspaces.access',
-                         'soon' => \Pandora\Pandora\UI\Feature::disabled('workspaces')],
+                         'soon' => \Pandora\UI\Feature::disabled('workspaces')],
                         ['route' => 'pandora.approvals', 'label' => 'Approvals', 'glyph' => '◉', 'ability' => 'access'],
                         ['route' => 'pandora.providers', 'label' => 'Providers', 'glyph' => '◍', 'ability' => 'access'],
                         ['route' => 'pandora.usage',     'label' => 'Usage',     'glyph' => '◫', 'ability' => 'usage.view'],
-                    ])->filter(fn (array $item): bool => \Pandora\Pandora\UI\PandoraGate::allows($item['ability']));
+                    ])->filter(fn (array $item): bool => \Pandora\UI\PandoraGate::allows($item['ability']));
                 @endphp
 
                 @foreach ($nav as $item)
@@ -145,7 +145,7 @@
                     <span>Collapse</span>
                 </button>
 
-                <p class="pd-version">Pandora {{ app(\Pandora\Pandora\Pandora::class)->version() }}</p>
+                <p class="pd-version">Pandora {{ app(\Pandora\Pandora::class)->version() }}</p>
             </div>
         </aside>
 

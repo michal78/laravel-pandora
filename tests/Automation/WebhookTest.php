@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
 use Illuminate\Testing\TestResponse;
-use Pandora\Pandora\Audit\AuditLog;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Automation\WebhookDelivery;
-use Pandora\Pandora\Automation\Webhooks\WebhookSignature;
-use Pandora\Pandora\Runs\Enums\TriggerType;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Tests\Fixtures\AutomationFactory;
+use Pandora\Audit\AuditLog;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Automation\WebhookDelivery;
+use Pandora\Automation\Webhooks\WebhookSignature;
+use Pandora\Runs\Enums\TriggerType;
+use Pandora\Runs\Run;
+use Pandora\Tests\Fixtures\AutomationFactory;
 
 /**
  * Phase 4, criteria 21, 22 and 23 -- the public edge.

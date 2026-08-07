@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Validation\Rule;
-use Pandora\Pandora\Exceptions\UnsupportedValidationRule;
-use Pandora\Pandora\Runs\Enums\RunStepType;
-use Pandora\Pandora\Tests\Fixtures\Tools\LookupOrderTool;
-use Pandora\Pandora\Tools\Schema\RuleSchemaGenerator;
+use Pandora\Exceptions\UnsupportedValidationRule;
+use Pandora\Runs\Enums\RunStepType;
+use Pandora\Tests\Fixtures\Tools\LookupOrderTool;
+use Pandora\Tools\Schema\RuleSchemaGenerator;
 
 /**
  * Phase 2 acceptance criteria 1 and 2.

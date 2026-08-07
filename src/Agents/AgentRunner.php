@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Agents;
+namespace Pandora\Agents;
 
 use Illuminate\Contracts\Container\Container;
-use Pandora\Pandora\Conversations\ConversationManager;
-use Pandora\Pandora\Conversations\SessionResolver;
-use Pandora\Pandora\Core\Actor\ActorManager;
-use Pandora\Pandora\Messages\MessageWriter;
-use Pandora\Pandora\Realtime\RunBroadcaster;
-use Pandora\Pandora\Runs\RunFactory;
-use Pandora\Pandora\Runs\RunStateMachine;
+use Pandora\Conversations\ConversationManager;
+use Pandora\Conversations\SessionResolver;
+use Pandora\Core\Actor\ActorManager;
+use Pandora\Messages\MessageWriter;
+use Pandora\Realtime\RunBroadcaster;
+use Pandora\Runs\RunFactory;
+use Pandora\Runs\RunStateMachine;
 
 /**
  * The injectable entry point to running agents.

@@ -2,30 +2,30 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Jobs;
+namespace Pandora\Jobs;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Pandora\Pandora\Approvals\Approval;
-use Pandora\Pandora\Approvals\Enums\ApprovalStatus;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Core\Actor\ActorManager;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Exceptions\ApprovalExpired;
-use Pandora\Pandora\Messages\MessageWriter;
-use Pandora\Pandora\Realtime\RunBroadcaster;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Enums\RunStepStatus;
-use Pandora\Pandora\Runs\Enums\RunStepType;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunStateMachine;
-use Pandora\Pandora\Runs\RunStepRecorder;
-use Pandora\Pandora\Tools\Enums\ToolExecutionStatus;
-use Pandora\Pandora\Tools\ToolCallCoordinator;
-use Pandora\Pandora\Tools\ToolExecution;
+use Pandora\Approvals\Approval;
+use Pandora\Approvals\Enums\ApprovalStatus;
+use Pandora\Conversations\Conversation;
+use Pandora\Core\Actor\ActorManager;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Exceptions\ApprovalExpired;
+use Pandora\Messages\MessageWriter;
+use Pandora\Realtime\RunBroadcaster;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\RunStepStatus;
+use Pandora\Runs\Enums\RunStepType;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunStateMachine;
+use Pandora\Runs\RunStepRecorder;
+use Pandora\Tools\Enums\ToolExecutionStatus;
+use Pandora\Tools\ToolCallCoordinator;
+use Pandora\Tools\ToolExecution;
 
 /**
  * Picks a run back up after a human decided.

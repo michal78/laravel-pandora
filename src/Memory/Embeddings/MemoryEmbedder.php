@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory\Embeddings;
+namespace Pandora\Memory\Embeddings;
 
-use Pandora\Pandora\Contracts\EmbeddingProvider;
-use Pandora\Pandora\Contracts\VectorStore;
-use Pandora\Pandora\Memory\Embedding;
-use Pandora\Pandora\Memory\MemoryItem;
+use Pandora\Contracts\EmbeddingProvider;
+use Pandora\Contracts\VectorStore;
+use Pandora\Memory\Embedding;
+use Pandora\Memory\MemoryItem;
 
 /**
  * Keeps a memory's vector in step with its content.

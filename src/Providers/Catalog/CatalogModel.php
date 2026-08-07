@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Catalog;
+namespace Pandora\Providers\Catalog;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Providers\Data\ProviderCapabilities;
-use Pandora\Pandora\Providers\Data\UsageData;
-use Pandora\Pandora\Support\Concerns\PandoraModel;
+use Pandora\Providers\Data\ProviderCapabilities;
+use Pandora\Providers\Data\UsageData;
+use Pandora\Support\Concerns\PandoraModel;
 
 /**
  * One model in the catalog: what it can do, how big it is, and what it costs.

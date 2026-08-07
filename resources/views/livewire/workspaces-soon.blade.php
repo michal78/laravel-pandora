@@ -7,7 +7,7 @@
 <div class="pd-stack">
     <x-pandora::card title="Workspaces">
         <p class="pd-muted">
-            Agent file workspaces are coming in a later phase — a directory an agent
+            Agent file workspaces are not here yet — a directory an agent
             may read and write inside, bounded by a root it cannot escape, a quota it
             cannot exceed and a list of types it cannot widen.
         </p>

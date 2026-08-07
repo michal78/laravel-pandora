@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Context;
+namespace Pandora\Context;
 
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Runs\Run;
+use Pandora\Agents\Agent;
+use Pandora\Conversations\Session;
+use Pandora\Runs\Run;
 
 /**
  * What a context provider is given.

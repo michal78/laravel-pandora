@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Catalog;
+namespace Pandora\Providers\Catalog;
 
-use Pandora\Pandora\Providers\Data\ProviderCapabilities;
+use Pandora\Providers\Data\ProviderCapabilities;
 
 /**
  * A model as a PROVIDER describes it.

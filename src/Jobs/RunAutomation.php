@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Jobs;
+namespace Pandora\Jobs;
 
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
@@ -11,12 +11,12 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Carbon;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Automation\AutomationDispatcher;
-use Pandora\Pandora\Automation\AutonomyBudget;
-use Pandora\Pandora\Core\Actor\ActorManager;
-use Pandora\Pandora\Core\Tenancy\TenantManager;
-use Pandora\Pandora\Exceptions\PandoraException;
+use Pandora\Automation\Automation;
+use Pandora\Automation\AutomationDispatcher;
+use Pandora\Automation\AutonomyBudget;
+use Pandora\Core\Actor\ActorManager;
+use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Exceptions\PandoraException;
 
 /**
  * Turn one claimed occurrence into a run, off the scheduler's thread.

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools\Schema;
+namespace Pandora\Tools\Schema;
 
 use BackedEnum;
 use Closure;
 use Illuminate\Validation\Rules\Enum as EnumRule;
-use Pandora\Pandora\Exceptions\UnsupportedValidationRule;
+use Pandora\Exceptions\UnsupportedValidationRule;
 use ReflectionClass;
 use Stringable;
 

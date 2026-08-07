@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Tests\Support\MakesRuns;
+use Pandora\Agents\AgentRunner;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Tests\Support\MakesRuns;
 
 uses(MakesRuns::class);
 

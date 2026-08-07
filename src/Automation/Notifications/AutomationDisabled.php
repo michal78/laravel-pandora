@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation\Notifications;
+namespace Pandora\Automation\Notifications;
 
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Pandora\Pandora\Automation\Automation;
+use Pandora\Automation\Automation;
 
 /**
  * An automation turned itself off.

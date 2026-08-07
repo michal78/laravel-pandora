@@ -3,15 +3,15 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Date;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryStatus;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\Lexical\Tokeniser;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\Memory\MemoryQuery;
-use Pandora\Pandora\Memory\MemoryRetriever;
-use Pandora\Pandora\Memory\MemoryScopeSet;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryStatus;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\Lexical\Tokeniser;
+use Pandora\Memory\MemoryItem;
+use Pandora\Memory\MemoryQuery;
+use Pandora\Memory\MemoryRetriever;
+use Pandora\Memory\MemoryScopeSet;
 
 /**
  * Phase 5, criteria 6 to 8 -- retrieval with nothing installed.

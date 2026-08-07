@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation\Enums;
+namespace Pandora\Automation\Enums;
 
 /**
  * The life of a piece of work an agent proposed for itself.

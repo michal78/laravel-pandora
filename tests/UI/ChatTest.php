@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Pandora\Pandora\Agents\AgentRegistry;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Jobs\ResumeRunWithUserReply;
-use Pandora\Pandora\Messages\Enums\StreamingState;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunStateMachine;
-use Pandora\Pandora\Tests\Fixtures\EchoAgent;
-use Pandora\Pandora\Tests\Fixtures\TestUser;
-use Pandora\Pandora\Tests\Support\MakesRuns;
-use Pandora\Pandora\UI\Livewire\Chat;
+use Pandora\Agents\AgentRegistry;
+use Pandora\Agents\AgentRunner;
+use Pandora\Jobs\ResumeRunWithUserReply;
+use Pandora\Messages\Enums\StreamingState;
+use Pandora\Messages\Message;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunStateMachine;
+use Pandora\Tests\Fixtures\EchoAgent;
+use Pandora\Tests\Fixtures\TestUser;
+use Pandora\Tests\Support\MakesRuns;
+use Pandora\UI\Livewire\Chat;
 
 uses(MakesRuns::class);
 

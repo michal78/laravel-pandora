@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests\Providers\Contract;
+namespace Pandora\Tests\Providers\Contract;
 
 use Illuminate\Http\Client\Factory as HttpFactory;
-use Pandora\Pandora\Contracts\StreamingProvider;
-use Pandora\Pandora\Providers\Adapters\AnthropicProvider;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Providers\Data\UsageData;
-use Pandora\Pandora\Testing\ProviderFixtures;
+use Pandora\Contracts\StreamingProvider;
+use Pandora\Providers\Adapters\AnthropicProvider;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Providers\Data\UsageData;
+use Pandora\Testing\ProviderFixtures;
 
 /**
  * Anthropic's Messages dialect: a top-level system prompt, typed content

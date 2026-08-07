@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Tests\Fixtures\Tools\LookupOrderTool;
-use Pandora\Pandora\Tests\Fixtures\Tools\RefundOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
-use Pandora\Pandora\Tools\Enums\AuthorizationLayer;
-use Pandora\Pandora\Tools\ToolContext;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Tests\Fixtures\Tools\LookupOrderTool;
+use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
+use Pandora\Tests\Support\MakesTools;
+use Pandora\Tools\Enums\AuthorizationLayer;
+use Pandora\Tools\ToolContext;
 
 /**
  * Phase 2 acceptance criterion 7 — layer 3.

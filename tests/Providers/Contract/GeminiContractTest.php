@@ -3,12 +3,12 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Http;
-use Pandora\Pandora\Messages\Enums\MessageRole;
-use Pandora\Pandora\Providers\Data\ChatMessage;
-use Pandora\Pandora\Providers\Data\ChatRequest;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Testing\ProviderContractTests;
-use Pandora\Pandora\Tests\Providers\Contract\GeminiFixtures;
+use Pandora\Messages\Enums\MessageRole;
+use Pandora\Providers\Data\ChatMessage;
+use Pandora\Providers\Data\ChatRequest;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Testing\ProviderContractTests;
+use Pandora\Tests\Providers\Contract\GeminiFixtures;
 
 /**
  * Phase 3 acceptance criteria 1 and 12.

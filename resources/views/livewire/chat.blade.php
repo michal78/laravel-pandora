@@ -76,9 +76,9 @@
         <div class="pd-chat-thread" id="pd-thread">
             @forelse ($messages as $message)
                 @php
-                    $isUser = $message->role === \Pandora\Pandora\Messages\Enums\MessageRole::User;
-                    $isError = $message->type === \Pandora\Pandora\Messages\Enums\MessageType::Error;
-                    $isTool = $message->role === \Pandora\Pandora\Messages\Enums\MessageRole::Tool;
+                    $isUser = $message->role === \Pandora\Messages\Enums\MessageRole::User;
+                    $isError = $message->type === \Pandora\Messages\Enums\MessageType::Error;
+                    $isTool = $message->role === \Pandora\Messages\Enums\MessageRole::Tool;
                 @endphp
 
                 {{--

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Exceptions;
+namespace Pandora\Exceptions;
 
-use Pandora\Pandora\Approvals\Enums\ApprovalStatus;
+use Pandora\Approvals\Enums\ApprovalStatus;
 
 /**
  * Someone tried to resolve an approval that was already resolved.

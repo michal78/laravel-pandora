@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools\Enums;
+namespace Pandora\Tools\Enums;
 
 /**
  * The lifecycle of one tool call.

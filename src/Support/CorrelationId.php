@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Support;
+namespace Pandora\Support;
 
 use Symfony\Component\Uid\Ulid;
 

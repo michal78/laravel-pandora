@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tools\Enums;
+namespace Pandora\Tools\Enums;
 
 /**
  * How much damage a tool can do if the model is persuaded to misuse it.

@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Console\Commands;
+namespace Pandora\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
-use Pandora\Pandora\Agents\AgentRegistry;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Pandora;
-use Pandora\Pandora\Providers\ProviderManager;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunLock;
+use Pandora\Agents\AgentRegistry;
+use Pandora\Automation\Automation;
+use Pandora\Conversations\Conversation;
+use Pandora\Pandora;
+use Pandora\Providers\ProviderManager;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunLock;
 
 final class StatusCommand extends Command
 {

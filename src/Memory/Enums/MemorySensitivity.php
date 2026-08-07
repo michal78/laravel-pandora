@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory\Enums;
+namespace Pandora\Memory\Enums;
 
 /**
  * How much trouble this memory can cause if it is said to the wrong person.

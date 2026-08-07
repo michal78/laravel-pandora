@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Runs;
+namespace Pandora\Runs;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
-use Pandora\Pandora\Exceptions\InvalidRunTransition;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Events\RunStateChanged;
-use Pandora\Pandora\Support\Redactor;
+use Pandora\Exceptions\InvalidRunTransition;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Events\RunStateChanged;
+use Pandora\Support\Redactor;
 
 /**
  * The only component permitted to change a run's state.

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Agents;
+namespace Pandora\Agents;
 
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Collection;
-use Pandora\Pandora\Contracts\AgentDefinition;
-use Pandora\Pandora\Exceptions\AgentNotFound;
+use Pandora\Contracts\AgentDefinition;
+use Pandora\Exceptions\AgentNotFound;
 
 /**
  * Resolves agents from class definitions and from the database.

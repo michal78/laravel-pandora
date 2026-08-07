@@ -3,19 +3,19 @@
 declare(strict_types=1);
 
 use Livewire\Livewire;
-use Pandora\Pandora\Approvals\Approval;
-use Pandora\Pandora\Approvals\ApprovalManager;
-use Pandora\Pandora\Contracts\ToolPolicy;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Tests\Fixtures\Tools\LookupOrderTool;
-use Pandora\Pandora\Tests\Fixtures\Tools\RefundOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
-use Pandora\Pandora\Tools\PolicyDecision;
-use Pandora\Pandora\Tools\Tool;
-use Pandora\Pandora\Tools\ToolContext;
-use Pandora\Pandora\Tools\ToolGatekeeper;
-use Pandora\Pandora\Tools\ToolInput;
-use Pandora\Pandora\UI\Livewire\RunDetail;
+use Pandora\Approvals\Approval;
+use Pandora\Approvals\ApprovalManager;
+use Pandora\Contracts\ToolPolicy;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Tests\Fixtures\Tools\LookupOrderTool;
+use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
+use Pandora\Tests\Support\MakesTools;
+use Pandora\Tools\PolicyDecision;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolGatekeeper;
+use Pandora\Tools\ToolInput;
+use Pandora\UI\Livewire\RunDetail;
 
 /**
  * Phase 2 acceptance criteria 11 and 33 — the trace renders the tool and

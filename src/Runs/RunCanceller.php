@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Runs;
+namespace Pandora\Runs;
 
-use Pandora\Pandora\Realtime\RunBroadcaster;
-use Pandora\Pandora\Runs\Enums\RunState;
+use Pandora\Realtime\RunBroadcaster;
+use Pandora\Runs\Enums\RunState;
 
 /**
  * Requests cancellation and finalises it.

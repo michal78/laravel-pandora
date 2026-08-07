@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Exceptions\Provider;
+namespace Pandora\Exceptions\Provider;
 
 /**
  * The account has no credit or has exhausted its quota.

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Pandora\Pandora\Runs\Enums\RunStepType;
-use Pandora\Pandora\Runs\RunStepRecorder;
-use Pandora\Pandora\Tests\Support\MakesRuns;
-use Pandora\Pandora\UI\Livewire\Dashboard;
-use Pandora\Pandora\UI\Livewire\RunDetail;
-use Pandora\Pandora\UI\Livewire\RunsIndex;
+use Pandora\Runs\Enums\RunStepType;
+use Pandora\Runs\RunStepRecorder;
+use Pandora\Tests\Support\MakesRuns;
+use Pandora\UI\Livewire\Dashboard;
+use Pandora\UI\Livewire\RunDetail;
+use Pandora\UI\Livewire\RunsIndex;
 
 uses(MakesRuns::class);
 

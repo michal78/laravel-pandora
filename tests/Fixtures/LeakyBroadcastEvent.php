@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests\Fixtures;
+namespace Pandora\Tests\Fixtures;
 
-use Pandora\Pandora\Realtime\Events\PandoraBroadcastEvent;
+use Pandora\Realtime\Events\PandoraBroadcastEvent;
 
 /**
  * A deliberately hostile broadcast event that puts secrets straight into its

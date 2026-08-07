@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora;
+namespace Pandora;
 
 use Illuminate\Contracts\Container\Container;
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Agents\AgentRegistry;
-use Pandora\Pandora\Agents\AgentRunner;
-use Pandora\Pandora\Agents\PendingAgentRun;
-use Pandora\Pandora\Automation\AutomationScheduler;
-use Pandora\Pandora\Automation\EventTriggerRegistry;
-use Pandora\Pandora\Automation\PendingEventTrigger;
-use Pandora\Pandora\Contracts\AgentDefinition;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Conversations\ConversationManager;
-use Pandora\Pandora\Core\Actor\ActorContext;
-use Pandora\Pandora\Exceptions\InvalidRunTransition;
-use Pandora\Pandora\Jobs\ResumeRunWithUserReply;
-use Pandora\Pandora\Messages\MessageWriter;
-use Pandora\Pandora\Providers\ProviderManager;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunCanceller;
+use Pandora\Agents\Agent;
+use Pandora\Agents\AgentRegistry;
+use Pandora\Agents\AgentRunner;
+use Pandora\Agents\PendingAgentRun;
+use Pandora\Automation\AutomationScheduler;
+use Pandora\Automation\EventTriggerRegistry;
+use Pandora\Automation\PendingEventTrigger;
+use Pandora\Contracts\AgentDefinition;
+use Pandora\Conversations\Conversation;
+use Pandora\Conversations\ConversationManager;
+use Pandora\Core\Actor\ActorContext;
+use Pandora\Exceptions\InvalidRunTransition;
+use Pandora\Jobs\ResumeRunWithUserReply;
+use Pandora\Messages\MessageWriter;
+use Pandora\Providers\ProviderManager;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunCanceller;
 
 /**
  * The ergonomic public entry point behind the `Pandora` facade.

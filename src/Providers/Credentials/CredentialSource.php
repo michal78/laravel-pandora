@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Providers\Credentials;
+namespace Pandora\Providers\Credentials;
 
 /**
  * Where a resolved credential came from. Recorded so an operator debugging

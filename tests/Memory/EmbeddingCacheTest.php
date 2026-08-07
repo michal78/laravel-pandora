@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Contracts\EmbeddingProvider;
-use Pandora\Pandora\Memory\Embedding;
-use Pandora\Pandora\Memory\Embeddings\HashEmbeddingProvider;
-use Pandora\Pandora\Memory\Embeddings\MemoryEmbedder;
-use Pandora\Pandora\Memory\Enums\MemoryScope;
-use Pandora\Pandora\Memory\Enums\MemorySource;
-use Pandora\Pandora\Memory\Enums\MemoryType;
-use Pandora\Pandora\Memory\MemoryItem;
-use Pandora\Pandora\Memory\Vector\DatabaseVectorStore;
+use Pandora\Contracts\EmbeddingProvider;
+use Pandora\Memory\Embedding;
+use Pandora\Memory\Embeddings\HashEmbeddingProvider;
+use Pandora\Memory\Embeddings\MemoryEmbedder;
+use Pandora\Memory\Enums\MemoryScope;
+use Pandora\Memory\Enums\MemorySource;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\MemoryItem;
+use Pandora\Memory\Vector\DatabaseVectorStore;
 
 /**
  * Phase 5, criterion 18 -- do not pay twice for the same vector, and never

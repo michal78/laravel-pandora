@@ -35,21 +35,21 @@
     },
     "autoload": {
         "psr-4": {
-            "Pandora\\Pandora\\": "src/"
+            "Pandora\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Pandora\\Pandora\\Tests\\": "tests/"
+            "Pandora\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Pandora\\Pandora\\PandoraServiceProvider"
+                "Pandora\\PandoraServiceProvider"
             ],
             "aliases": {
-                "Pandora": "Pandora\\Pandora\\Facades\\Pandora"
+                "Pandora": "Pandora\\Facades\\Pandora"
             }
         }
     },

@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Automation\Webhooks;
+namespace Pandora\Automation\Webhooks;
 
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Automation\Automation;
-use Pandora\Pandora\Automation\AutomationDispatcher;
-use Pandora\Pandora\Automation\Enums\AutomationTrigger;
-use Pandora\Pandora\Automation\WebhookDelivery;
-use Pandora\Pandora\Exceptions\WebhookRejected;
-use Pandora\Pandora\Support\Concerns\DetectsUniqueViolations;
-use Pandora\Pandora\Support\Redactor;
+use Pandora\Audit\AuditLogger;
+use Pandora\Automation\Automation;
+use Pandora\Automation\AutomationDispatcher;
+use Pandora\Automation\Enums\AutomationTrigger;
+use Pandora\Automation\WebhookDelivery;
+use Pandora\Exceptions\WebhookRejected;
+use Pandora\Support\Concerns\DetectsUniqueViolations;
+use Pandora\Support\Redactor;
 
 /**
  * One inbound webhook delivery, from raw body to run.

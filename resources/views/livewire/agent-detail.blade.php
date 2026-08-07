@@ -75,8 +75,8 @@
                 'usage' => 'Usage',
             ];
 
-            // Deferred to Phase 7, and so a promise rather than a page: it
-            // moves to the pending list below and is rendered there.
+            // Held back, and so a promise rather than a page: it moves to the
+            // pending list below and is rendered there.
             if (isset($pendingTabs['workspace'])) {
                 unset($liveTabs['workspace']);
             }
@@ -725,7 +725,7 @@
         {{-- Untitled on purpose: the empty state already names the tab, and a
              card head above it repeated the word into an empty band. --}}
         <x-pandora::card>
-            <x-pandora::empty-state :title="$pendingTabs[$tab]['label'].' arrives in '.$pendingTabs[$tab]['phase']">
+            <x-pandora::empty-state :title="$pendingTabs[$tab]['label'].' is not here yet'">
                 {{ $pendingTabs[$tab]['note'] }}
             </x-pandora::empty-state>
         </x-pandora::card>

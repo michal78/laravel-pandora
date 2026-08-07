@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Console\Commands;
+namespace Pandora\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
@@ -159,7 +159,7 @@ final class InstallCommand extends Command
              Pandora works without it: the database is authoritative, so the UI falls back to
              polling and stays correct. Set PANDORA_REALTIME_ENABLED=false to opt out.
 
-          <options=bold>3. Scheduler (needed from Phase 4)</>
+          <options=bold>3. Scheduler (needed for automations)</>
              Automations are driven by Laravel's scheduler.
 
                php artisan schedule:work

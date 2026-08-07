@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Realtime\Events;
+namespace Pandora\Realtime\Events;
 
-use Pandora\Pandora\Messages\Message;
+use Pandora\Messages\Message;
 
 /**
  * A new message exists. Again content-free -- the client refetches.

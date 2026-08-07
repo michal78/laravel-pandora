@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Tests\Support;
+namespace Pandora\Tests\Support;
 
-use Pandora\Pandora\Agents\Agent;
-use Pandora\Pandora\Conversations\Conversation;
-use Pandora\Pandora\Conversations\Session;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Enums\TriggerType;
-use Pandora\Pandora\Runs\Run;
+use Pandora\Agents\Agent;
+use Pandora\Conversations\Conversation;
+use Pandora\Conversations\Session;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\TriggerType;
+use Pandora\Runs\Run;
 use Symfony\Component\Uid\Ulid;
 
 /**

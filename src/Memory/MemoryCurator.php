@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Memory;
+namespace Pandora\Memory;
 
 use Illuminate\Support\Facades\Date;
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Exceptions\AuthorizationDenied;
-use Pandora\Pandora\Memory\Embeddings\MemoryEmbedder;
-use Pandora\Pandora\Memory\Enums\MemoryStatus;
-use Pandora\Pandora\UI\PandoraGate;
+use Pandora\Audit\AuditLogger;
+use Pandora\Exceptions\AuthorizationDenied;
+use Pandora\Memory\Embeddings\MemoryEmbedder;
+use Pandora\Memory\Enums\MemoryStatus;
+use Pandora\UI\PandoraGate;
 
 /**
  * The human half of memory: approving, rejecting, forgetting, expiring.

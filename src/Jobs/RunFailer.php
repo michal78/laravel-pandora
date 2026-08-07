@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Jobs;
+namespace Pandora\Jobs;
 
-use Pandora\Pandora\Audit\AuditLogger;
-use Pandora\Pandora\Exceptions\PandoraException;
-use Pandora\Pandora\Messages\MessageWriter;
-use Pandora\Pandora\Realtime\RunBroadcaster;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Runs\Enums\RunStepStatus;
-use Pandora\Pandora\Runs\Enums\RunStepType;
-use Pandora\Pandora\Runs\Run;
-use Pandora\Pandora\Runs\RunStateMachine;
-use Pandora\Pandora\Runs\RunStepRecorder;
-use Pandora\Pandora\Support\Redactor;
+use Pandora\Audit\AuditLogger;
+use Pandora\Exceptions\PandoraException;
+use Pandora\Messages\MessageWriter;
+use Pandora\Realtime\RunBroadcaster;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Enums\RunStepStatus;
+use Pandora\Runs\Enums\RunStepType;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunStateMachine;
+use Pandora\Runs\RunStepRecorder;
+use Pandora\Support\Redactor;
 use Psr\Log\LoggerInterface;
 
 /**

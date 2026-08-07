@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use Pandora\Pandora\Messages\Enums\MessageRole;
-use Pandora\Pandora\Messages\Message;
-use Pandora\Pandora\Providers\Data\ToolCall;
-use Pandora\Pandora\Runs\Enums\RunState;
-use Pandora\Pandora\Tests\Fixtures\Tools\LookupOrderTool;
-use Pandora\Pandora\Tests\Support\MakesTools;
-use Pandora\Pandora\Tools\Enums\ToolExecutionStatus;
-use Pandora\Pandora\Tools\ToolExecution;
+use Pandora\Messages\Enums\MessageRole;
+use Pandora\Messages\Message;
+use Pandora\Providers\Data\ToolCall;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Tests\Fixtures\Tools\LookupOrderTool;
+use Pandora\Tests\Support\MakesTools;
+use Pandora\Tools\Enums\ToolExecutionStatus;
+use Pandora\Tools\ToolExecution;
 
 /**
  * Phase 2 acceptance criterion 21 — the loop where a model re-asks the same

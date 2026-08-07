@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pandora\Pandora\Console\Commands;
+namespace Pandora\Console\Commands;
 
 use Illuminate\Console\Command;
-use Pandora\Pandora\Contracts\ModelCatalogProvider;
-use Pandora\Pandora\Exceptions\Provider\ProviderException;
-use Pandora\Pandora\Providers\Catalog\CatalogModel;
-use Pandora\Pandora\Providers\Catalog\ModelCatalog;
-use Pandora\Pandora\Providers\ProviderManager;
+use Pandora\Contracts\ModelCatalogProvider;
+use Pandora\Exceptions\Provider\ProviderException;
+use Pandora\Providers\Catalog\CatalogModel;
+use Pandora\Providers\Catalog\ModelCatalog;
+use Pandora\Providers\ProviderManager;
 
 /**
  * Fill the catalog from configuration and from the providers themselves.
