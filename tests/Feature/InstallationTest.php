@@ -11,6 +11,38 @@ use Pandora\Contracts\ActorResolver;
 use Pandora\Contracts\TenantResolver;
 use Pandora\Pandora;
 use Pandora\Providers\ProviderManager;
+use Pandora\Runs\Enums\RunState;
+use Pandora\Runs\Run;
+
+/**
+ * Every Pandora migration this application has published, whatever timestamp it
+ * carries. Matched on the suffix because the prefix is rewritten at publish
+ * time when the application asks for that, and because not every migration is
+ * a `create_..._table` -- the ones that alter a table are just as capable of
+ * being re-run against a schema that already has them.
+ *
+ * @return list<string>
+ */
+function publishedPandoraMigrations(): array
+{
+    $suffix = static fn (string $path): string => (string) preg_replace('/^\d[\d_]*_/', '', basename($path));
+
+    $packaged = collect(File::glob(dirname(__DIR__, 2).'/database/migrations/*.php'))
+        ->map($suffix)
+        ->all();
+
+    return collect(File::glob(database_path('migrations/*.php')))
+        ->filter(static fn (string $path): bool => in_array($suffix($path), $packaged, true))
+        ->values()
+        ->all();
+}
+
+function forgetPublishedPandoraMigrations(): void
+{
+    foreach (publishedPandoraMigrations() as $path) {
+        File::delete($path);
+    }
+}
 
 /** Acceptance criteria 1, 2, 3 -- installation. */
 it('boots with no configuration at all', function (): void {
@@ -80,16 +112,61 @@ it('publishes the migrations an existing installation is missing', function (): 
     try {
         $this->artisan('pandora:install', ['--no-migrate' => true])->assertSuccessful();
 
-        foreach ($packaged as $path) {
-            $destination = $directory.'/'.basename($path);
-            $written[] = $destination;
+        // Matched on the suffix, not the whole filename: what is published
+        // carries the timestamp of the moment it was published when the
+        // application asks for that, so only the part naming the table is
+        // stable.
+        $suffix = static fn (string $path): string => (string) preg_replace('/^\d[\d_]*_/', '', basename($path));
 
-            expect(File::exists($destination))->toBeTrue('missing '.basename($path));
+        $written = publishedPandoraMigrations();
+
+        $found = collect($written)->map($suffix)->all();
+
+        foreach ($packaged as $path) {
+            expect($found)->toContain($suffix($path));
         }
     } finally {
-        foreach (array_unique([...$written, ...$preexisting->all()]) as $path) {
+        forgetPublishedPandoraMigrations();
+
+        foreach ($preexisting as $path) {
             File::delete($path);
         }
+    }
+});
+
+/**
+ * Also from the clean-install proof: the packaged migrations are named
+ * `0001_01_01_*` so they sort among themselves, and publishing those names
+ * verbatim left the host no way to order its own migrations relative to
+ * Pandora's -- everything it wrote would run afterwards, whatever it called it.
+ * Laravel also reported a negative duration for a migration dated year 1.
+ */
+it('publishes migrations under a current timestamp, not the packaged 0001 prefix', function (): void {
+    $directory = database_path('migrations');
+    File::ensureDirectoryExists($directory);
+
+    // The application's own switch, read by `vendor:publish` too. Pandora
+    // follows it rather than inventing a second answer to the same question.
+    config(['database.migrations.update_date_on_publish' => true]);
+
+    try {
+        $this->artisan('pandora:install', ['--no-migrate' => true])->assertSuccessful();
+
+        $published = collect(File::glob($directory.'/*_create_pandora_*_table.php'))
+            ->map(static fn (string $path): string => basename($path));
+
+        expect($published)->not->toBeEmpty();
+
+        foreach ($published as $name) {
+            expect($name)->not->toStartWith('0001_01_01_')
+                ->and($name)->toMatch('/^\d{4}_\d{2}_\d{2}_\d{6}_create_pandora_/');
+        }
+
+        // Sorted the same way they are packaged, or the tables arrive in an
+        // order their foreign keys do not survive.
+        expect($published->sort()->values()->all())->toBe($published->values()->all());
+    } finally {
+        forgetPublishedPandoraMigrations();
     }
 });
 
@@ -115,6 +192,39 @@ it('leaves a migration the host has already customised alone', function (): void
     }
 });
 
+/**
+ * Found by a clean-install proof: `pandora:install --no-interaction` printed
+ * "migrations not run (non-interactive)" and then "Pandora is installed", and
+ * exited 0 with no schema. A scripted install had no error to detect, and the
+ * first symptom was a missing table in whatever page somebody opened first.
+ *
+ * `--no-interaction` means "take the default answers", and the default answer
+ * to "run the migrations?" is yes. Opting out is what `--no-migrate` is for.
+ */
+it('runs the migrations when it is not interactive, rather than exiting 0 with no schema', function (): void {
+    /** @var string $prefix */
+    $prefix = config('pandora.database.table_prefix', 'pandora_');
+
+    // The published names have to match the ones this test application already
+    // ran, or `migrate` re-applies the package's own migrations against a
+    // schema that has them. A host publishing for the first time has no such
+    // history; the covered behaviour here is what the command DOES, not what
+    // it names.
+    config(['database.migrations.update_date_on_publish' => false]);
+
+    forgetPublishedPandoraMigrations();
+
+    try {
+        // Through `Artisan::call`, which is how a deploy script runs it: no
+        // TTY, no prompt, and an exit code as the only signal anybody gets.
+        expect(Artisan::call('pandora:install'))->toBe(0)
+            ->and(Artisan::output())->not->toContain('not run (non-interactive)')
+            ->and(Schema::hasTable($prefix.'agents'))->toBeTrue();
+    } finally {
+        forgetPublishedPandoraMigrations();
+    }
+});
+
 it('runs the installer without creating an agent', function (): void {
     $this->artisan('pandora:install', ['--no-migrate' => true])
         ->assertSuccessful();
@@ -137,6 +247,39 @@ it('reports status', function (): void {
 
 it('lists agents, and says so clearly when there are none', function (): void {
     $this->artisan('pandora:agent:list')->assertSuccessful();
+});
+
+/**
+ * The Phase 3.5 walkthrough asks for the page's run counts to be cross-checked
+ * against this command, which had no run count to check them against.
+ */
+it('lists how many runs each agent has, so the page can be cross-checked against it', function (): void {
+    $agent = Agent::query()->create([
+        'name' => 'Counted', 'slug' => 'counted', 'enabled' => true,
+        'default_provider' => 'fake', 'default_model' => 'fake-model',
+        'max_iterations' => 3, 'max_tool_calls' => 5,
+        'max_duration_seconds' => 60, 'context_budget_tokens' => 4000,
+    ]);
+
+    foreach (range(1, 2) as $ignored) {
+        Run::query()->create([
+            'agent_id' => $agent->getKey(),
+            'session_id' => (string) str()->ulid(),
+            'correlation_id' => (string) str()->ulid(),
+            'state' => RunState::Completed->value,
+        ]);
+    }
+
+    $this->artisan('pandora:agent:list')
+        ->expectsOutputToContain('Runs')
+        ->expectsOutputToContain('counted')
+        ->assertSuccessful();
+
+    // The column, not merely the heading: the command must report 2 rather
+    // than the 0 an unwired column would show.
+    Artisan::call('pandora:agent:list');
+
+    expect(Artisan::output())->toMatch('/counted.*\|\s*2\s*\|/s');
 });
 
 it('runs an agent from the console', function (): void {

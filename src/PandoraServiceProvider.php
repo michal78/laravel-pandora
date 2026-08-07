@@ -582,7 +582,13 @@ final class PandoraServiceProvider extends ServiceProvider
             __DIR__.'/../config/pandora.php' => config_path('pandora.php'),
         ], 'pandora-config');
 
-        $this->publishes([
+        // `publishesMigrations`, not `publishes`: Laravel rewrites the filename
+        // prefix to the moment of publishing. The packaged files are named
+        // `0001_01_01_*` so they sort among themselves, and a host that
+        // received those names verbatim could never order its own migrations
+        // relative to Pandora's -- everything it wrote would run afterwards,
+        // whatever it was called.
+        $this->publishesMigrations([
             __DIR__.'/../database/migrations' => database_path('migrations'),
         ], 'pandora-migrations');
 

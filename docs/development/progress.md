@@ -11,7 +11,7 @@ The other two walkthroughs, in the same sitting. Phase 3.5 and Phase 5 are now �
 6 has been driven by a person in a browser except the two Phase 1 checks noted below.
 
 ```
-vendor/bin/pest        -> Tests: 1,185 passed, 8 skipped
+vendor/bin/pest        -> Tests: 1,188 passed, 8 skipped
 vendor/bin/phpstan     -> [OK] No errors  (level 8)
 vendor/bin/pint --test -> passed
 ```
@@ -69,6 +69,29 @@ catalog, attributed, and Delta's model stays unpriced on purpose so the null-cos
 For Phase 5: memory cleared to zero so the empty state was reachable, two skills attached to
 `EchoAgent` — one satisfied, one requiring `read_file`/`write_file` that no agent can call — and a
 context file wired up and proven by asking for a codeword that exists nowhere else.
+
+**Three smaller flags cleared before Phase 6.**
+
+*`pandora:agent:list` had no run count.* The Phase 3.5 walkthrough asks for the page's run counts to
+be cross-checked against the command, and the command had nothing to check them against. One grouped
+query, not a count per row, because a command that degrades with the number of agents is one nobody
+runs where the answer matters.
+
+*`pandora:install --no-interaction` exited 0 with no schema.* It printed "migrations not run
+(non-interactive)" in yellow and then "Pandora is installed", so a deploy script had no error to
+detect and the first symptom was a missing table in whatever page somebody opened. `--no-interaction`
+means "take the default answers" and the default answer to "run the migrations?" is yes; opting out
+is what `--no-migrate` has always been for. The command now also *checks* rather than assuming —
+having called `migrate` is not evidence of a schema, so it looks for the agents table afterwards and
+returns `FAILURE` with an explanation if it is not there.
+
+*Published migrations carried the packaged `0001_01_01_*` prefix.* They are named that way so they
+sort among themselves, but a host receiving those names verbatim can never order its own migrations
+relative to Pandora's — everything it writes sorts afterwards, whatever it is called — and Laravel
+reported a negative duration for a migration dated year 1. Publishing now goes through
+`publishesMigrations()`, and the installer's own copy path stamps the same way, both following
+`database.migrations.update_date_on_publish`: the application's switch, not a second answer to the
+same question invented by this package.
 
 **Still open:** the two Phase 1 checks added after the agent-binding fix, which are covered by
 regression tests but not yet re-confirmed in a browser.

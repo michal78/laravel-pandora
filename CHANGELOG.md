@@ -55,6 +55,22 @@ longer in the room.
 - A write through a symlink escaped the workspace root, because resolving a
   path for creation checked only the parent directory.
 
+### Changed
+
+- **`pandora:install` runs the migrations when it is not interactive.**
+  `--no-interaction` means "take the default answers", and the default answer is
+  yes; it used to print "not run (non-interactive)" and exit 0 with no schema,
+  leaving a scripted install no error to detect. `--no-migrate` is still the way
+  to opt out, and the command now verifies the schema exists afterwards rather
+  than reporting success on the strength of having called `migrate`.
+- **Migrations publish under a current timestamp** via `publishesMigrations()`,
+  following the application's `database.migrations.update_date_on_publish`
+  setting. The packaged files are named `0001_01_01_*` so they sort among
+  themselves; a host that took those names verbatim could not order its own
+  migrations relative to Pandora's.
+- **`pandora:agent:list` reports a run count per agent**, so the Agents page can
+  be cross-checked against it.
+
 ### Security
 
 - **The Memory page disclosed every user's memories to every user.** Reading it

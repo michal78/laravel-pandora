@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Pandora\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 
 use function Laravel\Prompts\confirm;
+
+use Throwable;
 
 /**
  * Idempotent installer.
@@ -31,10 +35,18 @@ final class InstallCommand extends Command
 
         $this->publishConfig();
         $this->publishMigrations();
-        $this->runMigrations();
+        $migrated = $this->runMigrations();
         $this->explainSetup();
 
         $this->newLine();
+
+        if ($migrated && ! $this->schemaIsInstalled()) {
+            $this->components->error('Pandora is NOT installed: the migrations ran but the schema is missing.');
+            $this->line('  Check the database connection, then run `php artisan migrate` and `php artisan pandora:status`.');
+
+            return self::FAILURE;
+        }
+
         $this->components->info('Pandora is installed.');
 
         return self::SUCCESS;
@@ -90,8 +102,22 @@ final class InstallCommand extends Command
             return;
         }
 
-        foreach ($missing as $path) {
-            File::copy($path, database_path('migrations/'.basename($path)));
+        // Stamped with the moment of publishing when the application asks for
+        // it, which is the same switch `vendor:publish` reads and the same
+        // default. It matters because the packaged files are named
+        // `0001_01_01_*` so they sort among themselves: a host that takes those
+        // names verbatim can never order its own migrations relative to
+        // Pandora's, since everything it writes sorts afterwards whatever it is
+        // called. One second apart keeps the packaged order intact.
+        $restamp = (bool) config('database.migrations.update_date_on_publish', false);
+        $stamp = Date::now();
+
+        foreach ($missing->values() as $index => $path) {
+            $name = $restamp
+                ? $stamp->addSeconds($index)->format('Y_m_d_His').'_'.$this->migrationSuffix($path)
+                : basename($path);
+
+            File::copy($path, database_path('migrations/'.$name));
         }
 
         $this->components->twoColumnDetail(
@@ -111,27 +137,60 @@ final class InstallCommand extends Command
         return (string) preg_replace('/^\d[\d_]*_/', '', basename($path));
     }
 
-    private function runMigrations(): void
+    /**
+     * @return bool whether the installation is expected to have a schema afterwards
+     */
+    private function runMigrations(): bool
     {
         if ($this->option('no-migrate')) {
             $this->components->twoColumnDetail('migrations', '<fg=yellow>skipped</>');
 
-            return;
+            return false;
         }
 
+        // `--no-interaction` means "take the default answers", and the default
+        // answer below is yes. It used to mean "do nothing and say so", which
+        // made a scripted install print a yellow line nobody reads and exit 0
+        // with no schema -- the failure then surfaced as a missing table in the
+        // first page somebody opened. Opting out is what `--no-migrate` is for.
         if (! $this->input->isInteractive()) {
-            $this->components->twoColumnDetail('migrations', '<fg=yellow>not run (non-interactive)</>');
+            $this->call('migrate', ['--force' => true]);
 
-            return;
+            return true;
         }
 
         if (! confirm('Run the Pandora migrations now?', default: true)) {
             $this->components->twoColumnDetail('migrations', '<fg=yellow>not run</>');
 
-            return;
+            return false;
         }
 
         $this->call('migrate');
+
+        return true;
+    }
+
+    /**
+     * Did the migrations that were supposed to run actually leave a schema?
+     *
+     * Checked rather than assumed, because `migrate` failing is not the only
+     * way to end up here: a connection pointing somewhere else, a `--force`
+     * refused, a database the user cannot create tables in. An installer that
+     * reports success on the strength of having *called* migrate is reporting
+     * on itself rather than on the installation.
+     */
+    private function schemaIsInstalled(): bool
+    {
+        /** @var string $prefix */
+        $prefix = config('pandora.database.table_prefix', 'pandora_');
+
+        try {
+            return Schema::hasTable($prefix.'agents');
+        } catch (Throwable) {
+            // No reachable connection is a missing schema as far as the person
+            // running this is concerned.
+            return false;
+        }
     }
 
     private function explainSetup(): void
