@@ -151,7 +151,11 @@ Phase 6. Workspace file *versioning*.
 - [x] `vendor/bin/pint --test` clean
 - [x] `docs/development/progress.md`, `docs/roadmap.md`, `docs/architecture/database-model.md`,
       a new `docs/guides/memory.md`, `docs/guides/workspaces.md` and `CHANGELOG.md` updated
-- [ ] **A human drives the pages in a host application**, against `phase-5-walkthrough.md`
-      (written and ready; not yet run) —
-      including one check the suite structurally cannot make: that an agent asked about another
-      user's remembered fact, in a real browser, in a real session, does not know it
+- [x] **A human drives the pages in a host application**, against `phase-5-walkthrough.md` — driven
+      2026-08-07 against `laravel-test`, including the check the suite structurally cannot make: an
+      agent asked about another user's remembered fact, in a real browser, in a real session, does
+      not know it. It found four defects, all fixed. The last of them is a criterion this plan does
+      not have: **criterion 28 proves a tenant cannot read another tenant's memory through the UI,
+      and nothing proved a *user* cannot read another user's.** The Memory page showed every
+      user-scoped memory to anyone holding `pandora.access`; reading it now requires
+      `pandora.memory.manage`.

@@ -165,6 +165,26 @@ it('rejects an autonomy level that is not one of the four', function (): void {
     expect($agent->refresh()->autonomy_level)->toBe(AutonomyLevel::Suggest);
 });
 
+// ---------------------------------------------------------------- overview
+
+/**
+ * Found by the Phase 3.5 walkthrough: the slug appeared only as faint text
+ * beside the heading, while the ULID -- which nobody types anywhere -- had a
+ * label of its own. The slug is the name the console and the routes use, so
+ * Overview states it as a labelled fact.
+ */
+it('states the slug on the overview tab, labelled, not only beside the heading', function (): void {
+    AgentFactory::database();
+
+    $this->actingAsUser();
+
+    $html = Livewire::test(AgentDetail::class, ['agent' => 'support'])->html();
+
+    expect($html)->toContain('<span class="pd-label">Slug</span>')
+        // Still not editable: the slug is fixed at creation.
+        ->and($html)->not->toContain('wire:model="slug"');
+});
+
 // -------------------------------------------------- class-defined authority
 
 it('reports exactly the attributes a definition owns', function (): void {

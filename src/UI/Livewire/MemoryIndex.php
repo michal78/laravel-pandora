@@ -30,8 +30,16 @@ use Pandora\UI\PandoraGate;
  * that says what an agent will repeat about somebody makes the review
  * meaningless -- the reviewer would be approving a preview.
  *
- * Reading needs `pandora.access`; approving, rejecting and forgetting need
- * `pandora.memory.manage`, checked here and again in `MemoryCurator`.
+ * Reading needs `pandora.memory.manage`, the same ability approving, rejecting
+ * and forgetting need -- checked here and again in `MemoryCurator`.
+ *
+ * Reading used to need only `pandora.access`, which was wrong in a way no test
+ * asked about: the listing is filtered by scope and status and never by actor,
+ * so every user-scoped memory belonging to every person was legible to anyone
+ * who could open the control center. This is a review queue, not a place
+ * somebody reads their own memory back -- there is no "who is standing here" to
+ * bound it by, which is the same reason the agent's Memory tab shows only
+ * agent-scoped rows. So the whole page is an operator surface, and says so.
  */
 final class MemoryIndex extends Component
 {
@@ -51,6 +59,7 @@ final class MemoryIndex extends Component
     public function mount(): void
     {
         PandoraGate::authorize('access');
+        PandoraGate::authorize('memory.manage');
     }
 
     public function approve(string $id): void

@@ -1,9 +1,14 @@
 # Phase 5 — Host Walkthrough
 
-> Status: **staged, not yet driven.** Phase 5 is code-complete and every
-> acceptance criterion has a passing test; this is the part the suite
-> structurally cannot do. The host application is prepared (see *Before you
-> start*) and the checks below are waiting on a person and a browser.
+> Status: **driven 2026-08-07 — the memory half in full, and it found four
+> defects.** Three were found and fixed on the first pass (below); the fourth
+> came from the second, and is the reason reading the Memory page now needs
+> `pandora.memory.manage`.
+>
+> Two sections are deliberately not driven and are **not** failures: the
+> vector-store checks need Postgres, and `laravel-test` is MySQL — that leg runs
+> in CI on `pgvector/pg17`; and the workspace checks past *coming soon* belong
+> to Phase 7, whose features are not implemented, so the flag stays off.
 
 Phase 4 produced seven defects and not one was reachable by the package suite
 as configured. Three of those came from this walkthrough — a different date
@@ -38,35 +43,77 @@ listed because the first run of this walkthrough hit every one of them:
 - [x] Run a queue worker. Every run is a queued continuation; without one the
       chat page waits forever and nothing in this document can be checked.
 
+### Prepared on 2026-08-07
+
+`laravel-test` was brought up and staged for this run — Sail (Laravel 13.19,
+PHP 8.5, MySQL 8.4, Redis), queue worker up, real `gpt-4o-mini`, at
+<http://localhost:8080/pandora/memory>.
+
+- [x] **Memory is empty.** Five items left over from earlier sessions were
+      deleted, along with the one embedding. Two of them were conversation-scoped
+      and already pointed at conversations that no longer existed. The first
+      memory check reads *"with no memory at all"*, and it cannot be driven
+      against a page that already has some.
+- [x] **`EchoAgent` holds `remember` and `recall`**, along with the other nine
+      built-ins, so the memory checks fail for a real reason if they fail.
+- [x] **Two skills are attached to `EchoAgent`**, because the Skills tab check
+      needs both halves of its claim visible at once:
+      `support-desk-triage` requires `ask_user` and `recall`, both of which the
+      agent holds; `incident-file-review` requires `read_file` and `write_file`,
+      which no agent can call — those are Phase 7 workspace tools and are not in
+      the registry at all. The second is what makes the red badges and *"this
+      agent cannot call the tools in red"* appear.
+- [x] **A context file is wired up and proven.** `pandora.context.files.roots`
+      points at `storage/app/pandora-context`, which holds `handbook.md`, and
+      `EchoAgent`'s `metadata.context_files` names it by absolute path —
+      `ContextFiles::resolve()` runs `realpath()`, so a relative path resolves
+      against the working directory and is refused. Verified live: asked for the
+      escalation codeword, the agent answered *saltmarsh*, which appears nowhere
+      but that file. The `/etc/passwd` half of that check is left for you to add.
+- [x] **Both accounts reach the Phase 5 surfaces.** `/pandora/memory`,
+      `/pandora/workspaces`, `/pandora/chat` and the agent's Skills and Memory
+      tabs all return 200 for user 1 and user 2.
+
+Two sections cannot be driven on this host, and neither is a defect:
+
+- **Vector store.** `laravel-test` is MySQL, so `pandora.memory.vector_store` is
+  null and embeddings come from `HashEmbeddingProvider`. The pgvector leg is
+  covered in CI instead.
+- **Workspaces past the "coming soon" checks.** `pandora.features.workspaces` is
+  `false` here, which is what the first three checks in that section assert. The
+  Phase 7 checks below them need the flag flipped.
+
 ## Memory
 
-- [ ] The **Memory** item appears in the sidebar and the page opens.
-- [ ] With no memory at all, the page explains where memory comes from rather
+- [x] The **Memory** item appears in the sidebar and the page opens.
+- [x] With no memory at all, the page explains where memory comes from rather
       than showing an empty table.
-- [ ] Ask an agent (with `remember` allowed) to remember something about how it
+- [x] Ask an agent (with `remember` allowed) to remember something about how it
       works. It reports "Remembered."
-- [ ] That memory appears on the page as **Active**, scoped to the agent.
-- [ ] In a new conversation, ask the agent about it. It recalls it.
-- [ ] Ask it to remember something about *you* — a preference. It reports that
+- [x] That memory appears on the page as **Active**, scoped to the agent.
+- [x] In a new conversation, ask the agent about it. It recalls it.
+- [x] Ask it to remember something about *you* — a preference. It reports that
       the memory is held for approval and says not to rely on recalling it.
-- [ ] The memory appears under **Awaiting review**, and the page says plainly
+- [x] The memory appears under **Awaiting review**, and the page says plainly
       that no agent can read it yet.
-- [ ] Ask the agent about it in a new conversation. **It does not know.**
+- [x] Ask the agent about it in a new conversation. **It does not know.**
       *(This is the check the suite cannot make: a real session, a real
       browser, a real model, and the fact stays invisible.)*
-- [ ] Approve it. Ask again. Now it knows.
-- [ ] Forget it. Ask again. It does not know, and does not half-know.
-- [ ] Ask an agent to remember a password or an API key. It refuses, and
+- [x] Approve it. Ask again. Now it knows.
+- [x] Forget it. Ask again. It does not know, and does not half-know.
+- [x] Ask an agent to remember a password or an API key. It refuses, and
       nothing appears on the Memory page in any status.
-- [ ] The audit log shows `memory.suggested`, `memory.approved`,
+- [x] The audit log shows `memory.suggested`, `memory.approved`,
       `memory.forgotten` and `memory.refused`.
 
 ## Memory, from a second account
 
-- [ ] As a second user, in a fresh session, ask the agent about the *first*
+- [x] As a second user, in a fresh session, ask the agent about the *first*
       user's approved personal memory. **It does not know.**
-- [ ] Paste an instruction into the chat telling the agent to recall everything
+- [x] Paste an instruction into the chat telling the agent to recall everything
       about the other user, naming their id. It still does not know.
+- [x] Open `/pandora/memory` as user 2 and look for user 1's personal memory.
+      **Defect 4, fixed** — see below. It was there, and it should not have been.
 
 ## Workspaces — deferred to Phase 7
 
@@ -74,10 +121,10 @@ listed because the first run of this walkthrough hit every one of them:
 `pandora.features.workspaces`, so the only two things to check here are that it
 says so and that nothing reaches past it:
 
-- [ ] The sidebar shows **Workspaces** marked *Coming soon*, and it does not link.
-- [ ] `/pandora/workspaces` says the feature is coming and names no workspace,
+- [x] The sidebar shows **Workspaces** marked *Coming soon*, and it does not link.
+- [x] `/pandora/workspaces` says the feature is coming and names no workspace,
       even for an operator holding every ability.
-- [ ] An agent's **Workspace** tab says the same.
+- [x] An agent's **Workspace** tab says the same.
 
 The checks below are the Phase 7 walkthrough. They are kept here because the
 behaviour they describe is built and covered — `Workspaces/ContainmentTest`,
@@ -113,19 +160,19 @@ is a checklist rewritten from memory later. Set
 
 ## The agent's tabs
 
-- [ ] **Memory** tab shows what that agent has written, and nothing belonging to
+- [x] **Memory** tab shows what that agent has written, and nothing belonging to
       a person.
-- [ ] **Workspace** tab says the feature is coming in a later phase (Phase 7,
+- [x] **Workspace** tab says the feature is coming in a later phase (Phase 7,
       above). With the flag on it shows the workspace, or says plainly that an
       agent without one can reach no files.
-- [ ] **Skills** tab lists attached skills and flags required tools the agent
+- [x] **Skills** tab lists attached skills and flags required tools the agent
       cannot actually call.
 
 ## Context files
 
-- [ ] Configure `pandora.context.files.roots`, put a file in it, name it in an
+- [x] Configure `pandora.context.files.roots`, put a file in it, name it in an
       agent's `metadata.context_files`. The agent can quote it.
-- [ ] Point one entry at `/etc/passwd`. The run still works and that file is
+- [x] Point one entry at `/etc/passwd`. The run still works and that file is
       simply absent from the answer.
 
 ## Vector store, if you have Postgres
@@ -194,6 +241,38 @@ symptom was a stale badge; the real one was a run leaked per question asked.
 No test covered the composer against a parked run: the chat tests either send
 into a fresh conversation or assert on rendering, and `Pandora::reply()` has its
 own tests that never go through the UI. The gap was the seam between them.
+
+**4. Anybody who could open the control center could read everybody's
+memories.** (No error, no symptom — the page simply showed them.)
+
+`MemoryIndex::mount()` authorized `pandora.access`, the ability every
+authenticated user holds by default, and the listing is filtered by scope and by
+status but never by actor. So a user with nothing but chat could read every
+user-scoped memory belonging to every person on the installation, sensitive ones
+included — a preference, a home address, whatever an agent had been told and had
+written down.
+
+Every ability around it was right, which is how it survived. Approving,
+rejecting, forgetting and exporting all require `pandora.memory.manage`, and
+`MemoryCurator` re-checks it. Only *reading* was left on `access`, and reading
+is the part that discloses. `AgentDetail::memoriesFor()`'s docblock had even
+described the intended rule correctly — user-scoped memory lives on the Memory
+page "behind `pandora.memory.manage`" — while the page it described did not
+implement it.
+
+The fix makes the whole page an operator surface: `mount()` authorizes
+`memory.manage`, and the sidebar entry is filtered on the same ability rather
+than on `access`. Not a per-viewer filter, because this is a review queue and
+not a place someone reads their own memory back — an admin page has no "who is
+standing here" to bound a listing by, which is the same reason the agent's
+Memory tab shows agent-scoped rows only.
+
+The suite could not see it because no test ever asked a *less* privileged user
+to read. `MemoryPageTest` granted `memory.manage` in `beforeEach` and then only
+withdrew it to check that the buttons disappeared and a forged approval was
+refused — both of which passed, honestly, while the disclosure sat underneath
+them. Criterion 28 covers cross-*tenant* reads and there is no criterion for
+cross-*user* ones. The three new tests fail without the fix.
 
 ## Notes
 

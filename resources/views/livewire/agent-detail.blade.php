@@ -148,6 +148,17 @@
                 </div>
 
                 <div class="pd-grid pd-grid-split">
+                    {{--
+                        The slug is the name an operator actually types -- at the
+                        console, in a route, in a config. It is fixed at creation
+                        and so is stated rather than edited, but stating it only
+                        in faint text beside the heading left it easy to miss on
+                        the one tab that claims to hold the agent's identity.
+                    --}}
+                    <div class="pd-field">
+                        <span class="pd-label">Slug</span>
+                        <p class="pd-mono">{{ $agent->slug }}</p>
+                    </div>
                     <div class="pd-field">
                         <span class="pd-label">Identifier</span>
                         <p class="pd-mono pd-faint">{{ $agent->id }}</p>

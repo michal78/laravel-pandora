@@ -11,9 +11,9 @@
 | 1 | Kernel vertical slice | 🔨 22/22 criteria; walkthrough driven 2026-08-07 and found an agent-binding defect in the chat page — fixed, 2 checks await re-driving |
 | 2 | Tools and approvals | ✅ 36/36 — host walkthrough driven 2026-08-07; found four defects, three fixed and one carried as a contract change |
 | 3 | Providers and routing | ✅ 41/41 — database matrix now genuinely green on MySQL, MariaDB and PostgreSQL |
-| 3.5 | Agents page | 🔨 20/20 acceptance criteria verified; host walkthrough outstanding (Q9) |
+| 3.5 | Agents page | ✅ 20/20 — host walkthrough driven 2026-08-07; found a missing slug on the Overview tab, fixed, and a stale stub-tab list in the walkthrough itself |
 | 4 | Automation | ✅ 26/26 on all four engines; host walkthrough complete |
-| 5 | Memory and context | 🔨 28/28 acceptance criteria verified, incl. a real pgvector CI leg; host walkthrough outstanding |
+| 5 | Memory and context | ✅ 28/28 incl. a real pgvector CI leg; host walkthrough driven 2026-08-07 — four defects, all fixed, one of them a cross-user memory disclosure on the Memory page |
 | 6 | Multi-agent and MCP | ⬜ |
 | 7 | Channels and extensions | ⬜ |
 | 8 | Hardening and release | ⬜ |
@@ -137,7 +137,7 @@ inherited by every adapter written in the meantime.
 
 ---
 
-## Phase 3.5 — Agents page 🔨
+## Phase 3.5 — Agents page ✅
 
 A late insertion, and an admission. The control-center page map specifies sixteen page groups, and
 `Agents` is one of them — but Phase 1 deferred "the remaining 14 UI page groups" and no later phase
@@ -186,8 +186,16 @@ load-bearing ones: a control-center edit to a class-managed field is refused rat
 `pandora.agents.manage` is required to write and proven absent-by-default; instructions stay behind
 `pandora.prompts.view`; and a tenant cannot open, edit or delete another tenant's agent.
 
-**Status:** all 20 criteria verified by automated test. The host walkthrough (Q9) is outstanding, as
-it is for Phases 1 and 2 — nobody has yet clicked Edit in a browser against a real deployment.
+**Status:** complete. All 20 criteria verified by automated test, and the host walkthrough (Q9)
+driven against `laravel-test` on 2026-08-07 — a person clicking Edit in a browser against a real
+deployment, which is what the criteria could not do for themselves.
+
+It found two things. The Overview tab never stated the agent's slug: it appeared once as faint text
+beside the heading, while the ULID nobody types had a label of its own. The slug is what the console,
+the routes and the config all use, so it is now a labelled fact, with a regression test. The second
+was the walkthrough rather than the page — its "seven stub tabs" list was written at 3.5 and Phases 4
+and 5 had filled three of them in, so a document quoting a frozen list was reporting its own age as a
+failure.
 
 ---
 
@@ -265,7 +273,7 @@ automation left running long enough to exercise the misfire policy against a gen
 
 ---
 
-## Phase 5 — Memory and context 🔨
+## Phase 5 — Memory and context ✅
 
 Full context provider pipeline with budgeting, redaction and attribute allowlisting · context files
 from configured roots only · conversation summarisation · `MemoryItem` with all scopes and types ·
@@ -277,6 +285,27 @@ the agent's **Skills**, **Memory** and **Workspace** tabs.
 **Acceptance:** memory scoping is proven — a user cannot retrieve another user's or another tenant's
 memories. Workspace traversal and symlink escape attacks fail. A default install works with no vector
 database.
+
+**Status:** complete. All 28 criteria verified by automated test including a real pgvector CI leg,
+and the host walkthrough driven against `laravel-test` on 2026-08-07: the memory half in full, in a
+browser, against a real model.
+
+Four defects, all fixed. Three came from the first pass — a parameterless tool whose `properties: []`
+encoded as a JSON array and made OpenAI reject every tool in the request; `remember` inheriting a
+base-class `authorize()` that refused it to everybody including the person whose memory it was; and
+`Chat::send()` starting a rival run instead of resuming one parked at `waiting_for_user`, leaking a
+run per question asked.
+
+The fourth came from the second pass and is the one worth naming here: reading the Memory page
+required only `pandora.access`, and the listing is filtered by scope and status but never by actor —
+so any authenticated user could read every user-scoped memory on the installation, sensitive ones
+included. Every ability *around* it was correct, which is how it lasted; only reading was left open,
+and reading is the part that discloses. The page is now an operator surface end to end. Note what the
+acceptance line above says: memory scoping was proven for *retrieval*, by an agent, and no criterion
+asked what the admin page shows a human.
+
+The vector-store and workspace sections of the walkthrough are deliberately not driven — the first
+needs Postgres and runs in CI instead, the second is Phase 7.
 
 ---
 

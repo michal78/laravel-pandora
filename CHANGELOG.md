@@ -55,6 +55,17 @@ longer in the room.
 - A write through a symlink escaped the workspace root, because resolving a
   path for creation checked only the parent directory.
 
+### Security
+
+- **The Memory page disclosed every user's memories to every user.** Reading it
+  required only `pandora.access` — the ability an authenticated user holds by
+  default — and the listing is filtered by memory scope and status, never by
+  viewer. Reading now requires `pandora.memory.manage`, the same ability
+  approving and forgetting already required, and the sidebar entry is filtered on
+  it too. Found by the Phase 5 host walkthrough. Hosts that granted
+  `pandora.access` broadly and `pandora.memory.manage` narrowly were affected;
+  no configuration change is needed to take the fix.
+
 ## [Unreleased]
 
 ### Added

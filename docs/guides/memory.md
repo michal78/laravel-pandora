@@ -141,6 +141,7 @@ the numbers would reveal it.
 
 | Action | Ability | Effect |
 |---|---|---|
+| Read the Memory page | `pandora.memory.manage` | the whole page, not only the buttons — the listing is scoped by memory scope and never by viewer, so reading it is reading everyone's |
 | Approve | `pandora.memory.manage` | `suggested` → `active`, and only now embedded |
 | Reject | `pandora.memory.manage` | `rejected`, never retrievable, kept so it is not re-proposed forever |
 | Forget | `pandora.memory.manage` | row soft-deleted, **vector hard-deleted** |

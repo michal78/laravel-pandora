@@ -108,6 +108,7 @@ a policy editor wants the tool registry beside it), agent duplication, import/ex
 - [x] `vendor/bin/pint --test` clean
 - [x] `docs/development/progress.md`, `docs/roadmap.md`, `docs/architecture/overview.md` and
       `CHANGELOG.md` updated
-- [ ] **A human drives the page in a host application** — the same walkthrough item still open for
-      Phases 1 and 2 (Q9). Every assertion here is a Livewire test; nobody has yet clicked Edit in a
-      browser against a real deployment.
+- [x] **A human drives the page in a host application** — driven against `laravel-test` on
+      2026-08-07, against `phase-3.5-walkthrough.md`. Every assertion here is a Livewire test, and
+      this was somebody clicking Edit in a browser against a real deployment. It found that Overview
+      never stated the agent's slug, now fixed with a regression test.

@@ -99,7 +99,7 @@
                         ['route' => 'pandora.automations', 'label' => 'Automations', 'glyph' => '◐', 'ability' => 'access'],
                         ['route' => 'pandora.runs',      'label' => 'Runs',      'glyph' => '◇', 'ability' => 'access'],
                         ['route' => 'pandora.tools',     'label' => 'Tools',     'glyph' => '◧', 'ability' => 'access'],
-                        ['route' => 'pandora.memory',    'label' => 'Memory',    'glyph' => '◎', 'ability' => 'access'],
+                        ['route' => 'pandora.memory',    'label' => 'Memory',    'glyph' => '◎', 'ability' => 'memory.manage'],
                         ['route' => 'pandora.workspaces', 'label' => 'Workspaces', 'glyph' => '▤', 'ability' => 'workspaces.access',
                          'soon' => \Pandora\UI\Feature::disabled('workspaces')],
                         ['route' => 'pandora.approvals', 'label' => 'Approvals', 'glyph' => '◉', 'ability' => 'access'],

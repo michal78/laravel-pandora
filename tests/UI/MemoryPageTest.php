@@ -104,26 +104,49 @@ it('forgets a memory', function (): void {
     expect(MemoryItem::query()->count())->toBe(0);
 });
 
-it('refuses a forged approval from a user without the ability', function (): void {
+/**
+ * Found by the Phase 5 walkthrough: reading the page needed only
+ * `pandora.access`, and the listing is filtered by scope and status but never
+ * by actor -- so an ordinary chat user could read every user-scoped memory
+ * belonging to every person, sensitive ones included. Reading is an operator
+ * act here, the same as approving.
+ */
+it('refuses to open at all without pandora.memory.manage', function (): void {
     Gate::define('pandora.memory.manage', static fn (): bool => false);
 
-    $item = pageMemory('a suggestion', ['status' => MemoryStatus::Suggested->value]);
+    $mine = pageMemory("Michal's home address", [
+        'scope' => MemoryScope::User->value,
+        'scope_id' => 'App\Models\User#1',
+    ]);
 
-    Livewire::test(MemoryIndex::class)
-        ->call('approve', $item->getKey())
-        ->assertForbidden();
+    Livewire::test(MemoryIndex::class)->assertForbidden();
 
-    expect($item->refresh()->status)->toBe(MemoryStatus::Suggested);
+    // Not merely hidden behind a filter: the content never reaches the page.
+    $this->get(route('pandora.memory'))
+        ->assertForbidden()
+        ->assertDontSee($mine->content);
 });
 
-it('hides the action buttons from a user who cannot use them', function (): void {
+it('keeps Memory out of the sidebar for a user who cannot open it', function (): void {
     Gate::define('pandora.memory.manage', static fn (): bool => false);
 
-    pageMemory('a suggestion', ['status' => MemoryStatus::Suggested->value]);
+    // Not the boundary -- mount refuses too -- but a sidebar offering a link
+    // that answers 403 teaches people to ignore authorization errors.
+    $this->get(route('pandora.dashboard'))->assertOk()->assertDontSee('>Memory<', false);
+});
 
-    // Not the boundary -- the call is refused too -- but a page offering
-    // buttons that answer 403 teaches people to ignore authorization errors.
-    Livewire::test(MemoryIndex::class)->assertDontSee('wire:click="approve');
+it('refuses an approval forged after the page was opened', function (): void {
+    $item = pageMemory('a suggestion', ['status' => MemoryStatus::Suggested->value]);
+
+    // Opened while the ability was held, replayed after it was withdrawn --
+    // which is the shape a forged request takes when the page is already up.
+    $page = Livewire::test(MemoryIndex::class);
+
+    Gate::define('pandora.memory.manage', static fn (): bool => false);
+
+    $page->call('approve', $item->getKey())->assertForbidden();
+
+    expect($item->refresh()->status)->toBe(MemoryStatus::Suggested);
 });
 
 it('answers a memory id from another tenant the way it answers one that never existed', function (): void {

@@ -5,6 +5,76 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-07 (later the same day) — Phases 3.5 and 5 driven, and the Memory page was reading everyone's mail
+
+The other two walkthroughs, in the same sitting. Phase 3.5 and Phase 5 are now ✅; every phase up to
+6 has been driven by a person in a browser except the two Phase 1 checks noted below.
+
+```
+vendor/bin/pest        -> Tests: 1,185 passed, 8 skipped
+vendor/bin/phpstan     -> [OK] No errors  (level 8)
+vendor/bin/pint --test -> passed
+```
+
+Same host as the morning: `laravel-test`, Laravel 13.19, PHP 8.5, MySQL 8.4, Redis queue, real
+OpenAI `gpt-4o-mini`, two accounts where only one is an operator.
+
+**The one that matters: anybody who could open the control center could read everybody's memories.**
+
+`MemoryIndex::mount()` authorized `pandora.access` — the ability every authenticated user holds by
+default — and the listing is filtered by memory scope and by status, never by actor. So a user with
+nothing but chat could read every user-scoped memory on the installation: a preference, a home
+address, whatever an agent had been told about somebody and written down, sensitivity flag and all.
+
+What makes it worth writing down is that every ability *around* it was right. Approve, reject, forget
+and export all require `pandora.memory.manage`, and `MemoryCurator` re-checks it — the write side was
+defended twice over. Only reading was left on `access`, and reading is the part that discloses.
+`AgentDetail::memoriesFor()` had even documented the intended rule correctly, saying user-scoped
+memory lives on the Memory page "behind `pandora.memory.manage`", while the page it described did
+not do that. A docblock is not a gate.
+
+The fix makes the page an operator surface end to end: `mount()` authorizes `memory.manage`, and the
+sidebar entry is filtered on the same ability instead of on `access`. Deliberately not a per-viewer
+filter — this is a review queue, not somewhere a person reads their own memory back, and an admin
+page has no "who is standing here" to bound a listing by. That is the same reasoning that keeps the
+agent's Memory tab to agent-scoped rows.
+
+Why the suite could not see it: no test ever asked a *less* privileged user to read. `MemoryPageTest`
+granted `memory.manage` in `beforeEach`, then withdrew it only to check that the buttons disappeared
+and that a forged approval was refused. Both passed, honestly, while the disclosure sat underneath
+them — the tests were watching the *actions* and the leak was in the *page*. And the acceptance plan
+has criterion 28 for "a tenant cannot see another tenant's memory through the UI" with no equivalent
+for a user, so the plan had the shape of the question and only ever asked the tenant half of it.
+Three new tests, all failing without the fix; one of them asserts the content itself never reaches
+the response, not merely that a button is absent.
+
+**Phase 3.5: the Overview tab never said the agent's slug.** It appeared once, as faint text under
+the heading, and nowhere as a field — while the ULID, which nobody types anywhere, had a label of its
+own. The slug is the name the console, the routes and the config all use. Now a labelled fact beside
+the identifier, still not editable, with a regression test. The suite missed it because every
+`AgentDetailTest` assertion checks *behaviour* — what saves, what refuses, what audits, what is
+locked — and none asked whether the identity a human reads off the page is complete.
+
+**Phase 3.5, second finding: the walkthrough had aged.** Its "seven stub tabs" section was copied
+from the acceptance plan when 3.5 shipped, and Phases 4 and 5 had since filled in Automations, Skills
+and Memory; Workspace is built and behind a flag; only Tools, Channels and Permissions are still
+stubs. No code defect, and recorded as a defect anyway: a staged checklist quoting a frozen list
+reports its own age as failures, which costs exactly as much time as a real one.
+
+**Environment work, because a walkthrough that cannot run proves nothing.** Runs and usage had been
+flushed at some point, so the Runs and Usage checks had nothing to look at — regenerated against the
+real model. Usage recorded no *cost*, because `pandora:model:sync` reports every OpenAI model as
+unpriced and Pandora refuses to invent a price; `gpt-4o-mini` is now priced by hand in the host's
+catalog, attributed, and Delta's model stays unpriced on purpose so the null-cost half stays visible.
+For Phase 5: memory cleared to zero so the empty state was reachable, two skills attached to
+`EchoAgent` — one satisfied, one requiring `read_file`/`write_file` that no agent can call — and a
+context file wired up and proven by asking for a codeword that exists nowhere else.
+
+**Still open:** the two Phase 1 checks added after the agent-binding fix, which are covered by
+regression tests but not yet re-confirmed in a browser.
+
+---
+
 ## 2026-08-07 — The Phase 1 and 2 walkthroughs, driven at last
 
 Phases 1, 2, 3.5 and 5 had all sat at 🔨 with the same sentence: every acceptance criterion verified
