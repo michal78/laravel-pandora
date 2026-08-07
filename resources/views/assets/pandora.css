@@ -592,6 +592,17 @@ button { font: inherit; cursor: pointer; }
 .pd-table-tight td,
 .pd-table-tight th { padding: var(--pd-space-2) var(--pd-space-3); }
 
+/* A table whose headings run down the side is a key/value list, not a grid.
+   Left to itself the browser splits the width in two and the value drifts to
+   the middle of a wide card, far from the label it answers. The label column
+   takes only what it needs, and the value follows it. */
+.pd-table-kv th[scope="row"] {
+    width: 1%; white-space: nowrap; vertical-align: top;
+    padding-right: var(--pd-space-6);
+}
+.pd-table-kv td { vertical-align: top; }
+.pd-table-kv tbody tr:hover { background: transparent; }
+
 /* ------------------------------------------------- tools and approvals */
 
 .pd-h4 {

@@ -191,6 +191,17 @@ it('resolves the theme before the stylesheet, so the first paint is already corr
         ->and($script)->toBeLessThan((int) $body);
 });
 
+it('restores the theme after a wire:navigate, which overwrites the html attributes', function (): void {
+    // Livewire copies the incoming page's <html> attributes over the current
+    // ones on navigation, so a resolved dark theme reverts to the configured
+    // default and a collapsed sidebar springs open. The head script is not
+    // re-run — an unchanged head is kept rather than replaced — so the page
+    // has to re-apply the stored state itself.
+    $html = (string) $this->get('/pandora')->assertOk()->getContent();
+
+    expect($html)->toContain("document.addEventListener('livewire:navigated', restore)");
+});
+
 it('keeps the dark class and the theme attribute in step', function (): void {
     // The brand token file scopes its dark values to `.dark`; the component
     // layer keys off `[data-theme="dark"]`. Both must be written together or

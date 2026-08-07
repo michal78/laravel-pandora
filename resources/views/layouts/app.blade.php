@@ -51,14 +51,26 @@
                 root.classList.toggle('dark', resolved === 'dark');
             };
 
-            try {
-                apply(localStorage.getItem('pandora-theme') ?? root.dataset.theme);
-                root.dataset.pdSidebar = localStorage.getItem('pandora-sidebar') ?? 'expanded';
-            } catch (e) {
-                // Storage can be denied outright. The server-rendered default
-                // still renders a usable, correctly themed page.
-                apply(root.dataset.theme);
-            }
+            const restore = () => {
+                try {
+                    apply(localStorage.getItem('pandora-theme') ?? root.dataset.theme);
+                    root.dataset.pdSidebar = localStorage.getItem('pandora-sidebar') ?? 'expanded';
+                } catch (e) {
+                    // Storage can be denied outright. The server-rendered
+                    // default still renders a usable, correctly themed page.
+                    apply(root.dataset.theme);
+                }
+            };
+
+            restore();
+
+            // `wire:navigate` copies the incoming page's <html> attributes over
+            // this one's, which throws away the resolved theme and the sidebar
+            // state and leaves the configured default in their place -- a dark
+            // page turning light on the way to a subpage. This script is not
+            // re-run on navigation, because an unchanged head is kept rather
+            // than replaced, so the restore has to be asked for by hand.
+            document.addEventListener('livewire:navigated', restore);
         })();
     </script>
 

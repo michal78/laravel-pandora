@@ -26,7 +26,7 @@
             </x-slot:actions>
 
             <div class="pd-table-wrap">
-                <table class="pd-table">
+                <table class="pd-table pd-table-kv">
                     <tbody>
                         <tr>
                             <th scope="row">Adapter</th>

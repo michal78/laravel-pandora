@@ -722,7 +722,9 @@
     @endif
 
     @if (isset($pendingTabs[$tab]))
-        <x-pandora::card :title="$pendingTabs[$tab]['label']">
+        {{-- Untitled on purpose: the empty state already names the tab, and a
+             card head above it repeated the word into an empty band. --}}
+        <x-pandora::card>
             <x-pandora::empty-state :title="$pendingTabs[$tab]['label'].' arrives in '.$pendingTabs[$tab]['phase']">
                 {{ $pendingTabs[$tab]['note'] }}
             </x-pandora::empty-state>

@@ -462,7 +462,7 @@ it('names the phase that fills each tab that is not built yet', function (): voi
     // promises.
     Livewire::test(AgentDetail::class, ['agent' => 'support'])
         ->call('selectTab', 'tools')
-        ->assertSee('Phase 3.5+')
+        ->assertSee('Tools arrives in a later phase')
         ->call('selectTab', 'channels')
         ->assertSee('a later phase')
         ->call('selectTab', 'permissions')

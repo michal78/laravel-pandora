@@ -100,9 +100,11 @@ final class AgentDetail extends Component
      * @var array<string, array{label: string, phase: string, note: string}>
      */
     public const PENDING_TABS = [
+        // Pencilled in for Phase 3.5, which shipped the agents page without
+        // it. Left unnumbered rather than promised to a phase again.
         'tools' => [
             'label' => 'Tools',
-            'phase' => 'Phase 3.5+',
+            'phase' => 'a later phase',
             'note' => 'Tool grants are stored on the agent and enforced today; this tab will edit them rather than requiring a class definition or a seeder.',
         ],
 
