@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/michal78/laravel-pandora/master/resources/dist/logos/laravel-pandora-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/michal78/laravel-pandora/master/resources/dist/logos/laravel-pandora-light.svg">
-    <img alt="Pandora — agentic framework for Laravel" src="https://raw.githubusercontent.com/michal78/laravel-pandora/master/resources/dist/logos/laravel-pandora-light.svg" width="520">
+    <source media="(prefers-color-scheme: dark)" srcset="resources/dist/logos/laravel-pandora-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="resources/dist/logos/laravel-pandora-light.svg">
+    <img alt="Pandora — agentic framework for Laravel" src="resources/dist/logos/laravel-pandora-light.svg" width="520">
   </picture>
 </p>
 
