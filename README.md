@@ -1,27 +1,55 @@
-# Pandora
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/michal78/laravel-pandora/master/resources/dist/logos/laravel-pandora-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/michal78/laravel-pandora/master/resources/dist/logos/laravel-pandora-light.svg">
+    <img alt="Pandora — agentic framework for Laravel" src="https://raw.githubusercontent.com/michal78/laravel-pandora/master/resources/dist/logos/laravel-pandora-light.svg" width="520">
+  </picture>
+</p>
 
-**An agentic framework for Laravel applications.**
+<p align="center">
+  <strong>An agentic framework for Laravel applications.</strong><br>
+  Agents, tools, approvals, automations and memory — under explicit, auditable policy,<br>
+  with a Livewire control center for operating them.
+</p>
 
-Pandora lets your application expose its own actions to LLM-driven agents under explicit, auditable
-policy — and ships a Livewire control center for operating them.
+<p align="center">
+  <a href="https://packagist.org/packages/michal78/laravel-pandora"><img alt="Latest version" src="https://img.shields.io/packagist/v/michal78/laravel-pandora.svg?style=flat-square&color=5B46D9&label=packagist"></a>
+  <a href="https://github.com/michal78/laravel-pandora/actions/workflows/tests.yml"><img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/michal78/laravel-pandora/tests.yml?branch=master&style=flat-square&label=tests"></a>
+  <a href="https://github.com/michal78/laravel-pandora/actions/workflows/static-analysis.yml"><img alt="PHPStan level 8" src="https://img.shields.io/badge/phpstan-level%208-5B46D9?style=flat-square"></a>
+  <a href="https://github.com/michal78/laravel-pandora/actions/workflows/code-style.yml"><img alt="Code style" src="https://img.shields.io/github/actions/workflow/status/michal78/laravel-pandora/code-style.yml?branch=master&style=flat-square&label=pint"></a>
+  <br>
+  <a href="https://packagist.org/packages/michal78/laravel-pandora"><img alt="PHP version" src="https://img.shields.io/packagist/dependency-v/michal78/laravel-pandora/php?style=flat-square&color=777BB4&label=php"></a>
+  <img alt="Laravel 13" src="https://img.shields.io/badge/laravel-13.x-FF2D20?style=flat-square">
+  <a href="https://packagist.org/packages/michal78/laravel-pandora"><img alt="Downloads" src="https://img.shields.io/packagist/dt/michal78/laravel-pandora.svg?style=flat-square&color=5B46D9"></a>
+  <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/packagist/l/michal78/laravel-pandora.svg?style=flat-square&color=5B46D9"></a>
+</p>
 
-> ## ⚠ Pre-release — Phase 2 (tools and approvals)
+<p align="center">
+  <a href="docs/guides/installation.md">Installation</a> ·
+  <a href="docs/guides/quick-start.md">Quick start</a> ·
+  <a href="docs/architecture/overview.md">Architecture</a> ·
+  <a href="docs/architecture/security-model.md">Security model</a> ·
+  <a href="docs/roadmap.md">Roadmap</a>
+</p>
+
+---
+
+> ### ⚠ Pre-release — Phase 5 (memory and context)
 >
 > **What works today:** define an agent, start a conversation, dispatch a queued run, stream it over
 > Reverb, persist an immutable trace, reload without losing anything, cancel it, and inspect it in
-> the control center — and now give the agent **tools**, under five layers of authorization, with
-> human approval gates on the risky ones. Verified by 431 tests (1,580 assertions), PHPStan level 8,
-> Pint.
+> the control center — with **tools** under five layers of authorization and human approval gates on
+> the risky ones, **multi-provider routing** with failover and budgets, **automations** on four
+> engines, and **scoped memory and context** that works with no vector database installed.
 >
-> **What does not exist yet:** memory, automations, skills, MCP and messaging channels. Those are
-> Phases 3–7 — see [`docs/roadmap.md`](docs/roadmap.md).
+> **What does not exist yet:** multi-agent delegation and MCP (Phase 6), messaging channels and
+> workspaces (Phase 7), release hardening (Phase 8). See [`docs/roadmap.md`](docs/roadmap.md).
 >
-> Open acceptance items, all needing infrastructure this machine lacks: the manual walkthrough
-> against a live worker + Reverb, and the MySQL/MariaDB/PostgreSQL matrix. See
-> [`docs/development/phase-1-acceptance.md`](docs/development/phase-1-acceptance.md) and
-> [`docs/development/phase-2-acceptance.md`](docs/development/phase-2-acceptance.md).
+> **Verified by** 1,175 tests (3,916 assertions) across SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17
+> and pgvector · PHPStan level 8 · Pint. Several phases still carry an outstanding manual host
+> walkthrough — see [`docs/development/`](docs/development/).
 >
-> The license is **provisional** pending owner confirmation — see [`LICENSE.md`](LICENSE.md).
+> Not yet published to Packagist; install from source until Phase 8.
 
 ---
 
@@ -117,14 +145,20 @@ resumes. Every step is in the trace. Every decision is in the audit log.
 | **Authorized against the actor, not the agent** | A tool call is checked against the acting user's Laravel gates and policies. An agent cannot do what the user could not. |
 | **Runs pause for free** | An approval pause holds no worker and no memory. It can wait three days across two deploys. |
 | **Resumable by construction** | All continuation state is in the database. A worker crash loses at most one iteration. |
+| **Memory needs no vector database** | Lexical retrieval is the shipped path across all four databases. A vector store is an accelerator, never an authority. |
 | **Reverb is optional** | The database is authoritative; broadcasts are notifications. Turn realtime off and polling is still correct. |
-| **Redis, Horizon and vector databases are optional** | The core runtime needs a plain Laravel queue and nothing else. |
+| **Redis and Horizon are optional** | The core runtime needs a plain Laravel queue and nothing else. |
 | **Nothing is forced** | Headless mode installs no routes, no views, no Livewire. |
 
 ## Requirements
 
-PHP 8.3+ · Laravel 13 · any Laravel queue backend
-Optional: Livewire 4 (control center) · Reverb (streaming) · Redis/Horizon · a vector store
+| | |
+|---|---|
+| **PHP** | 8.3 · 8.4 |
+| **Laravel** | 13.x |
+| **Database** | SQLite · MySQL 8.4 · MariaDB 11 · PostgreSQL 17 — all in CI |
+| **Queue** | any Laravel queue backend |
+| **Optional** | Livewire 4 (control center) · Reverb (streaming) · Redis/Horizon · pgvector |
 
 ## Installation
 
@@ -156,16 +190,27 @@ final class SupportAgent implements AgentDefinition
 php artisan pandora:agent:run support "Where is order 1234?" --trace
 ```
 
-Full walkthrough: [installation](docs/guides/installation.md) ·
-[quick start](docs/guides/quick-start.md) · [agents](docs/guides/agents.md) ·
-[tools](docs/guides/tools.md) · [providers](docs/guides/providers.md) ·
-[automations](docs/guides/automations.md)
+## Control center
+
+A Livewire control center ships with the package and looks finished the moment it is installed —
+its own logo, palette and design tokens, light and dark themes resolved before the first paint, and
+every colour meeting WCAG AA on the surface it sits on. Retheme it by overriding one layer of custom
+properties; replace the mark by editing one Blade component.
+
+See [`docs/visual-identity.md`](docs/visual-identity.md) and
+[`docs/brand-guide.md`](docs/brand-guide.md).
+
+```php
+// config/pandora.php
+'ui' => ['brand' => 'Acme Agents', 'theme' => 'dark'],
+```
 
 ## Documentation
 
-**Product** — [vision](docs/product/vision.md) ·
-[feature parity](docs/product/feature-parity.md) ·
-[terminology](docs/product/terminology.md)
+**Guides** — [installation](docs/guides/installation.md) ·
+[quick start](docs/guides/quick-start.md) · [agents](docs/guides/agents.md) ·
+[tools](docs/guides/tools.md) · [providers](docs/guides/providers.md) ·
+[automations](docs/guides/automations.md) · [memory](docs/guides/memory.md)
 
 **Architecture** — [overview](docs/architecture/overview.md) ·
 [security model](docs/architecture/security-model.md) ·
@@ -174,20 +219,14 @@ Full walkthrough: [installation](docs/guides/installation.md) ·
 [database model](docs/architecture/database-model.md) ·
 [realtime model](docs/architecture/realtime-model.md)
 
-**Decisions** — [ADRs](docs/adr/) — 13 decisions, each with the alternatives and why they lost
+**Product** — [vision](docs/product/vision.md) ·
+[feature parity](docs/product/feature-parity.md) ·
+[terminology](docs/product/terminology.md)
 
-**Guides** — [installation](docs/guides/installation.md) ·
-[quick start](docs/guides/quick-start.md) · [agents](docs/guides/agents.md) ·
-[tools](docs/guides/tools.md) · [providers](docs/guides/providers.md) ·
-[automations](docs/guides/automations.md)
+**Decisions** — [ADRs](docs/adr/) — each with the alternatives and why they lost
 
-**Delivery** — [roadmap](docs/roadmap.md) ·
-[Phase 1 acceptance plan](docs/development/phase-1-acceptance.md) ·
-[Phase 2 acceptance plan](docs/development/phase-2-acceptance.md) ·
-[Phase 3 acceptance plan](docs/development/phase-3-acceptance.md) ·
-[Phase 3.5 acceptance plan](docs/development/phase-3.5-acceptance.md) ·
-[Phase 4 acceptance plan](docs/development/phase-4-acceptance.md) ·
-[progress log](docs/development/progress.md) ·
+**Delivery** — [roadmap](docs/roadmap.md) · [changelog](CHANGELOG.md) ·
+[acceptance plans](docs/development/) · [progress log](docs/development/progress.md) ·
 [open questions](docs/development/open-questions.md)
 
 ## Security
@@ -211,3 +250,7 @@ OpenClaw and Hermes Agent shaped what users now expect from a self-hosted agent 
 them publicly informed [our parity matrix](docs/product/feature-parity.md). Pandora shares no code,
 assets, wording or implementation details with either project — every capability here is an
 independent Laravel-native reimplementation.
+
+## License
+
+MIT — **provisional**, pending owner confirmation. See [`LICENSE.md`](LICENSE.md).
