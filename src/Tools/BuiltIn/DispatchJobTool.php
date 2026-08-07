@@ -44,9 +44,22 @@ final class DispatchJobTool extends Tool
     public function rules(): array
     {
         return [
-            'job' => 'required|string|max:64',
+            'job' => $this->nameRule(),
             'arguments' => 'nullable|array',
         ];
+    }
+
+    /** The allowlisted job names, as an enum the model can choose from. */
+    private function nameRule(): string
+    {
+        /** @var array<string, array<string, mixed>> $jobs */
+        $jobs = config('pandora.tools.jobs', []);
+
+        $names = array_keys($jobs);
+
+        return $names === []
+            ? 'required|string|max:64'
+            : 'required|string|in:'.implode(',', $names);
     }
 
     public function descriptions(): array

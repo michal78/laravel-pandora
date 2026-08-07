@@ -45,10 +45,23 @@ final class QueryRecordsTool extends Tool
     public function rules(): array
     {
         return [
-            'resource' => 'required|string|max:64',
+            'resource' => $this->nameRule(),
             'filters' => 'nullable|array',
             'limit' => 'nullable|integer|min:1|max:100',
         ];
+    }
+
+    /** The allowlisted resource names, as an enum the model can choose from. */
+    private function nameRule(): string
+    {
+        /** @var array<string, array<string, mixed>> $resources */
+        $resources = config('pandora.tools.resources', []);
+
+        $names = array_keys($resources);
+
+        return $names === []
+            ? 'required|string|max:64'
+            : 'required|string|in:'.implode(',', $names);
     }
 
     public function descriptions(): array

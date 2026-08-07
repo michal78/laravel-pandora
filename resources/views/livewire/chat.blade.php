@@ -42,15 +42,25 @@
     {{-- Thread --}}
     <div class="pd-card pd-chat-main">
         <div class="pd-chat-head">
-            <label class="pd-visually-hidden" for="pd-agent-select">Agent</label>
-            <select id="pd-agent-select" class="pd-select" style="max-width: 220px" wire:model.live="agentSlug"
-                    @if ($conversation) disabled @endif>
-                @forelse ($agents as $agent)
-                    <option value="{{ $agent->slug }}">{{ $agent->name }}</option>
-                @empty
-                    <option value="">No agents available</option>
-                @endforelse
-            </select>
+            {{-- A conversation belongs to the agent it was started with, so once
+                 one exists the agent is a fact rather than a choice. Rendering
+                 it as a disabled <select> said "broken"; naming it says where
+                 the answers are coming from. Same reasoning as the class-managed
+                 fields on the agent detail page. --}}
+            @if ($conversation)
+                <div class="pd-locked" style="max-width: 220px">
+                    <span class="pd-locked-mark" aria-hidden="true">◆</span>{{ $conversation->agent?->name ?? 'Unknown agent' }}
+                </div>
+            @else
+                <label class="pd-visually-hidden" for="pd-agent-select">Agent</label>
+                <select id="pd-agent-select" class="pd-select" style="max-width: 220px" wire:model.live="agentSlug">
+                    @forelse ($agents as $agent)
+                        <option value="{{ $agent->slug }}">{{ $agent->name }}</option>
+                    @empty
+                        <option value="">No agents available</option>
+                    @endforelse
+                </select>
+            @endif
 
             @if ($run)
                 <x-pandora::status :state="$run->state" />
@@ -116,6 +126,17 @@
                         @endif
                     </div>
 
+                    @continue
+                @endif
+
+                {{-- An assistant message is created empty before the model is
+                     called, so a reload mid-request finds something to render.
+                     Rendering it while it is still empty produces a blank
+                     bubble that says nothing -- and when the run parks for an
+                     approval it never fills, so the blank sits there for as
+                     long as the approval is pending. The run status and the
+                     tool and approval cards already say what is happening. --}}
+                @if (! $isUser && ! $isError && trim((string) $message->content) === '')
                     @continue
                 @endif
 

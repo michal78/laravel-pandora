@@ -1,9 +1,9 @@
 # Phase 2 — Acceptance Test Plan
 
-> **Status as of 2026-08-06: 35 of 36 criteria verified.** The database matrix closed on
+> **Status as of 2026-08-07: 36 of 36 criteria verified, and the host walkthrough is complete.**
+> It found four defects — see `phase-2-walkthrough.md`. The database matrix closed on
 > 2026-08-06 — the full suite now passes on MySQL 8.4, MariaDB 11 and PostgreSQL 17, and making the
-> matrix genuine found three defects (see `progress.md`). The one exception left is a human driving
-> the new pages.
+> matrix genuine found three defects (see `progress.md`).
 >
 > ```
 > vendor/bin/pest        -> Tests: 431 passed (1,580 assertions)
@@ -105,9 +105,20 @@ tempting the symmetry.
       MariaDB 11 and PostgreSQL 17. It had been an argument rather than a run for longer than
       anybody realised: the three engine jobs were running SQLite, because `TestCase` hardcoded the
       connection and overrode the workflow's `DB_CONNECTION`.
-- [ ] **Host-application walkthrough** — a human granting a tool to an agent, watching a call pause,
-      approving it from the Approvals page and seeing the run resume. Every step has an automated
-      equivalent that passes; none of them is a person using the product.
+- [x] **Host-application walkthrough** — driven 2026-08-07. A human granted the tools, watched a
+      call pause, approved it from the Approvals page and saw the run resume; the notification it
+      sent arrived in Mailpit. Every check in `phase-2-walkthrough.md` passes, and getting there
+      found four defects, three now fixed with regression tests and one logged as a contract change
+      (see below).
 
-Phase 2 is **substantially complete**. What remains is breadth of verification, not unfinished
-behaviour, and neither item is marked done until it has actually been run.
+Phase 2 is **complete**, and the walkthrough was not the formality the automated column made it look
+like. Four defects came out of it, and the reason none was reachable by the suite is worth keeping:
+three of them needed **a real model free to answer wrongly**. `FakeProvider` calls whatever a test
+tells it to call, so no test could watch a model asked for "the configured notification name" reach
+for the email address in the user's sentence — and then be told it was not authorized.
+
+One item is carried forward rather than closed: `send_notification` and four other built-ins resolve
+a name against a host allowlist that ships empty, and a tool with nothing allowlisted is refused to
+everybody with a message about permissions. The fix is a way for a tool to declare itself
+*unavailable, with a reason* — kept out of what is advertised to the model, and shown as such on the
+Tools page — rather than another string change. Tracked in `phase-2-walkthrough.md` defect 2.

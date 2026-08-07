@@ -234,3 +234,145 @@ it('answers a run that asked a question instead of starting a rival run', functi
     // And the answer is an ordinary message, reaching the model by the one path.
     expect(Message::query()->where('content', 'Michal')->exists())->toBeTrue();
 });
+
+/*
+|--------------------------------------------------------------------------
+| The conversation owns its agent
+|--------------------------------------------------------------------------
+|
+| Found by the Phase 2 host walkthrough, 2026-08-07. `mount()` seeded the
+| picker from `availableAgents()->first()` -- ordered by name -- and never
+| looked at the conversation. Opening or merely reloading a conversation
+| repointed it at whichever agent sorted first, and every later message ran
+| with that agent's instructions, tools, model, autonomy and budgets while
+| `conversations.agent_id` went on naming the original.
+|
+| Every test below needs a SECOND agent sorting before 'Echo'. The suite had
+| exactly one agent, which is why `->first()` was never observably wrong.
+*/
+
+it('shows the conversation\'s own agent, not whichever sorts first', function (): void {
+    $first = $this->makeAgent(['name' => 'Aardvark', 'slug' => 'aardvark']);
+    $echo = app(AgentRegistry::class)->get('echo');
+
+    $conversation = $this->makeConversation($echo, [
+        'created_by_type' => $this->user::class,
+        'created_by_id' => (string) $this->user->getKey(),
+    ]);
+
+    expect($first->name)->toBeLessThan($echo->name);
+
+    Livewire::test(Chat::class, ['conversation' => (string) $conversation->getKey()])
+        ->assertSet('agentSlug', 'echo');
+});
+
+it('renders the agent as a fact once a conversation exists', function (): void {
+    $this->makeAgent(['name' => 'Aardvark', 'slug' => 'aardvark']);
+    $echo = app(AgentRegistry::class)->get('echo');
+
+    $conversation = $this->makeConversation($echo, [
+        'created_by_type' => $this->user::class,
+        'created_by_id' => (string) $this->user->getKey(),
+    ]);
+
+    Livewire::test(Chat::class, ['conversation' => (string) $conversation->getKey()])
+        ->assertSee('Echo')
+        ->assertDontSeeHtml('id="pd-agent-select"');
+
+    // A new conversation still gets a real choice.
+    Livewire::test(Chat::class)->assertSeeHtml('id="pd-agent-select"');
+});
+
+it('runs as the conversation\'s agent even when the picker is forged', function (): void {
+    $intruder = $this->makeAgent(['name' => 'Aardvark', 'slug' => 'aardvark']);
+    $echo = app(AgentRegistry::class)->get('echo');
+
+    $conversation = $this->makeConversation($echo, [
+        'created_by_type' => $this->user::class,
+        'created_by_id' => (string) $this->user->getKey(),
+    ]);
+
+    // `agentSlug` is a public Livewire property: the `disabled` attribute on
+    // the markup is a courtesy to the operator, not a control. This is the
+    // request that attribute cannot stop.
+    Livewire::test(Chat::class, ['conversation' => (string) $conversation->getKey()])
+        ->set('agentSlug', 'aardvark')
+        ->set('composer', 'Who is answering me?')
+        ->call('send');
+
+    $run = Run::query()->where('conversation_id', $conversation->getKey())->latest('id')->first();
+
+    expect($run)->not->toBeNull()
+        ->and($run->agent_id)->toBe($echo->getKey())
+        ->and($run->agent_id)->not->toBe($intruder->getKey());
+
+    expect($conversation->fresh()->agent_id)->toBe($echo->getKey());
+});
+
+/*
+|--------------------------------------------------------------------------
+| Empty assistant placeholders
+|--------------------------------------------------------------------------
+|
+| Found by the Phase 2 host walkthrough, 2026-08-07. The placeholder exists so
+| a reload mid-request has something to render; rendering it while still empty
+| produces a blank bubble, and a run parked at an approval never fills it.
+*/
+
+it('does not render an assistant message that is still empty', function (): void {
+    $echo = app(AgentRegistry::class)->get('echo');
+    $conversation = $this->makeConversation($echo, [
+        'created_by_type' => $this->user::class,
+        'created_by_id' => (string) $this->user->getKey(),
+    ]);
+    $session = $this->makeSession($echo);
+    $run = $this->makeRun([
+        'agent_id' => $echo->getKey(),
+        'conversation_id' => $conversation->getKey(),
+        'session_id' => $session->getKey(),
+    ]);
+
+    Message::query()->create([
+        'conversation_id' => $conversation->getKey(),
+        'session_id' => $session->getKey(),
+        'run_id' => $run->getKey(),
+        'role' => 'assistant',
+        'type' => 'text',
+        'content' => '',
+        'sequence' => 1,
+        'streaming_state' => StreamingState::Streaming->value,
+    ]);
+
+    Livewire::test(Chat::class, ['conversation' => (string) $conversation->getKey()])
+        ->assertOk()
+        ->assertDontSeeHtml('pd-msg-body');
+});
+
+it('still renders an assistant message the moment it has content', function (): void {
+    $echo = app(AgentRegistry::class)->get('echo');
+    $conversation = $this->makeConversation($echo, [
+        'created_by_type' => $this->user::class,
+        'created_by_id' => (string) $this->user->getKey(),
+    ]);
+    $session = $this->makeSession($echo);
+    $run = $this->makeRun([
+        'agent_id' => $echo->getKey(),
+        'conversation_id' => $conversation->getKey(),
+        'session_id' => $session->getKey(),
+    ]);
+
+    Message::query()->create([
+        'conversation_id' => $conversation->getKey(),
+        'session_id' => $session->getKey(),
+        'run_id' => $run->getKey(),
+        'role' => 'assistant',
+        'type' => 'text',
+        'content' => 'Half a sen',
+        'sequence' => 1,
+        'streaming_state' => StreamingState::Streaming->value,
+    ]);
+
+    Livewire::test(Chat::class, ['conversation' => (string) $conversation->getKey()])
+        ->assertSee('Half a sen')
+        ->assertSeeHtml('pd-msg-body');
+});

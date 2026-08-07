@@ -8,8 +8,8 @@
 | Phase | Title | Status |
 |---|---|---|
 | 0 | Discovery and architecture | ✅ |
-| 1 | Kernel vertical slice | 🔨 21/22 acceptance criteria verified; host walkthrough blocked (Q9) |
-| 2 | Tools and approvals | 🔨 35/36 acceptance criteria verified; host walkthrough outstanding |
+| 1 | Kernel vertical slice | 🔨 22/22 criteria; walkthrough driven 2026-08-07 and found an agent-binding defect in the chat page — fixed, 2 checks await re-driving |
+| 2 | Tools and approvals | ✅ 36/36 — host walkthrough driven 2026-08-07; found four defects, three fixed and one carried as a contract change |
 | 3 | Providers and routing | ✅ 41/41 — database matrix now genuinely green on MySQL, MariaDB and PostgreSQL |
 | 3.5 | Agents page | 🔨 20/20 acceptance criteria verified; host walkthrough outstanding (Q9) |
 | 4 | Automation | ✅ 26/26 on all four engines; host walkthrough complete |
@@ -78,7 +78,7 @@ See `docs/development/phase-1-acceptance.md` — 14 criteria mapped to automated
 
 ---
 
-## Phase 2 — Tools and approvals 🔨
+## Phase 2 — Tools and approvals ✅
 
 Tool contract + typed input DTOs + schema generation from validation rules · registry (config,
 provider, discovery) with groups, aliases, versioning, deprecation · the five authorization layers ·
@@ -93,9 +93,21 @@ Eloquent query, config read, dispatch job, emit event, send notification).
 on approval, is denied correctly, and is fully audited. Tenant and actor authorization are proven by
 security tests. Argument modification appears as a diff in the UI and in the audit log.
 
-**Status:** 35 of 36 criteria in `docs/development/phase-2-acceptance.md` are verified by automated
+**Status:** all 36 criteria in `docs/development/phase-2-acceptance.md` are verified by automated
 test. The database matrix closed on 2026-08-06 — the full suite now passes on MySQL 8.4, MariaDB 11
-and PostgreSQL 17. The one still outstanding is a human driving the new pages in a host application.
+and PostgreSQL 17 — and the host walkthrough was driven on 2026-08-07.
+
+It found four defects, and three of them share a cause the suite is structurally unable to reproduce:
+**a real model free to answer wrongly.** Asked for "the configured notification name", the model
+reached for the email address in the user's sentence, because none of the five allowlist-driven
+built-ins told it which names existed — the valid set was known, and the schema said `string`. The
+refusal that followed reported a permissions problem. `FakeProvider` calls whatever a test tells it
+to call, so nothing in the suite could have watched that happen.
+
+The fourth was a conversation silently changing agent on reload, which is Phase 1's chat page and is
+recorded against it. One item is carried rather than closed: five built-ins ship with empty
+allowlists and cannot function until a host configures them, yet all eleven are advertised as ready.
+That wants a way for a tool to declare itself unavailable with a reason, not another string change.
 
 ---
 

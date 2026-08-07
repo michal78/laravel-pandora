@@ -6,6 +6,11 @@ use Illuminate\Validation\Rule;
 use Pandora\Exceptions\UnsupportedValidationRule;
 use Pandora\Runs\Enums\RunStepType;
 use Pandora\Tests\Fixtures\Tools\LookupOrderTool;
+use Pandora\Tools\BuiltIn\DispatchJobTool;
+use Pandora\Tools\BuiltIn\EmitEventTool;
+use Pandora\Tools\BuiltIn\QueryRecordsTool;
+use Pandora\Tools\BuiltIn\ReadConfigTool;
+use Pandora\Tools\BuiltIn\SendNotificationTool;
 use Pandora\Tools\Schema\RuleSchemaGenerator;
 
 /**
@@ -183,4 +188,55 @@ it('produces an empty object schema for a tool taking no arguments', function ()
         'properties' => [],
         'additionalProperties' => false,
     ]);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Allowlisted names reach the model as an enum
+|--------------------------------------------------------------------------
+|
+| Found by the Phase 2 host walkthrough, 2026-08-07. Five built-ins resolve a
+| name against a host allowlist, and every one of them declared that name as a
+| free string. The model was asked to pick from a list it had never been shown,
+| so it invented a value from the user's sentence -- for `send_notification`,
+| an email address -- and the refusal that followed said "you are not
+| authorized", which is a permissions answer to a spelling question.
+*/
+
+it('advertises allowlisted names as an enum the model can choose from', function (): void {
+    config()->set('pandora.tools.notifications', [
+        'walkthrough' => ['class' => 'X', 'payload' => ['message']],
+        'receipt' => ['class' => 'Y', 'payload' => []],
+    ]);
+    config()->set('pandora.tools.jobs', ['send_receipt' => ['class' => 'X', 'arguments' => []]]);
+    config()->set('pandora.tools.events', ['order_placed' => ['class' => 'X', 'payload' => []]]);
+    config()->set('pandora.tools.resources', ['orders' => ['model' => 'X', 'fields' => ['id']]]);
+    config()->set('pandora.tools.readable_config', ['app.name', 'app.env']);
+
+    $cases = [
+        [SendNotificationTool::class, 'notification', ['walkthrough', 'receipt']],
+        [DispatchJobTool::class, 'job', ['send_receipt']],
+        [EmitEventTool::class, 'event', ['order_placed']],
+        [QueryRecordsTool::class, 'resource', ['orders']],
+        [ReadConfigTool::class, 'key', ['app.name', 'app.env']],
+    ];
+
+    foreach ($cases as [$class, $field, $expected]) {
+        $rules = app($class)->rules();
+
+        expect($rules[$field])->toContain('in:'.implode(',', $expected));
+    }
+});
+
+it('does not emit an empty enum when nothing is allowlisted', function (): void {
+    config()->set('pandora.tools.notifications', []);
+    config()->set('pandora.tools.readable_config', []);
+
+    // `in:` with no values is not a rule; the tool falls back to a plain
+    // string and is refused later, which is the pre-existing behaviour and
+    // must not become a validation crash.
+    expect(app(SendNotificationTool::class)->rules()['notification'])
+        ->not->toContain('in:')
+        ->and(app(ReadConfigTool::class)->rules()['key'])
+        ->not->toContain('in:');
 });

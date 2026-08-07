@@ -42,9 +42,22 @@ final class EmitEventTool extends Tool
     public function rules(): array
     {
         return [
-            'event' => 'required|string|max:64',
+            'event' => $this->nameRule(),
             'payload' => 'nullable|array',
         ];
+    }
+
+    /** The allowlisted event names, as an enum the model can choose from. */
+    private function nameRule(): string
+    {
+        /** @var array<string, array<string, mixed>> $events */
+        $events = config('pandora.tools.events', []);
+
+        $names = array_keys($events);
+
+        return $names === []
+            ? 'required|string|max:64'
+            : 'required|string|in:'.implode(',', $names);
     }
 
     public function descriptions(): array

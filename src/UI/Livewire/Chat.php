@@ -63,6 +63,19 @@ final class Chat extends Component
             $this->conversationId = $conversation;
         }
 
+        // A conversation is bound to one agent when it is started, and the
+        // picker must show THAT agent rather than whichever sorts first.
+        // Seeding from `$agents->first()` here meant opening -- or merely
+        // reloading -- an existing conversation silently repointed it at the
+        // alphabetically first agent, and every later message ran with that
+        // agent's instructions, tools, model, autonomy and budgets while
+        // `conversations.agent_id` went on naming the original.
+        $bound = $this->conversation()?->agent;
+
+        if ($bound !== null) {
+            $this->agentSlug = (string) $bound->slug;
+        }
+
         $agents = $this->availableAgents();
 
         if ($this->agentSlug === '' && $agents->isNotEmpty()) {
@@ -314,6 +327,19 @@ final class Chat extends Component
 
     private function resolveAgent(): ?Agent
     {
+        // The conversation's own agent wins, and is not negotiable. The picker
+        // is rendered as a fact once a conversation exists, but `agentSlug` is
+        // a public Livewire property and therefore writable by whoever holds
+        // the browser: a disabled attribute is a courtesy to the operator, not
+        // a control. Deciding here rather than trusting the round trip is what
+        // stops a crafted request swapping in an agent with different tools,
+        // autonomy and budgets halfway through someone else's conversation.
+        $bound = $this->conversation()?->agent;
+
+        if ($bound !== null) {
+            return $bound;
+        }
+
         if ($this->agentSlug === '') {
             return $this->availableAgents()->first();
         }

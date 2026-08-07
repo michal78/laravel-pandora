@@ -50,9 +50,30 @@ final class SendNotificationTool extends Tool
     public function rules(): array
     {
         return [
-            'notification' => 'required|string|max:64',
+            'notification' => $this->nameRule(),
             'payload' => 'nullable|array',
         ];
+    }
+
+    /**
+     * The allowlisted names, as an enum the model can actually choose from.
+     *
+     * Left as a free string, the model invents a value from the user's sentence
+     * -- an email address, a class name, the notification's prose title -- and
+     * the refusal that follows says "you are not authorized", which is a
+     * permissions answer to a spelling question. The set of valid values is
+     * known here and costs nothing to state.
+     */
+    private function nameRule(): string
+    {
+        /** @var array<string, array<string, mixed>> $notifications */
+        $notifications = config('pandora.tools.notifications', []);
+
+        $names = array_keys($notifications);
+
+        return $names === []
+            ? 'required|string|max:64'
+            : 'required|string|in:'.implode(',', $names);
     }
 
     public function descriptions(): array

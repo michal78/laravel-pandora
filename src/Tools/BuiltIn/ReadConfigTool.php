@@ -37,7 +37,13 @@ final class ReadConfigTool extends Tool
 
     public function rules(): array
     {
-        return ['key' => 'required|string|max:128'];
+        $keys = $this->readable();
+
+        return [
+            'key' => $keys === []
+                ? 'required|string|max:128'
+                : 'required|string|in:'.implode(',', $keys),
+        ];
     }
 
     public function descriptions(): array

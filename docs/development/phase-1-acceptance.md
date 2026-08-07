@@ -1,8 +1,8 @@
 # Phase 1 — Acceptance Test Plan
 
-> **Status as of 2026-08-05: 21 of 22 criteria verified.** The one exception is the manual host
-> walkthrough, which is blocked by the environment rather than failing — see the bottom of this file
-> and Q9 in `open-questions.md`.
+> **Status as of 2026-08-07: 22 of 22 criteria verified, and the manual host walkthrough is
+> complete.** The console half ran on 2026-08-05 (Q9) and found three defects; the browser half ran
+> on 2026-08-07 and found none. See `phase-1-walkthrough.md`.
 >
 > ```
 > vendor/bin/pest        → Tests: 119 passed (739 assertions)
@@ -50,17 +50,19 @@ first phase, because retrofitting them later is far more expensive.
 | 21 | ✅ Architecture: no cross-module concrete dependency; no vendor SDK type outside its adapter; every broadcast DTO extends the redacting base | `Architecture/ModuleBoundaryTest` (reflection-based; Pest arch cannot index this layout) |
 | 22 | ✅ Reverb-off mode: with `realtime.enabled = false` the chat page still reaches a correct final state via polling | `UI/ChatTest` |
 
-## Manual end-to-end verification — ⚠ BLOCKED, not passing
+## Manual end-to-end verification — ✅ complete
 
-**This has not been performed.** `laravel-test` requires PHP ^8.4 and runs under Sail; this WSL
-distro has no Docker integration and local PHP is 8.3.6, so the host application cannot boot at all
-here — independently of Pandora. Tracked as Q9.
+**Performed in two halves.** The console half ran on 2026-08-05 once Docker was available (Q9) and
+found three defects. The browser half ran on 2026-08-07 against the same host and found none — all
+18 checks in `phase-1-walkthrough.md` pass, including the two the suite structurally cannot make: a
+page thrown away mid-run and reconstructed from the database alone, and a cancellation that stays
+cancelled with no continuation arriving behind it.
 
 The package suite runs a genuine Laravel 13 app under Orchestra Testbench and covers every step
 below in automated form, but that is not a substitute for a live worker, a live Reverb server and a
-real provider endpoint, and it is not claimed to be.
+real provider endpoint, and it was never claimed to be.
 
-Steps to perform once Docker is available:
+The steps, all now performed:
 
 1. Add the path repository and require the package.
 2. `php artisan pandora:install` → publish config and migrations, run migrations.
@@ -94,14 +96,19 @@ implements any of these is out of spec, not ahead of schedule.
       registration, status, a synchronous run, a queued run drained by a live worker, and every
       control center page rendering for an authenticated user. Three defects found and fixed
       (Q9, commit `09d96ac`)
-- [ ] **Manual host-application verification, steps 7-10** — the browser interaction itself:
-      sending a message, watching it stream, reloading mid-stream, cancelling a run. Automated
-      equivalents pass; a human has not yet driven the UI
-- [ ] **Database matrix** — SQLite and MySQL 8.4 verified; PostgreSQL and MariaDB remain CI-only
+- [x] **Manual host-application verification, steps 7-10** — the browser interaction itself, driven
+      2026-08-07: a message sent and answered incrementally, a hard reload mid-run reconstructed from
+      the database with nothing lost and nothing duplicated, two tabs converging on one final state,
+      the trace in order and carrying no credential, and a cancellation that stayed cancelled. No
+      defects (`phase-1-walkthrough.md`)
+- [x] **Database matrix** — closed 2026-08-06: the full suite passes on MySQL 8.4, MariaDB 11 and
+      PostgreSQL 17. Making the matrix genuine found three defects (see `progress.md`)
 - [ ] **Live Reverb verification** — the host broadcasts to `log`, so only the polling fallback has
       been exercised. Criterion 22 requires that fallback to be correct, and it is; the Reverb path
       itself is still only covered by `Realtime` tests
 
-Phase 1 is **substantially complete**. What is left is breadth of infrastructure — two more database
-engines and a live websocket server — not unfinished behaviour. Neither is marked done until it has
-actually been run.
+Phase 1 is **complete**. The one box still open is a live Reverb server, and it is deliberately
+carried to Phase 8 rather than left implied here: the host broadcasts to `log`, so what has been
+driven is the polling fallback — which is precisely what criterion 22 requires to remain correct, and
+it does. The websocket path itself has never run outside `Realtime` tests, and it is not marked done
+until it has.
