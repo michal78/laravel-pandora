@@ -5,6 +5,107 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-07 — The Phase 1 and 2 walkthroughs, driven at last
+
+Phases 1, 2, 3.5 and 5 had all sat at 🔨 with the same sentence: every acceptance criterion verified
+by automated test, host walkthrough outstanding. Q9 unblocked that back on 05-08 and nobody had gone
+back. Phases 1 and 2 are now driven. Phase 3.5's checklist is written and staged; Phase 5's already
+was.
+
+```
+vendor/bin/pest        -> Tests: 1,183 passed, 8 skipped (3,940 assertions)
+vendor/bin/phpstan     -> [OK] No errors  (level 8)
+vendor/bin/pint --test -> passed
+```
+
+Driven against `laravel-test` — Laravel 13, PHP 8.5.8, MySQL 8.4, Redis queue,
+`BROADCAST_CONNECTION=log`, real OpenAI `gpt-4o-mini`, two accounts where only one is an operator.
+
+**Four defects. Three of them needed a real model free to answer wrongly.**
+
+That is the sharpest thing this walkthrough produced, and it is a different lesson from Phase 4's.
+Phase 4 found that the suite is blind to *configurations* it was never run under. This one found
+that it is blind to *answers it did not think to expect*: `FakeProvider` calls whatever the test
+tells it to call, so every tool test in the suite exercises a model that already knows the right
+thing to say.
+
+*The model was asked to pick from a list it had never been shown.* All five allowlist-driven
+built-ins — `query_records`, `read_config`, `dispatch_job`, `emit_event`, `send_notification` —
+declared their name argument as `required|string|max:64`. The set of valid values is known; it is
+the allowlist the tool checks the answer against a moment later. Told only "the configured
+notification name", the model reached for the email address in the user's sentence, because that was
+the most name-like thing in it. The refusal that followed said *you are not authorized* — a
+permissions answer to a spelling question. `RuleSchemaGenerator` has turned `in:` into a JSON-schema
+`enum` since Phase 2 and nothing was using it. The rule is now built from the allowlist keys, so the
+advertised schema carries `"enum": ["walkthrough"]`; where nothing is allowlisted it falls back to a
+plain string rather than emitting an empty `in:`, which is not a rule, and that fallback has its own
+test because it is what a careless version of this fix breaks. `SchemaGenerationTest` asserted that
+rules become schemas correctly, and they did. Nothing asked whether they were the right rules.
+
+*A conversation silently changed agent on reload.* `Chat::mount()` seeded the picker from
+`availableAgents()->first()` — ordered by name — and never read `conversations.agent_id`. Opening or
+merely reloading a conversation repointed it at whichever agent sorted first, so every later message
+ran with different instructions, tools, model, autonomy level and budgets while the row went on
+naming the original. The symptom reported was "the agent forgets it can run tools". The picker was
+already rendered `disabled` once a conversation existed, so the intent was right from the start and
+the lock had simply frozen the wrong value — and `agentSlug` is a public Livewire property, so
+`disabled` stopped no crafted request either. The agent is now decided from the conversation rather
+than from the round trip, and rendered as a stated fact rather than a dead dropdown. `ChatTest` had
+exactly **one** agent, and drove its runs through `AgentRunner->agent($conversation->agent)` rather
+than the picker; with one agent, `->first()` is never observably wrong.
+
+*An empty assistant bubble while a run is parked.* Reported as annoying rather than as a bug, which
+is how that kind survives. The placeholder is created empty before the model is called so a reload
+finds something to render; a run parked at an approval never fills it, so the blank sat there for as
+long as the approval was pending. Empty assistant messages are no longer drawn, guarded by a test
+that the bubble appears on the first character of content — otherwise the fix becomes "streamed
+messages never appear".
+
+**One defect logged and deliberately not fixed.** Those same five built-ins ship with **empty**
+allowlists, and a tool with nothing allowlisted is refused to everybody, with the same message about
+authorization. So five of the eleven built-ins cannot function in a fresh installation, while
+`pandora:tool:list` and the Tools page advertise all eleven as ready. An operator's first encounter
+with most of the built-in tool set is a permissions error that is not about permissions.
+
+The empty defaults are right — implicit access is how a support agent ends up with a shell. What is
+missing is any way to tell *not configured* from *not allowed*, at rest, before a run fails. This is
+the second instance: Phase 5 defect 2 was `RememberTool` refused to everybody because `authorize()`
+returned `false` for a reason nothing surfaced. A `bool` cannot carry that distinction and the
+operator has now paid for it twice.
+
+The fix is a contract change rather than a string change, which is why it was not applied mid-
+walkthrough: a tool should declare itself **unavailable with a reason**; that reason should keep it
+out of what `advertise()` offers the model, so the model never calls it and never earns a confusing
+refusal; and the Tools page should show it greyed with the reason attached. Layer-5 denials keep the
+vague sentence toward the model — that is deliberate, a denial should not explain itself to something
+that may be under injection — and record a specific reason for the operator. Worth an ADR. There is a
+documentation gap alongside it: nothing in `docs/guides/` walks a host through populating these.
+
+**What the host application gained.** `laravel-test` had never configured any of it, which is why
+five tools looked unimplemented. It now carries a `WalkthroughJob`, `WalkthroughEvent` and
+`WalkthroughNotice`, and the five allowlists pointing at them. The notification goes by mail, so an
+approved `send_notification` lands in Mailpit and the result of approving is something to look at
+rather than a green tick. The `users` resource carries a `scope` closure deliberately: an agent
+asking for every user gets one row back, enforced in configuration rather than hoped for in a
+prompt. `EchoAgent`'s iteration cap went 3 → 6, because a run that calls two tools and then answers
+needs three iterations and hitting the cap terminates as `timed_out`, which reads like a broken tool
+loop rather than a budget working.
+
+**A clean install was proved from scratch**, separately from all of this: `composer create-project`
+into a bare Laravel 13.24 app on SQLite, path repo, `pandora:install`, 26 migrations, `pandora:status`
+green, all eleven tools listed, every control-center route 200, and a real run completed on the
+`fake` provider. Two things worth revisiting: `pandora:install --no-interaction` prints
+`migrations .. not run` and exits **0**, so a scripted install leaves the schema missing without a
+non-zero exit; and the published migrations all carry `0001_01_01_*` prefixes, which makes Laravel's
+timing display report a negative duration and leaves a host no way to order its own migrations
+relative to Pandora's.
+
+**Status.** Phase 2 is ✅, 36/36. Phase 1 went **back** to 🔨 rather than staying ✅ — the agent-binding
+defect lives on its chat page, and the two checks added to catch it have not been driven. That is the
+honest state and the roadmap says so.
+
+---
+
 ## 2026-08-06 — Phase 5 slices 4 to 7: vectors, curation, workspaces and the pages
 
 All 28 criteria verified. The phase is code-complete; the host walkthrough is
