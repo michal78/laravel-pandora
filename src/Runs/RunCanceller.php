@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pandora\Runs;
 
+use Pandora\Audit\AuditLogger;
 use Pandora\Realtime\RunBroadcaster;
 use Pandora\Runs\Enums\RunState;
 
@@ -20,6 +21,7 @@ final class RunCanceller
     public function __construct(
         private readonly RunStateMachine $states,
         private readonly RunBroadcaster $broadcaster,
+        private readonly AuditLogger $audit,
     ) {}
 
     public function cancel(Run $run, ?string $reason = null): Run
@@ -31,6 +33,21 @@ final class RunCanceller
         $previous = $run->state;
 
         $run->forceFill(['cancel_requested_at' => now()])->save();
+
+        // Children stop FIRST, and before either branch below returns.
+        //
+        // The order was the bug this fixes: cancelling children used to happen
+        // only on the draining path, so a parent parked in `waiting_for_tool`
+        // -- which is exactly the state a delegating parent is in -- finalised
+        // immediately and left its child running. The child would go on
+        // spending the tree's budget on behalf of a run that no longer wanted
+        // the answer, and nothing would ever collect it.
+        //
+        // Downward only, and never upward. A cancelled delegate must not kill
+        // the conversation that asked for it: the parent asked a question,
+        // somebody withdrew the question, and the parent is still entitled to
+        // carry on and say so.
+        $this->cancelChildren($run);
 
         // Nothing is executing, so there is nothing to drain.
         if ($this->canFinaliseImmediately($run->state)) {
@@ -47,12 +64,38 @@ final class RunCanceller
 
         $this->broadcaster->stateChanged($run, $previous);
 
-        // Children stop too; a cancelled parent has no use for their results.
-        foreach ($run->children as $child) {
-            $this->cancel($child, 'Parent run cancelled.');
-        }
-
         return $run;
+    }
+
+    /**
+     * Cancel this run's children, transitively.
+     *
+     * Recursion is through `cancel()` rather than through a flattened id list,
+     * so each descendant gets the same treatment as a directly cancelled run:
+     * its own state decides whether it finalises now or drains, and its own
+     * children are reached the same way. A depth-bounded tree makes the
+     * recursion bounded too.
+     */
+    private function cancelChildren(Run $run): void
+    {
+        foreach ($run->children()->get() as $child) {
+            if ($child->state->isTerminal()) {
+                continue;
+            }
+
+            $this->cancel($child, 'Parent run cancelled.');
+
+            $this->audit->record(
+                action: 'run.cancellation_propagated',
+                targetType: Run::class,
+                targetId: (string) $child->getKey(),
+                runId: (string) $run->getKey(),
+                metadata: [
+                    'parent_run_id' => (string) $run->getKey(),
+                    'delegation_depth' => $child->delegation_depth,
+                ],
+            );
+        }
     }
 
     /**

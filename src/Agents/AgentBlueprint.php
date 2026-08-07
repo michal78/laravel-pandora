@@ -124,6 +124,23 @@ final class AgentBlueprint
     }
 
     /**
+     * The agents this agent may delegate to, by slug.
+     *
+     * Unset means it delegates to nothing, which is the default. Naming an
+     * agent here does not hand this agent that agent's tools: the child run's
+     * abilities are the INTERSECTION of the two, so this list decides who may
+     * be asked, never what the answer is allowed to do.
+     *
+     * @param list<string> $agents
+     */
+    public function delegatesTo(array $agents): self
+    {
+        $this->attributes['delegation_policy'] = ['allow' => $agents];
+
+        return $this;
+    }
+
+    /**
      * @return array{allow?: list<string>, deny?: list<string>}
      */
     private function toolPolicy(): array

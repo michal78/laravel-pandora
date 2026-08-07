@@ -145,6 +145,17 @@ final class ExecuteToolCall implements ShouldQueue
 
             $result = $this->execute($execution, $context, $gatekeeper, $steps, $run);
 
+            // A delegation has not finished; it has started something else.
+            // The call stays OPEN and no result is written, so the fan-in below
+            // finds work outstanding and the parent stays in
+            // `waiting_for_tool` holding no job. The child's terminal state is
+            // what eventually closes this row -- see DelegationCompleter.
+            if ($result->awaitsDelegate()) {
+                $this->awaitDelegate($execution, $result, $steps, $run, $audit);
+
+                return;
+            }
+
             $this->persist($execution, $result, $redactor);
             $this->writeResultMessage($run, $execution, $result, $messages, $broadcaster);
 
@@ -186,6 +197,61 @@ final class ExecuteToolCall implements ShouldQueue
 
             $this->fanIn($execution, $coordinator, $connection);
         });
+    }
+
+    /**
+     * Leave the call open while a child run answers it.
+     *
+     * Nothing here transitions the parent. It is already in `waiting_for_tool`,
+     * which is precisely the state that means "a call is outstanding", and a
+     * delegation is the one tool for which that remains true after the tool
+     * returns. Marking the execution `running` with a started timestamp is
+     * accurate rather than cosmetic: work IS in progress, in another run.
+     */
+    private function awaitDelegate(
+        ToolExecution $execution,
+        ToolResult $result,
+        RunStepRecorder $steps,
+        Run $run,
+        AuditLogger $audit,
+    ): void {
+        // The child may already have finished -- instantly, on a synchronous
+        // queue -- and `DelegationCompleter` may already have closed this row
+        // and continued the parent. Writing to it now would reopen a call that
+        // has been answered. The row was marked outstanding before the child
+        // was dispatched, so there is nothing left here to do but the trace.
+        $execution->refresh();
+
+        if (! $execution->status->isTerminal()) {
+            $execution->forceFill([
+                'status' => ToolExecutionStatus::Running->value,
+                'decision_reason' => $result->content,
+            ])->save();
+        }
+
+        $steps->record(
+            $run,
+            RunStepType::ToolExecution,
+            RunStepStatus::Started,
+            [
+                'tool' => $execution->tool_name,
+                'tool_call_id' => $execution->tool_call_id,
+                'child_run_id' => $result->delegatedRunId,
+            ],
+            label: $result->content,
+        );
+
+        $audit->record(
+            action: 'tool.executed',
+            targetType: ToolExecution::class,
+            targetId: (string) $execution->getKey(),
+            runId: (string) $run->getKey(),
+            metadata: [
+                'tool' => $execution->tool_name,
+                'child_run_id' => $result->delegatedRunId,
+                'awaiting_delegate' => true,
+            ],
+        );
     }
 
     /**

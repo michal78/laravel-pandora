@@ -388,6 +388,51 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Delegation
+    |--------------------------------------------------------------------------
+    |
+    | An agent calling another agent. Which agents may be called is a per-agent
+    | allowlist on the agent row, empty by default -- nothing here grants that.
+    | These are the limits on the run TREE, which is the unit that matters: a
+    | depth limit that reset per child would be a cost multiplier wearing a
+    | limit's name.
+    |
+    | The child's abilities are always the intersection of the parent run's and
+    | the child agent's. That is not configurable, because a switch that turned
+    | it off would make every permission boundary in the product decorative.
+    |
+    */
+
+    'delegation' => [
+
+        /*
+         * How deep a run tree may go. A root run is depth 0, so the default
+         * permits a parent, a child and a grandchild -- and denies the tool at
+         * the next hop rather than failing the run, so a bounded refusal does
+         * not read to an operator as an outage.
+         */
+        'max_depth' => env('PANDORA_MAX_DELEGATION_DEPTH', 2),
+
+        /*
+         * How long a parent will wait for a child before giving up on it. The
+         * parent holds no job while it waits, so this is a ceiling on a stuck
+         * tree rather than on a worker. Null falls back to the parent's own
+         * remaining wall clock, which is the tighter bound in most cases.
+         */
+        'child_timeout_seconds' => env('PANDORA_DELEGATION_TIMEOUT', null),
+
+        /*
+         * The largest child result, in characters, that will be handed back to
+         * the parent. A sub-agent that read a hostile page returns a hostile
+         * string, and it enters the parent's prompt through the same door as
+         * any other tool result -- bounded, redacted, and never in an
+         * instruction position.
+         */
+        'max_result_length' => 8000,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Tools
     |--------------------------------------------------------------------------
     |

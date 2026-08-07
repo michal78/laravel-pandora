@@ -10,6 +10,7 @@ use Illuminate\Contracts\Auth\Factory;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionInterface;
@@ -60,6 +61,7 @@ use Pandora\Core\Actor\ActorManager;
 use Pandora\Core\Actor\GuardActorResolver;
 use Pandora\Core\Tenancy\NullTenantResolver;
 use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Delegation\DelegationCompleter;
 use Pandora\Memory\Embeddings\HashEmbeddingProvider;
 use Pandora\Memory\Embeddings\MemoryEmbedder;
 use Pandora\Memory\MemoryCurator;
@@ -76,6 +78,7 @@ use Pandora\Providers\Health\ProviderHealthMonitor;
 use Pandora\Providers\ProviderManager;
 use Pandora\Providers\Routing\DeterministicModelRouter;
 use Pandora\Realtime\RunBroadcaster;
+use Pandora\Runs\Events\RunStateChanged;
 use Pandora\Runs\RunCanceller;
 use Pandora\Runs\RunFactory;
 use Pandora\Runs\RunLock;
@@ -147,7 +150,25 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->registerConfiguredTools();
         $this->registerAutomationSchedule();
         $this->registerAutomationTriggers();
+        $this->registerDelegation();
         $this->registerRoutesAndUi();
+    }
+
+    /**
+     * The listener that hands a finished child run back to its parent.
+     *
+     * Unconditional, unlike the automation listeners: a parent waiting on a
+     * child is not an optional feature that a configuration flag could turn
+     * off, it is the second half of a tool call that has already happened. A
+     * deployment that disabled this would not be disabling delegation -- it
+     * would be leaving parents parked forever.
+     */
+    private function registerDelegation(): void
+    {
+        /** @var Dispatcher $events */
+        $events = $this->app->make(Dispatcher::class);
+
+        $events->listen(RunStateChanged::class, [DelegationCompleter::class, 'handle']);
     }
 
     // ---------------------------------------------------------------- register

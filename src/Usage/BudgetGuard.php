@@ -42,7 +42,7 @@ final class BudgetGuard
     public function assert(Run $run, Agent $agent): void
     {
         foreach (BudgetScope::ordered() as $scope) {
-            $limits = $this->limitsFor($scope, $agent);
+            $limits = $this->limitsFor($scope, $run, $agent);
 
             if ($limits === []) {
                 continue;
@@ -97,7 +97,19 @@ final class BudgetGuard
 
         $query = match ($scope) {
             // A run's own spend is not periodic -- a run IS the period.
-            BudgetScope::Run => UsageRecord::query()->where('run_id', $run->getKey()),
+            //
+            // For a delegating run, "a run" means the whole TREE, and the
+            // distinction is the difference between a limit and a multiplier.
+            // A child drawing on a fresh copy of its parent's budget would turn
+            // `max_depth: 2` into "three times the budget", and an operator
+            // reading the agent row would have no way to see it. So the child
+            // draws from what the tree has left, and its spend is debited
+            // against the same total -- one budget, one tree, whichever run in
+            // it happens to be asking. That is T7's whole answer to delegation.
+            //
+            // Free for an ordinary run: `treeRunIds()` on a run with no parent
+            // and no children returns its own id and asks no further queries.
+            BudgetScope::Run => UsageRecord::query()->whereIn('run_id', $run->treeRunIds()),
 
             BudgetScope::Conversation => $run->conversation_id === null
                 ? null
@@ -131,14 +143,24 @@ final class BudgetGuard
      * The limits for a scope: the agent row for run scope, configuration for
      * the rest.
      *
+     * For run scope in a DELEGATED tree the limit comes from the agent at the
+     * ROOT of the tree, not from the agent being asked about. It has to match
+     * the query, which sums the whole tree -- pairing a tree-wide total with a
+     * child agent's own limit would compare two different things and would let
+     * a generously-budgeted delegate raise the ceiling on work its parent
+     * started under a tighter one. The tree is bounded by the budget of
+     * whoever began it.
+     *
      * @return array{tokens?: int|null, cost_minor?: int|null}
      */
-    private function limitsFor(BudgetScope $scope, Agent $agent): array
+    private function limitsFor(BudgetScope $scope, Run $run, Agent $agent): array
     {
         if ($scope === BudgetScope::Run) {
+            $owner = $this->budgetOwner($run, $agent);
+
             return array_filter([
-                'tokens' => $agent->token_budget,
-                'cost_minor' => $agent->cost_budget_minor,
+                'tokens' => $owner->token_budget,
+                'cost_minor' => $owner->cost_budget_minor,
             ], static fn (?int $value): bool => $value !== null);
         }
 
@@ -146,6 +168,26 @@ final class BudgetGuard
         $limits = $this->config->get('pandora.budgets.'.$scope->value, []);
 
         return array_filter($limits, static fn (mixed $value): bool => $value !== null);
+    }
+
+    /**
+     * The agent whose row sets this tree's run budget.
+     *
+     * `$agent` for an ordinary run, and for a child the agent at the root of
+     * its tree. Falls back to the passed agent when the root's agent row cannot
+     * be loaded -- a deleted agent should tighten a budget check to the child's
+     * own limit, never remove it.
+     */
+    private function budgetOwner(Run $run, Agent $agent): Agent
+    {
+        if (! $run->isDelegated()) {
+            return $agent;
+        }
+
+        /** @var Agent|null $root */
+        $root = Agent::query()->find($run->treeRoot()->agent_id);
+
+        return $root ?? $agent;
     }
 
     private function periodStart(): ?Carbon

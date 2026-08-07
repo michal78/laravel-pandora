@@ -48,6 +48,7 @@ use Pandora\Support\Concerns\PandoraModel;
  * @property string|null $workspace_id
  * @property array<string, mixed>|null $tool_policy
  * @property array<string, mixed>|null $approval_policy
+ * @property array<string, mixed>|null $delegation_policy
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -71,7 +72,8 @@ final class Agent extends Model
         'default_provider', 'default_model', 'fallback_models', 'provider_options',
         'max_iterations', 'max_tool_calls', 'max_duration_seconds',
         'context_budget_tokens', 'token_budget', 'cost_budget_minor', 'currency',
-        'autonomy_level', 'memory_policy', 'tool_policy', 'approval_policy', 'workspace_id', 'metadata',
+        'autonomy_level', 'memory_policy', 'tool_policy', 'approval_policy', 'delegation_policy',
+        'workspace_id', 'metadata',
     ];
 
     /**
@@ -86,6 +88,7 @@ final class Agent extends Model
             'memory_policy' => 'array',
             'tool_policy' => 'array',
             'approval_policy' => 'array',
+            'delegation_policy' => 'array',
             'metadata' => 'array',
             'autonomy_level' => AutonomyLevel::class,
             'max_iterations' => 'integer',
@@ -197,5 +200,30 @@ final class Agent extends Model
         $denied = $this->tool_policy['deny'] ?? [];
 
         return $denied;
+    }
+
+    /**
+     * Slugs of the agents this agent may delegate to.
+     *
+     * The same rule as `allowedTools()`, for the same reason: an empty list
+     * means NO agents, never all of them. There is deliberately no wildcard.
+     * "This agent may call any other" is a sentence about the whole roster, and
+     * it should have to be written out one slug at a time -- because what it
+     * really grants is the union of every other agent's tools, reachable one
+     * hop away from a permission boundary somebody drew on purpose.
+     *
+     * @return list<string>
+     */
+    public function delegatableAgents(): array
+    {
+        /** @var list<string> $allowed */
+        $allowed = $this->delegation_policy['allow'] ?? [];
+
+        return $allowed;
+    }
+
+    public function mayDelegateTo(self $target): bool
+    {
+        return in_array($target->slug, $this->delegatableAgents(), true);
     }
 }

@@ -32,6 +32,8 @@ use Pandora\Support\Concerns\PandoraModel;
  * @property string $session_id
  * @property string|null $parent_run_id
  * @property int $delegation_depth
+ * @property list<string>|null $effective_tools
+ * @property string|null $delegated_tool_execution_id
  * @property RunState $state
  * @property TriggerType $trigger_type
  * @property AutonomyLevel|null $autonomy_level
@@ -74,7 +76,8 @@ final class Run extends Model
     /** @var list<string> */
     protected $fillable = [
         'tenant_id', 'agent_id', 'conversation_id', 'session_id',
-        'parent_run_id', 'delegation_depth', 'state', 'trigger_type', 'trigger_id',
+        'parent_run_id', 'delegation_depth', 'effective_tools', 'delegated_tool_execution_id',
+        'state', 'trigger_type', 'trigger_id',
         'autonomy_level', 'automation_id',
         'correlation_id', 'idempotency_key', 'actor_type', 'actor_id',
         'provider_key', 'model_key', 'input', 'output',
@@ -94,6 +97,7 @@ final class Run extends Model
             'trigger_type' => TriggerType::class,
             'autonomy_level' => AutonomyLevel::class,
             'metadata' => 'array',
+            'effective_tools' => 'array',
             'delegation_depth' => 'integer',
             'iterations' => 'integer',
             'tool_calls_count' => 'integer',
@@ -177,6 +181,90 @@ final class Run extends Model
     public function hasExceededDeadline(): bool
     {
         return $this->deadline_at !== null && $this->deadline_at->isPast();
+    }
+
+    public function isDelegated(): bool
+    {
+        return $this->parent_run_id !== null;
+    }
+
+    /**
+     * This run's ancestors, nearest first.
+     *
+     * Walked with an explicit bound rather than a `while (true)`: the depth
+     * column is a tinyint an operator can raise, and a parent chain that
+     * somehow cycled would otherwise hang a worker rather than fail. The bound
+     * is generous -- reaching it means the data is wrong, not that a legitimate
+     * tree was truncated.
+     *
+     * @return list<self>
+     */
+    public function ancestors(int $limit = 64): array
+    {
+        $ancestors = [];
+        $current = $this;
+
+        while ($current->parent_run_id !== null && count($ancestors) < $limit) {
+            /** @var self|null $parent */
+            $parent = self::query()->find($current->parent_run_id);
+
+            if ($parent === null) {
+                break;
+            }
+
+            $ancestors[] = $parent;
+            $current = $parent;
+        }
+
+        return $ancestors;
+    }
+
+    /**
+     * The run at the top of this run's tree -- itself, when it has no parent.
+     *
+     * The unit a budget is drawn against. A limit that reset per child would
+     * not be a limit, it would be a multiplier with a depth exponent.
+     */
+    public function treeRoot(): self
+    {
+        $ancestors = $this->ancestors();
+
+        return $ancestors === [] ? $this : $ancestors[count($ancestors) - 1];
+    }
+
+    /**
+     * Every run id in this run's tree, from the root down.
+     *
+     * Read breadth-first in one query per level rather than a recursive CTE,
+     * which SQLite, MySQL, MariaDB and PostgreSQL do not agree on the syntax
+     * for. Delegation is sequential and depth-bounded this phase, so the tree
+     * is small and the level count is `max_delegation_depth`.
+     *
+     * @return list<string>
+     */
+    public function treeRunIds(): array
+    {
+        $root = $this->treeRoot();
+        $ids = [(string) $root->getKey()];
+        $frontier = $ids;
+
+        do {
+            /** @var list<string> $children */
+            $children = self::query()
+                ->whereIn('parent_run_id', $frontier)
+                ->whereNotIn('id', $ids)
+                ->pluck('id')
+                ->map(static fn (mixed $id): string => (string) $id)
+                ->all();
+
+            // Excluding ids already seen is what makes this terminate: a
+            // parent chain that somehow cycled shrinks the frontier to empty
+            // rather than walking it forever.
+            $ids = array_merge($ids, $children);
+            $frontier = $children;
+        } while ($frontier !== []);
+
+        return $ids;
     }
 
     public function nextStepSequence(): int

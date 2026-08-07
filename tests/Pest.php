@@ -21,6 +21,7 @@ uses(TestCase::class)->in(
     'Memory',
     'Context',
     'Workspaces',
+    'Delegation',
 );
 
 /**

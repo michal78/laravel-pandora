@@ -24,7 +24,31 @@ final readonly class ToolResult implements \JsonSerializable
         public array $data = [],
         public array $metadata = [],
         public bool $awaitsUser = false,
+        public ?string $delegatedRunId = null,
     ) {}
+
+    /**
+     * The tool started a CHILD RUN and cannot answer until that run ends.
+     *
+     * Unlike every other result, this one does not close the call. The
+     * execution row stays open, the parent stays in `waiting_for_tool` holding
+     * no job, and the child's terminal state is what eventually writes the
+     * result and lets the parent continue. Closing the call here and continuing
+     * would hand the model an empty answer and a running child nobody is
+     * waiting for.
+     *
+     * Same shape as `awaitingUser()` and for the same reason: a tool may not
+     * transition a run, so it says what happened and the executor acts on it.
+     */
+    public static function delegated(string $childRunId, string $summary): self
+    {
+        return new self(true, $summary, delegatedRunId: $childRunId);
+    }
+
+    public function awaitsDelegate(): bool
+    {
+        return $this->delegatedRunId !== null;
+    }
 
     /**
      * The tool asked the user something and cannot finish until they answer.

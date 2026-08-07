@@ -37,6 +37,7 @@ final class BuiltInTools
             ProposeFollowUpTool::class,
             RememberTool::class,
             RecallTool::class,
+            DelegateToAgentTool::class,
         ];
     }
 }

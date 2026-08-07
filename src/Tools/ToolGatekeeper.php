@@ -255,18 +255,59 @@ final class ToolGatekeeper
     /**
      * Layer 2. An agent with no allowlist can use nothing: implicit access is
      * how a support agent ends up with a shell nobody remembers granting.
+     *
+     * A DELEGATED run is narrowed twice. Its agent's allowlist is consulted as
+     * for any run, and then the intersection frozen on the run at delegation
+     * time is applied on top -- because the agent's allowlist alone is exactly
+     * the thing the parent was not entitled to hand over. Both must pass, and
+     * the intersection can only ever take away: it is computed as a subset of
+     * the agent's own abilities, so a run cannot reach a tool by being
+     * delegated to that it could not reach by being started directly.
+     *
+     * This is the point at which T8 stops being a claim and becomes a
+     * behaviour. Everything else about delegation -- the allowlist, the depth
+     * limit, the cycle check -- decides whether a child run exists. This
+     * decides what it can do once it does.
      */
     private function agentAllows(ToolContext $context, Tool $tool): bool
     {
         /** @var list<string> $always */
         $always = $this->config->get('pandora.tools.always_available', []);
 
-        if ($this->matches($tool, $context->agent->deniedTools())) {
+        if (ToolReference::matches($tool, $context->agent->deniedTools())) {
             return false;
         }
 
-        return $this->matches($tool, $context->agent->allowedTools())
-            || $this->matches($tool, $always);
+        if (! $this->intersectionAllows($context, $tool)) {
+            return false;
+        }
+
+        return ToolReference::matches($tool, $context->agent->allowedTools())
+            || ToolReference::matches($tool, $always);
+    }
+
+    /**
+     * The delegation intersection, for a run that carries one.
+     *
+     * NULL means the run is not delegated and no intersection applies. An empty
+     * array is a different fact entirely: a delegation that intersected down to
+     * nothing, whose child may call no tools at all. Conflating the two would
+     * turn the most restrictive possible delegation into an unrestricted one,
+     * which is the failure mode worth being pedantic about.
+     *
+     * Matched on the tool's name rather than by reference, because the stored
+     * list IS resolved names, frozen at delegation time on purpose, so that
+     * an operator widening a group afterwards cannot widen a run in flight.
+     */
+    private function intersectionAllows(ToolContext $context, Tool $tool): bool
+    {
+        $effective = $context->run->effective_tools;
+
+        if ($effective === null) {
+            return true;
+        }
+
+        return in_array($tool->name(), $effective, true);
     }
 
     /**
@@ -290,11 +331,11 @@ final class ToolGatekeeper
 
         $rules = $tenants[$tenantId];
 
-        if ($this->matches($tool, $rules['deny'] ?? [])) {
+        if (ToolReference::matches($tool, $rules['deny'] ?? [])) {
             return false;
         }
 
-        return ! isset($rules['allow']) || $this->matches($tool, $rules['allow']);
+        return ! isset($rules['allow']) || ToolReference::matches($tool, $rules['allow']);
     }
 
     /**
@@ -340,35 +381,5 @@ final class ToolGatekeeper
         $levels = $this->config->get('pandora.approvals.required_for', ['high', 'critical']);
 
         return in_array($tool->risk()->value, $levels, true);
-    }
-
-    /**
-     * Does a tool match any reference in a list?
-     *
-     * A reference is a name, an alias, a `name@version`, or `group:name` for a
-     * whole group. There is deliberately no wildcard: "all tools" is a thing
-     * an operator should have to write out.
-     *
-     * @param list<string> $references
-     */
-    private function matches(Tool $tool, array $references): bool
-    {
-        foreach ($references as $reference) {
-            if (str_starts_with($reference, 'group:')) {
-                if ($tool->group() === substr($reference, 6)) {
-                    return true;
-                }
-
-                continue;
-            }
-
-            if ($reference === $tool->name()
-                || $reference === $tool->name().'@'.$tool->version()
-                || in_array($reference, $tool->aliases(), true)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
