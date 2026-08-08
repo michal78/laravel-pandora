@@ -346,6 +346,12 @@ it('reads a credential secret in exactly the places that send one', function ():
     $permitted = [
         'Pandora\Providers\Credentials\Credential',
         'Pandora\Providers\Credentials\ProviderCredential',
+        // The MCP client puts a server's credential in an Authorization
+        // header, which is the same job an adapter does and the same reason
+        // it is allowed to read one. Listed by name rather than by namespace
+        // prefix, so a second class under Mcp\Transport that starts reading
+        // secrets has to be added here deliberately.
+        'Pandora\Mcp\Transport\HttpTransport',
     ];
 
     $offenders = [];

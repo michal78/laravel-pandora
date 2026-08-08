@@ -7,6 +7,7 @@ namespace Pandora\Tools;
 use Illuminate\Contracts\Container\Container;
 use Pandora\Exceptions\InvalidConfiguration;
 use Pandora\Exceptions\ToolNotFound;
+use Pandora\Mcp\Namespacing;
 use Pandora\Providers\Data\ToolDefinition;
 use Pandora\Tools\Schema\RuleSchemaGenerator;
 
@@ -51,6 +52,22 @@ final class ToolRegistry
         if (isset($this->tools[$name][$version])) {
             throw InvalidConfiguration::make(
                 "Tool [{$name}] version [{$version}] is registered twice. Bump version() or rename one.",
+            );
+        }
+
+        // The MCP namespace separator is RESERVED here, which is half of why a
+        // remote tool can never be resolved where a core one is expected: a
+        // namespaced name is not a legal core name, so the two sets cannot
+        // overlap by construction (ADR-0014). The other half is that
+        // resolution is split by origin and never compares strings at all.
+        //
+        // This refuses at registration -- boot time, loudly -- rather than at
+        // call time, because a core tool that collides with a namespace is a
+        // packaging mistake and not something to discover mid-run.
+        if (str_contains($name, Namespacing::separator())) {
+            throw InvalidConfiguration::make(
+                "Tool [{$name}] contains [".Namespacing::separator().'], which is reserved for MCP '
+                    .'namespacing. Rename the tool.',
             );
         }
 

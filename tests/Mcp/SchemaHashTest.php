@@ -40,7 +40,7 @@ beforeEach(function (): void {
 
         /** @var McpToolApproval $approval */
         $approval = McpToolApproval::query()->create([
-            'agent_id' => '01JAGENTAGENTAGENTAGENTAG',
+            'agent_id' => '01JAGENTAGENTAGENTAGENTAGX',
             'mcp_tool_id' => $tool->getKey(),
             'approved_schema_hash' => $tool->schema_hash,
             'approved_at' => now(),

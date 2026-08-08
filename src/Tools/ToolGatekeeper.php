@@ -7,7 +7,11 @@ namespace Pandora\Tools;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use Pandora\Contracts\ToolPolicy;
+use Pandora\Exceptions\McpDenied;
 use Pandora\Exceptions\ToolInputInvalid;
+use Pandora\Mcp\Namespacing;
+use Pandora\Mcp\RemoteTool;
+use Pandora\Mcp\RemoteToolResolver;
 use Pandora\Providers\Data\ToolCall;
 use Pandora\Providers\Data\ToolDefinition;
 use Pandora\Runs\Enums\AutonomyLevel;
@@ -52,7 +56,16 @@ final class ToolGatekeeper
     public function evaluate(ToolCall $call, ToolContext $context): ToolDecision
     {
         // ---- Layer 1: the registry.
-        $tool = $this->registry->find($call->name);
+        //
+        // Split by ORIGIN before anything looks the name up. A namespaced name
+        // never reaches the core registry and a core name never reaches the
+        // remote resolver, so a remote tool cannot be resolved where a core
+        // tool is expected whatever it has called itself (ADR-0014). The
+        // separator is reserved -- no core tool may contain it -- so these two
+        // worlds cannot overlap by construction rather than by comparison.
+        $tool = Namespacing::looksRemote($call->name)
+            ? $this->resolveRemote($call, $context)
+            : $this->registry->find($call->name);
 
         if ($tool === null) {
             return ToolDecision::deny(
@@ -235,7 +248,16 @@ final class ToolGatekeeper
                 && $this->tenantAllows($context, $tool),
         ));
 
-        return $this->registry->describe($available);
+        $definitions = $this->registry->describe($available);
+
+        // Remote tools are appended rather than merged into the registry, for
+        // the same reason resolution is split: the core registry never holds a
+        // namespaced name. An unapproved tool is not here at all -- it is not
+        // advertised and then refused, it is never offered, which is what
+        // criterion 17 asks for.
+        $remote = app(RemoteToolResolver::class)->available($context->agent);
+
+        return [...$definitions, ...$this->registry->describe($remote)];
     }
 
     /**
@@ -269,8 +291,34 @@ final class ToolGatekeeper
      * limit, the cycle check -- decides whether a child run exists. This
      * decides what it can do once it does.
      */
+    /**
+     * A remote tool, if this agent may have it.
+     *
+     * Null rather than an exception, so an unapproved remote tool is refused
+     * at the registry layer exactly as an unknown tool is -- the model learns
+     * that no such tool is available to it, and not whether it exists,
+     * whether somebody else may call it, or whether its schema changed. Those
+     * are operator facts and they go to the audit trail instead.
+     */
+    private function resolveRemote(ToolCall $call, ToolContext $context): ?Tool
+    {
+        try {
+            return app(RemoteToolResolver::class)->resolve($call->name, $context->agent);
+        } catch (McpDenied) {
+            return null;
+        }
+    }
+
     private function agentAllows(ToolContext $context, Tool $tool): bool
     {
+        // A remote tool's allowlist IS its approval: per agent, per tool, of a
+        // specific hash, checked when it was resolved a moment ago. Consulting
+        // `allowedTools()` as well would mean granting the same thing twice in
+        // two places, and the second one would drift.
+        if ($tool instanceof RemoteTool) {
+            return true;
+        }
+
         /** @var list<string> $always */
         $always = $this->config->get('pandora.tools.always_available', []);
 
