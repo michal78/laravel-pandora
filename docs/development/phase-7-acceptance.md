@@ -87,6 +87,15 @@ section driven by a human.
 quota and MIME behaviour on the grounds that the code was finished. ADR-0013 reopens it
 deliberately: it is finished for one adapter, and this phase adds a second.
 
+**Not in this phase, and not scheduled anywhere else — recorded here so it stops being invisible.**
+An agent still cannot reach a workspace file. `read_file` and `write_file` were named "Phase 7
+workspace tools" by the Phase 5 walkthrough and were never carried into these criteria when
+ADR-0013 rewrote the phase around storage; `WorkspaceFiles` has two callers and both are the
+control center. Attaching a workspace to an agent is likewise code-only — `agents.workspace_id`
+exists and no UI writes it — and an agent may hold exactly one, that being a single nullable column
+rather than a decision anybody took. So this phase delivers a workspace an operator can fill and
+empty, and nothing an agent can use.
+
 Out of scope: per-workspace S3 credentials (ADR-0013 keeps credentials in the host's
 `filesystems.php`), presigned URLs, and any sync or replication between disks.
 

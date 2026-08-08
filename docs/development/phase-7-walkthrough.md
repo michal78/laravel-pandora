@@ -5,10 +5,16 @@
 > section against a real object-storage bucket.
 >
 > The storage half of the phase (criteria 1–16) is verified against MinIO by
-> the suite, and the surface half (17–20) is covered by `UI/WorkspaceCreateTest`,
-> `UI/WorkspacesPageTest` and `UI/WorkspaceDownloadTest`. What none of that can
-> tell you is whether a person can create a workspace, attach it to an agent and
-> get a file out of it without reading the source first.
+> the suite, and the surface half (17–20, 22) is covered by
+> `UI/WorkspaceCreateTest`, `UI/WorkspacesPageTest`, `UI/WorkspaceDownloadTest`
+> and `UI/WorkspaceUploadTest`. What none of that can tell you is whether a
+> person can create a workspace and get a file in and out of it without reading
+> the source first.
+>
+> **Two things this document assumed and should not have:** attaching a
+> workspace to an agent has no UI control, and no agent can read or write a
+> workspace file at all — the tools do not exist. Both sections below say so
+> now. Neither is a regression; both are work that was never scoped.
 
 Every walkthrough so far has found something the suite could not. Phase 5's
 found a Memory page reading everyone's mail; Phase 6's found a delegated child
@@ -78,37 +84,50 @@ landmines as Phase 6:
       containment check starts there.
 - [ ] Create a second workspace with the same name. Refused, rather than two
       workspaces sharing a prefix.
-- [ ] Attach a workspace to an agent on the agent's page, and the agent's
-      **Workspace** tab shows it rather than saying the feature is coming.
+- [ ] Attach a workspace to an agent. **This is a code-level act today** —
+      there is no control for it on the agent page, and the **Workspace** tab is
+      read-only. `$agent->update(['workspace_id' => $workspace->getKey()])`.
+      The tab then shows the workspace rather than saying the feature is coming.
 
 ## Driving it with an agent
 
+> **Blocked, and not by anything in this phase.** No agent can reach a workspace
+> file, because the tools that would do it do not exist: `read_file` and
+> `write_file` were called "Phase 7 workspace tools" in the Phase 5 walkthrough
+> and were never added to Phase 7's criteria when ADR-0013 rewrote the phase
+> around storage. `WorkspaceFiles` has exactly two callers and both are the
+> control center.
+>
+> So every check below needs those tools first. They are listed now, unticked,
+> rather than deleted — a checklist deleted is a checklist rewritten from memory
+> later.
+
 - [ ] Ask the agent to write a file. It appears in the bucket under the
       workspace's prefix and nowhere else, and the page lists it.
-- [ ] **Upload a file yourself**, from the page, into the workspace you are
-      browsing. It lands where the breadcrumb says, and the agent can read it
-      back on its next run — this is how a source document gets to an agent
-      without anybody touching the bucket.
-- [ ] The upload obeys the same rules an agent's write does, because it is the
-      same write: with a MIME allowlist set, a file whose bytes disagree with
-      its extension is refused; over quota is refused before it lands.
-- [ ] **Usage.** `used_bytes` moves with the write, including with an upload.
-      Put an object in the prefix out of band (`mc cp`, or the MinIO console)
-      and it does *not* — press **Recount** and it does. The counter is
-      authoritative for enforcement and the store is authoritative for truth;
-      this is the button that reconciles them.
 - [ ] Set a small quota and have the agent write past it. Refused **before the
       bytes land**, and nothing appears in the bucket.
-- [ ] Set an allowed MIME list of `text/plain`, then have the agent write a PNG.
-      Refused on the detected type. Now upload an object by hand whose
-      `Content-Type` says `text/plain` and whose bytes are a PNG: still refused,
-      because the metadata is never consulted.
 - [ ] Ask the agent for `../../etc/passwd`, and for `s3://another-bucket/key`.
       Both refused, and the run continues rather than dying.
 - [ ] **Break the disk.** Stop MinIO, or point the disk at a wrong endpoint, and
       have the agent read a file. It is an ordinary tool error, the run
       continues, and nothing was written to local storage instead. Start it
       again.
+
+## Putting files in, which is the part that does work today
+
+- [ ] **Upload a file** from the page, into the workspace you are browsing. It
+      lands where the breadcrumb says.
+- [ ] The upload obeys the rules an agent's write would, because it is the same
+      write path: with a MIME allowlist set, a file whose bytes disagree with
+      its extension is refused; over quota is refused before it lands.
+- [ ] **Usage.** `used_bytes` moves with an upload. Put an object in the prefix
+      out of band (`mc cp`, or the MinIO console) and it does *not* — press
+      **Recount** and it does. The counter is authoritative for enforcement and
+      the store is authoritative for truth; this is the button that reconciles
+      them.
+- [ ] Set an allowed MIME list of `text/plain`, then upload an object by hand
+      whose `Content-Type` says `text/plain` and whose bytes are a PNG. Still
+      refused, because the metadata is never consulted.
 
 ## Browsing and downloading
 
