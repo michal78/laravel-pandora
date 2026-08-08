@@ -48,6 +48,28 @@ final class WorkspaceDenied extends PandoraException
         );
     }
 
+    /**
+     * The store this workspace lives on could not be reached.
+     *
+     * A refusal rather than a fallback, and the distinction is the whole of
+     * ADR-0013 decision 2: writing somewhere else instead would put the file
+     * on exactly one container, where every other node reads past it and
+     * nothing about the situation looks like an error.
+     *
+     * The underlying message is carried for the trace and is not in
+     * `userMessage()` -- an endpoint, a bucket name and a signature error are
+     * operator facts, and the agent only needs to know it cannot use files
+     * right now.
+     */
+    public static function diskUnavailable(string $disk, string $detail = ''): self
+    {
+        return new self(
+            "The workspace disk [{$disk}] could not be reached."
+                .($detail === '' ? '' : " ({$detail})"),
+            'disk_unavailable',
+        );
+    }
+
     public static function noWorkspace(): self
     {
         return new self(
@@ -60,6 +82,7 @@ final class WorkspaceDenied extends PandoraException
     {
         return match ($this->reason) {
             'quota_exceeded' => 'The workspace is full.',
+            'disk_unavailable' => 'The workspace storage cannot be reached right now. Try again, or work without files.',
             'no_workspace' => 'This agent has no workspace.',
             'mime_not_allowed' => 'That kind of file is not allowed in this workspace.',
             default => 'That path is not available in this workspace.',

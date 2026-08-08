@@ -20,18 +20,20 @@
         "symfony/uid": "^7.0|^8.0"
     },
     "require-dev": {
-        "orchestra/testbench": "^11.0",
-        "pestphp/pest": "^4.0",
-        "pestphp/pest-plugin-laravel": "^4.0",
         "larastan/larastan": "^3.9",
         "laravel/pint": "^1.27",
+        "league/flysystem-aws-s3-v3": "^3.0",
         "livewire/livewire": "^4.1",
-        "mockery/mockery": "^1.6"
+        "mockery/mockery": "^1.6",
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0"
     },
     "suggest": {
         "livewire/livewire": "Required for the Pandora control center UI.",
         "laravel/reverb": "Required for realtime streaming of runs, tool calls and approvals.",
-        "guzzlehttp/guzzle": "Required by the HTTP-based provider adapters."
+        "guzzlehttp/guzzle": "Required by the HTTP-based provider adapters.",
+        "league/flysystem-aws-s3-v3": "Required for workspaces and context files on S3-compatible object storage (AWS, DigitalOcean, Hetzner, MinIO, R2)."
     },
     "autoload": {
         "psr-4": {
