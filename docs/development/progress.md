@@ -5,6 +5,61 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-08 (later) — Workspaces and context files moved to object storage
+
+ADR-0013, then the code. The `disk` column on `pandora_workspaces` had existed since Phase 5 with
+no reader at all; it has one now, and it chooses between two adapters whose containment logic is
+deliberately not shared.
+
+```
+vendor/bin/pest (with MinIO)  -> Tests: 1,366 passed, 8 skipped
+vendor/bin/pest (without)     -> Tests: 1,294 passed, 69 skipped
+vendor/bin/phpstan            -> [OK] No errors  (level 8)
+vendor/bin/pint --test        -> passed
+```
+
+**The trap this phase existed to avoid was that it looks like a driver swap.** Containment today is
+resolve-with-`realpath`-then-check, on every operation, and every part of that depends on there
+being a filesystem underneath. Object storage has no `realpath`, no symlinks and no directories, so
+the property cannot be ported — and the version that gets written by accident, prefix-then-check,
+is wrong on the filesystem in a way no existing test notices. So the filesystem adapter is the
+Phase 5 code moved intact, and the object adapter normalises keys lexically, which is a genuinely
+simpler problem rather than a weaker answer to the same one. `..` is refused rather than resolved:
+`a/../b` names something harmless, and the one that leaves is the same expression with one more
+segment.
+
+**The object leg runs against real MinIO or it skips.** `Storage::fake()` is the local driver
+wearing an object store's name — it has directories, it has symlinks, `..` behaves like a
+filesystem — so a suite green against it would be proving the local adapter twice. Without an
+endpoint the suite says 69 skipped rather than 69 green, which is the pgvector rule applied again.
+
+**Two things the real store settled that reasoning had not.** `Content-Type` is whatever the
+uploader wrote: MinIO reports `image/png` for a key holding text, and the workspace refuses it on
+the magic bytes anyway. And listing really does page at 1000, so proving pagination needed 1005
+objects. I had also predicted `list()` would diverge between adapters over S3's synthesised common
+prefixes — it did not, and asking was cheaper than reasoning about it.
+
+**Context files were the performance problem.** They are read on every iteration of every run, so
+the naive version is a full GET per file per iteration. The cache is validated rather than timed —
+a `HEAD` for the ETag, which changes exactly when the object does — and reads are ranged, so a 2GB
+log named by accident still costs one truncated read. Roots gained a second kind, `disk:<name>/<prefix>`,
+and they vouch only for their own: a filesystem root cannot authorise a bucket key.
+
+**Proven in the host app, not only in the suite.** `laravel-test` now points at MinIO. EchoAgent was
+given two context files that disagree on purpose — the local one says the codeword is `saltmarsh`,
+the object says `tideline` — and a live `gpt-4o-mini` answered `tideline`. The Workspaces page,
+un-deferred behind the flag, browses a bucket-backed workspace.
+
+Unrelated but found on the way: `composer audit` in the host app reported twelve advisories, five in
+Guzzle including a host-check bypass and six in league/commonmark including four denial-of-service
+issues. Both predate this work; installing the S3 adapter is what made anybody look. Updated within
+Laravel 13's constraints and now clean.
+
+Phase 7 criteria 1–16 ✅. 17–21 are the surface: root selection that is not a free-text path field,
+tenant isolation through the UI, streamed and audited downloads, and a human driving it.
+
+---
+
 ## 2026-08-08 — Delegation driven against a live model, and every guard was right while the work failed
 
 Phase 6A shipped a commit earlier with 13 criteria covered and a green suite. Driving it against a

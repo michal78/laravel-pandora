@@ -5,6 +5,29 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## Phase 7 — Workspaces on object storage (in progress)
+
+### Added
+
+- **Workspaces and context files on S3-compatible object storage** — AWS, DigitalOcean, Hetzner,
+  MinIO, R2. `Workspace::disk` decides, and it is read for the first time since Phase 5 created it.
+- **A storage contract with two adapters**, whose containment logic is deliberately *not* shared
+  (ADR-0013). The filesystem keeps resolve-with-`realpath`-then-check; object storage normalises
+  keys lexically, because it has no links to follow and no second key for the same bytes.
+- **Context files behind an ETag cache with ranged reads.** They are read on every iteration of
+  every run, so the naive version is a full GET per file per iteration. A root may now be written
+  `disk:<name>/<prefix>`, and roots vouch only for their own kind.
+- A **MinIO leg in CI**, mandatory for the same reason the pgvector leg is.
+
+### Security
+
+- An unreachable disk is a **refusal, never a fallback** to local storage. A file written to a
+  fallback lives on exactly one container while every other node reads past it, and nothing about
+  that looks like an error.
+- `Content-Type` on an object is never consulted. It is chosen by whoever uploaded, exactly like a
+  file extension, and it looks more authoritative — MIME still comes from the magic bytes.
+- Pandora stores **no object-storage credential**. A workspace names a disk the host configured.
+
 ## Phase 6 — Delegation (unreleased)
 
 ### Fixed

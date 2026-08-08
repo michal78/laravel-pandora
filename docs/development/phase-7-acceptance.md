@@ -1,6 +1,6 @@
 # Phase 7 — Acceptance Test Plan
 
-> **Status: scope widened by ADR-0013. 0 of 21 criteria accepted.**
+> **Status: storage done. 16 of 21 criteria accepted; the surface is what remains.**
 >
 > This phase was originally six criteria: turn on a feature that was already built. ADR-0013 moved
 > workspaces and context files onto S3-compatible object storage, which reopens the one thing the
@@ -8,8 +8,22 @@
 > earn the same guarantees by different means.
 >
 > Criteria are ticked when the named test asserts them and passes. The three carried from Phase 5
-> are **not** pre-ticked: they pass today against a local filesystem, and this phase requires them
-> to pass against both adapters, which is a different claim.
+> were **not** pre-ticked: they passed against a local filesystem, and this phase required them to
+> pass against both adapters, which is a different claim. They now do.
+>
+> Criteria 1–16 are verified, and the object leg runs against a real S3-compatible endpoint — MinIO
+> in CI and locally — or **skips**. It is never run against `Storage::fake()`, which is the local
+> driver wearing an object store's name; a suite green against that would be proving the local
+> adapter twice. Without an endpoint the suite reports 69 skipped rather than 69 green.
+>
+> Criteria 17–21 are the surface: root selection, tenant isolation through the UI, streamed
+> downloads, and a human driving it. None of that is built.
+>
+> **Two things the real store settled that reasoning had not.** `Content-Type` on an object is
+> whatever the uploader wrote — MinIO reports `image/png` for a key holding text, and the workspace
+> refuses it on the magic bytes anyway (criterion 12). And listing genuinely pages at 1000, so
+> criterion 13 needed 1005 objects to tell a paginating implementation from a lucky one. Neither
+> could have been asked of a fake.
 
 Phase 5 built agent file workspaces and then declined to release them. The engine was finished —
 containment, quotas and MIME detection implemented and covered — and what was missing was the part
@@ -102,37 +116,37 @@ Out of scope: per-workspace S3 credentials (ADR-0013 keeps credentials in the ho
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 1 | A local workspace confines reads and writes to its root — **traversal and symlink escape both fail** | `Workspaces/ContainmentTest` (local leg) |
-| 2 | **The same containment suite passes against the object adapter**, and a failure on either adapter fails the build | `Workspaces/ContainmentTest` (object leg) |
-| 3 | **An object key normalising to anything outside the root is refused** — `..` in every spelling, absolute paths, scheme-shaped keys, and a null byte anywhere | `Workspaces/KeyNormalisationTest` |
-| 4 | **A tenant prefix cannot match a longer one** — `tenant-1/` never reaches `tenant-10/` | `Workspaces/TenantPrefixTest` |
-| 5 | A path is re-resolved on **every** operation; there is no validated fast path on either adapter | `Workspaces/ContainmentTest` |
+| 1 ✅ | A local workspace confines reads and writes to its root — **traversal and symlink escape both fail** | `Workspaces/ContainmentTest` (local leg) |
+| 2 ✅ | **The same containment suite passes against the object adapter**, and a failure on either adapter fails the build | `Workspaces/StorageContractTest` (both legs) |
+| 3 ✅ | **An object key normalising to anything outside the root is refused** — `..` in every spelling, absolute paths, scheme-shaped keys, and a null byte anywhere | `Workspaces/KeyNormalisationTest` |
+| 4 ✅ | **A tenant prefix cannot match a longer one** — `tenant-1/` never reaches `tenant-10/` | `Workspaces/TenantPrefixTest` |
+| 5 ✅ | A path is re-resolved on **every** operation; there is no validated fast path on either adapter | `Workspaces/ContainmentTest` · `StorageContractTest` |
 
 ### The disk itself
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 6 | **An unreachable disk produces a tool error and the run continues** — nothing is written locally, and no read is served from anywhere else | `Workspaces/DiskUnavailableTest` |
-| 7 | A workspace with no disk configured uses the local disk, and a host that configured no object storage works untouched | `Workspaces/DiskDefaultTest` |
-| 8 | **Pandora stores no object-storage credential** — no endpoint, key or secret exists in the schema, the UI or any API response | `Workspaces/NoCredentialTest` |
+| 6 ✅ | **An unreachable disk produces a tool error and the run continues** — nothing is written locally, and no read is served from anywhere else | `Workspaces/DiskUnavailableTest` |
+| 7 ✅ | A workspace with no disk configured uses the local disk, and a host that configured no object storage works untouched | `Workspaces/DiskRoutingTest` |
+| 8 ✅ | **Pandora stores no object-storage credential** — no endpoint, key or secret exists in the schema, the UI or any API response | `Workspaces/NoCredentialTest` |
 
 ### Quota, MIME and listing
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 9 | A write exceeding the quota is refused **before it lands**, and `used_bytes` stays accurate under concurrent writes, on both adapters | `Workspaces/QuotaTest` |
-| 10 | Overwrite accounting is correct on object storage, where the previous size comes from a `HEAD` rather than a stat | `Workspaces/QuotaTest` |
-| 11 | A disallowed MIME type is refused on the **detected** type on both adapters | `Workspaces/MimeTest` |
-| 12 | **An object whose `Content-Type` says `image/png` while its bytes say otherwise is refused** — the metadata is never consulted | `Workspaces/MimeTest` |
-| 13 | Listing a workspace paginates, and a workspace holding more objects than one page returns all of them | `Workspaces/ListingTest` |
+| 9 ✅ | A write exceeding the quota is refused **before it lands**, and `used_bytes` stays accurate under concurrent writes, on both adapters | `Workspaces/QuotaTest` |
+| 10 ✅ | Overwrite accounting is correct on object storage, where the previous size comes from a `HEAD` rather than a stat | `Workspaces/QuotaTest` |
+| 11 ✅ | A disallowed MIME type is refused on the **detected** type on both adapters | `Workspaces/MimeTest` |
+| 12 ✅ | **An object whose `Content-Type` says `image/png` while its bytes say otherwise is refused** — the metadata is never consulted | `Workspaces/MimeTest` |
+| 13 ✅ | Listing a workspace paginates, and a workspace holding more objects than one page returns all of them | `Workspaces/ListingTest` |
 
 ### Context files
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 14 | A context file on object storage is read within the byte budget — an oversized object costs one truncated read, not the worker's memory | `Context/ObjectContextFileTest` |
-| 15 | **An unchanged object is served from cache without re-reading its body**, and a changed ETag invalidates it | `Context/ObjectContextFileTest` |
-| 16 | Context file roots on object storage remain an **allowlist**, and a path outside it is refused exactly as a local one is | `Context/ObjectContextFileTest` |
+| 14 ✅ | A context file on object storage is read within the byte budget — an oversized object costs one truncated read, not the worker's memory | `Context/ObjectContextFileTest` |
+| 15 ✅ | **An unchanged object is served from cache without re-reading its body**, and a changed ETag invalidates it | `Context/ObjectContextFileTest` |
+| 16 ✅ | Context file roots on object storage remain an **allowlist**, and a path outside it is refused exactly as a local one is | `Context/ObjectContextFileTest` |
 
 ### The surface
 

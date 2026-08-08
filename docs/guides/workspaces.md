@@ -104,6 +104,65 @@ $agent->update(['workspace_id' => $workspace->getKey()]);
 reaches them. The root is what every containment check is measured against; a
 root an agent could influence is not a boundary, it is a suggestion.
 
+## Object storage
+
+A workspace may live in any S3-compatible bucket — AWS, DigitalOcean Spaces,
+Hetzner, MinIO, Cloudflare R2 — by naming a disk the application has already
+configured in `config/filesystems.php`. `root_path` becomes a key prefix:
+
+```php
+$workspace = Workspace::query()->create([
+    'name' => 'Reports',
+    'slug' => 'reports',
+    'disk' => 's3',                      // a disk in YOUR filesystems.php
+    'root_path' => 'workspaces/reports', // a key prefix, not a path
+    'quota_bytes' => 50 * 1024 * 1024,
+]);
+```
+
+Install `league/flysystem-aws-s3-v3` for the `s3` driver. Pandora stores no
+endpoint, key or secret of its own: a second secret store is a second thing to
+leak, and rotation belongs where you already rotate.
+
+Everything above this section is unchanged on either kind of disk. What differs
+is beneath it (ADR-0013):
+
+- **Containment is re-derived, not ported.** A filesystem resolves a path with
+  `realpath()` and checks what it resolved, because `../` has many spellings and
+  a symlink has none. An object store has no links, no directories and no second
+  key for the same bytes, so keys are normalised lexically instead — `..` is
+  refused rather than resolved, along with absolute, scheme-shaped and
+  backslash-separated keys.
+- **An unreachable disk is a tool error, never a fallback.** The run continues
+  and the agent is told it cannot use files. Nothing is written locally instead:
+  that file would exist on one container while every other node read past it.
+- **MIME still comes from the bytes.** An object's `Content-Type` is chosen by
+  whoever uploaded it, exactly like a file extension, and nothing consults it.
+- **Listing paginates.** A prefix holding more than a thousand objects lists all
+  of them.
+
+## Context files on object storage
+
+`pandora.context.files.roots` accepts the same idea, written
+`disk:<name>/<prefix>`:
+
+```php
+'roots' => [
+    storage_path('app/pandora-context'),
+    'disk:s3/context',
+],
+```
+
+An agent then names a file as `disk:s3/context/handbook.md`. Roots vouch only
+for their own kind — a filesystem root never authorises a bucket key, and a
+bucket prefix never authorises a file on disk.
+
+Context files are read on every iteration of every run, so bodies are cached
+and revalidated by ETag rather than by a TTL: edit the object and the next run
+sees it, without a full download each time. Reads are ranged to
+`pandora.context.files.max_bytes`, so an oversized object costs one truncated
+read rather than a transfer bill.
+
 ## Reading and writing
 
 ```php

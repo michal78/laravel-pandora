@@ -15,7 +15,7 @@
 | 4 | Automation | ✅ 26/26 on all four engines; host walkthrough complete |
 | 5 | Memory and context | ✅ 28/28 incl. a real pgvector CI leg; host walkthrough driven 2026-08-07 — four defects, all fixed, one of them a cross-user memory disclosure on the Memory page |
 | 6 | Multi-agent and MCP | 🔨 13/30 — delegation done, driven against a live model and four defects fixed; MCP not started |
-| 7 | Workspaces, released and on object storage | ⬜ 0/21 — scope widened by ADR-0013 |
+| 7 | Workspaces, released and on object storage | 🔨 16/21 — storage done on both adapters against real MinIO; the surface remains |
 | 8 | Channels and extensions | ⬜ |
 | 9 | Hardening and release | ⬜ |
 
@@ -323,7 +323,7 @@ without explicit configuration.
 
 ---
 
-## Phase 7 — Workspaces, released and on object storage ⬜
+## Phase 7 — Workspaces, released and on object storage 🔨
 
 The workspace engine was built in Phase 5 and deferred before release, because a workspace is only
 as safe as the answer to *who chose the root* — and the obvious UI for that is a form with a path
