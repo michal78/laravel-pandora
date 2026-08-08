@@ -102,6 +102,7 @@
                         ['route' => 'pandora.memory',    'label' => 'Memory',    'glyph' => '◎', 'ability' => 'memory.manage'],
                         ['route' => 'pandora.workspaces', 'label' => 'Workspaces', 'glyph' => '▤', 'ability' => 'workspaces.access',
                          'soon' => \Pandora\UI\Feature::disabled('workspaces')],
+                        ['route' => 'pandora.mcp',       'label' => 'MCP',       'glyph' => '◈', 'ability' => 'mcp.manage'],
                         ['route' => 'pandora.approvals', 'label' => 'Approvals', 'glyph' => '◉', 'ability' => 'access'],
                         ['route' => 'pandora.providers', 'label' => 'Providers', 'glyph' => '◍', 'ability' => 'access'],
                         ['route' => 'pandora.usage',     'label' => 'Usage',     'glyph' => '◫', 'ability' => 'usage.view'],

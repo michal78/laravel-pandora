@@ -71,6 +71,7 @@
                 'skills' => 'Skills',
                 'memory' => 'Memory',
                 'workspace' => 'Workspace',
+                'permissions' => 'Permissions',
                 'runs' => 'Runs',
                 'usage' => 'Usage',
             ];
@@ -613,6 +614,65 @@
                         </tbody>
                     </table>
                 </div>
+            @endif
+        </x-pandora::card>
+    @endif
+
+    {{-- ------------------------------------------------------ permissions --}}
+    @if ($tab === 'permissions')
+        <x-pandora::card title="Delegation">
+            @if ($delegatable === [])
+                <p class="pd-muted">
+                    This agent may delegate to nobody. That is the default, and it is deliberate:
+                    an agent reachable by omission is an agent nobody chose to expose.
+                </p>
+            @else
+                <p class="pd-help">
+                    A child's abilities are the INTERSECTION of this agent's and the child's, so
+                    delegating can only ever narrow what is reachable.
+                </p>
+                <ul class="pd-list">
+                    @foreach ($delegatable as $slug)
+                        <li class="pd-mono">{{ $slug }}</li>
+                    @endforeach
+                </ul>
+            @endif
+        </x-pandora::card>
+
+        <x-pandora::card title="Remote tools (MCP)">
+            @if ($remoteTools === [])
+                <p class="pd-muted">
+                    No remote tool is approved for this agent. Discovery finds tools; it approves
+                    none of them, for anybody.
+                </p>
+            @else
+                <table class="pd-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Tool</th>
+                            <th scope="col">Description <span class="pd-faint">(written by the server)</span></th>
+                            <th scope="col">State</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($remoteTools as $remote)
+                            <tr>
+                                <td class="pd-mono">{{ $remote->name }}</td>
+                                {{-- Escaped: a stranger wrote this. --}}
+                                <td class="pd-muted">{{ $remote->description }}</td>
+                                <td>
+                                    @if ($remote->stale)
+                                        <x-pandora::badge>changed since approval</x-pandora::badge>
+                                    @elseif (! $remote->available)
+                                        <x-pandora::badge>withdrawn</x-pandora::badge>
+                                    @else
+                                        <span class="pd-muted">approved</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             @endif
         </x-pandora::card>
     @endif

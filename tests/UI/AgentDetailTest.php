@@ -9,6 +9,9 @@ use Pandora\Agents\AgentRegistry;
 use Pandora\Audit\AuditLog;
 use Pandora\Core\Tenancy\TenantContext;
 use Pandora\Core\Tenancy\TenantManager;
+use Pandora\Mcp\McpServer;
+use Pandora\Mcp\McpTool;
+use Pandora\Mcp\McpToolApproval;
 use Pandora\Memory\Enums\MemoryScope;
 use Pandora\Memory\Enums\MemorySource;
 use Pandora\Memory\Enums\MemoryType;
@@ -490,9 +493,11 @@ it('says a tab is not built yet, without quoting a release at anyone', function 
         ->assertDontSee('Phase')
         ->call('selectTab', 'channels')
         ->assertSee('Channels is not here yet')
-        ->call('selectTab', 'permissions')
-        ->assertSee('Permissions is not here yet')
         ->assertDontSee('Phase');
+
+    // 'permissions' was here until Phase 6 built it. A tab that stayed on the
+    // pending list after it shipped would be the same lie in the other
+    // direction.
 
     expect(array_keys(AgentDetail::PENDING_TABS))
         ->not->toContain('memory')
@@ -821,4 +826,87 @@ it('refuses a forged attach while the workspaces feature is off', function (): v
         ->assertNotFound();
 
     expect($agent->refresh()->workspace_id)->toBeNull();
+});
+
+/**
+ * Phase 6 — the Permissions tab, which Phase 3.5 listed as a promise.
+ *
+ * What it answers is "what can this agent reach beyond its own tools": who it
+ * may delegate to, and which remote tools somebody approved for it. Both are
+ * capabilities that arrived from somewhere other than this page.
+ */
+it('shows the permissions tab rather than promising it', function (): void {
+    expect(array_keys(AgentDetail::pendingTabs()))->not->toContain('permissions');
+});
+
+it('says an agent may delegate to nobody, which is the default', function (): void {
+    $agent = AgentFactory::database();
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'permissions')
+        ->assertSee('may delegate to nobody');
+});
+
+it('lists the agents it may delegate to', function (): void {
+    $agent = AgentFactory::database();
+    $agent->update(['delegation_policy' => ['allow' => ['researcher']]]);
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'permissions')
+        ->assertSee('researcher');
+});
+
+it('says no remote tool is approved until one is', function (): void {
+    $agent = AgentFactory::database();
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'permissions')
+        // Discovery finds tools; it approves none of them, for anybody.
+        ->assertSee('No remote tool is approved');
+});
+
+it('lists an approved remote tool, and flags one that changed under it', function (): void {
+    $agent = AgentFactory::database();
+
+    /** @var McpServer $server */
+    $server = McpServer::query()->create([
+        'name' => 'Ledger', 'slug' => 'ledger', 'namespace' => 'ledger',
+        'endpoint' => 'https://mcp.example.test/rpc',
+    ]);
+
+    /** @var McpTool $tool */
+    $tool = McpTool::query()->create([
+        'server_id' => $server->getKey(),
+        'remote_name' => 'lookup_invoice',
+        'namespaced_name' => 'ledger.lookup_invoice',
+        'description' => 'Look up an invoice.',
+        'schema_hash' => str_repeat('a', 64),
+    ]);
+
+    McpToolApproval::query()->create([
+        'agent_id' => $agent->getKey(),
+        'mcp_tool_id' => $tool->getKey(),
+        'approved_schema_hash' => str_repeat('a', 64),
+        'approved_at' => now(),
+    ]);
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'permissions')
+        ->assertSee('ledger.lookup_invoice')
+        ->assertSee('approved');
+
+    // The server moves under the approval.
+    $tool->update(['schema_hash' => str_repeat('b', 64)]);
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'permissions')
+        ->assertSee('changed since approval');
 });

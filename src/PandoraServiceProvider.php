@@ -104,6 +104,7 @@ use Pandora\UI\Http\AssetController;
 use Pandora\UI\Livewire\ApprovalsIndex;
 use Pandora\UI\Livewire\Chat;
 use Pandora\UI\Livewire\Dashboard;
+use Pandora\UI\Livewire\McpIndex;
 use Pandora\UI\Livewire\MemoryIndex;
 use Pandora\UI\Livewire\ProvidersIndex;
 use Pandora\UI\Livewire\RunDetail;
@@ -947,6 +948,7 @@ final class PandoraServiceProvider extends ServiceProvider
         Livewire::component('pandora.providers-index', ProvidersIndex::class);
         Livewire::component('pandora.usage-index', UsageIndex::class);
         Livewire::component('pandora.memory-index', MemoryIndex::class);
+        Livewire::component('pandora.mcp-index', McpIndex::class);
         Livewire::component('pandora.workspaces-index', WorkspacesIndex::class);
     }
 }

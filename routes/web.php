@@ -11,6 +11,7 @@ use Pandora\UI\Livewire\AutomationDetail;
 use Pandora\UI\Livewire\AutomationsIndex;
 use Pandora\UI\Livewire\Chat;
 use Pandora\UI\Livewire\Dashboard;
+use Pandora\UI\Livewire\McpIndex;
 use Pandora\UI\Livewire\MemoryIndex;
 use Pandora\UI\Livewire\ProvidersIndex;
 use Pandora\UI\Livewire\RunDetail;
@@ -41,6 +42,7 @@ Route::get('/runs/{run}', RunDetail::class)->name('runs.show');
 Route::get('/tools', ToolsIndex::class)->name('tools');
 Route::get('/approvals', ApprovalsIndex::class)->name('approvals');
 Route::get('/memory', MemoryIndex::class)->name('memory');
+Route::get('/mcp', McpIndex::class)->name('mcp');
 Route::get('/workspaces', WorkspacesIndex::class)->name('workspaces');
 // Streamed through the app, never presigned: a signed object URL is a bearer
 // token that leaves no trace of the download it authorises (ADR-0013).

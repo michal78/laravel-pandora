@@ -13,6 +13,8 @@ use Pandora\Agents\Agent;
 use Pandora\Agents\AgentRegistry;
 use Pandora\Audit\AuditLogger;
 use Pandora\Automation\Automation;
+use Pandora\Mcp\McpTool;
+use Pandora\Mcp\McpToolApproval;
 use Pandora\Memory\Enums\MemoryScope;
 use Pandora\Memory\MemoryItem;
 use Pandora\Runs\Enums\AutonomyLevel;
@@ -115,7 +117,9 @@ final class AgentDetail extends Component
 
         'channels' => ['label' => 'Channels', 'note' => 'Where this agent can be reached, and which identities map to it.'],
 
-        'permissions' => ['label' => 'Permissions', 'note' => 'Delegation, MCP access and the abilities required to run it.'],
+        // 'permissions' is no longer here: Phase 6 built it. What it shows is
+        // what this agent may reach beyond its own tools -- who it may
+        // delegate to, and which remote tools somebody approved for it.
     ];
 
     /**
@@ -371,6 +375,8 @@ final class AgentDetail extends Component
             'skills' => $this->tab === 'skills' ? $this->skillsFor($agent) : collect(),
             'workspace' => $this->tab === 'workspace' ? $this->workspaceFor($agent) : null,
             'workspaces' => $this->tab === 'workspace' ? $this->selectableWorkspaces() : collect(),
+            'remoteTools' => $this->tab === 'permissions' ? $this->remoteToolsFor($agent) : [],
+            'delegatable' => $this->tab === 'permissions' ? $agent->delegatableAgents() : [],
             'canManageMemory' => PandoraGate::allows('memory.manage'),
             'pendingTabs' => self::pendingTabs(),
         ])->layout('pandora::layouts.app', ['title' => $agent->name]);
@@ -415,6 +421,47 @@ final class AgentDetail extends Component
      *
      * @return Collection<int, Workspace>
      */
+    /**
+     * The remote tools somebody approved for this agent, and whether each is
+     * still the thing that was approved.
+     *
+     * Shown here rather than only on the MCP page because the question an
+     * operator has while looking at an agent is "what can this reach", and a
+     * remote tool is a capability that arrived from outside this page.
+     *
+     * @return list<object>
+     */
+    private function remoteToolsFor(Agent $agent): array
+    {
+        $approvals = McpToolApproval::query()
+            ->where('agent_id', $agent->getKey())
+            ->whereNull('revoked_at')
+            ->get();
+
+        $mapped = $approvals->map(static function (McpToolApproval $approval): ?object {
+            /** @var McpTool|null $tool */
+            $tool = McpTool::query()->find($approval->mcp_tool_id);
+
+            if ($tool === null) {
+                return null;
+            }
+
+            return (object) [
+                'name' => $tool->namespaced_name,
+                'description' => $tool->boundedDescription(),
+                'available' => $tool->available,
+                // Recomputed rather than read from a flag: the page's job is
+                // to say what is true now.
+                'stale' => ! $approval->covers($tool),
+            ];
+        })->filter();
+
+        /** @var list<object> $list */
+        $list = array_values($mapped->all());
+
+        return $list;
+    }
+
     private function selectableWorkspaces(): Collection
     {
         /** @var Collection<int, Workspace> $workspaces */
