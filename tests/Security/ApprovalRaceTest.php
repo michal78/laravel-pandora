@@ -118,6 +118,24 @@ it('re-authorizes at execution time, so a revoked permission still stops the cal
         ->toBe('denied');
 });
 
+it('says which layer denied the call at execution time, and why', function (): void {
+    // The row was created by a decision that ALLOWED the call, so it carries
+    // `decided_by: tool` and no reason. If the late denial does not overwrite
+    // both, an operator reading the denied row sees the shape of a permitted
+    // one and is told nothing.
+    /** @var ToolExecution $execution */
+    $execution = ToolExecution::query()->where('run_id', $this->pausedRun->getKey())->firstOrFail();
+
+    $this->agentAllows([]);
+
+    app(ApprovalManager::class)->approve($this->approval, null, authorize: false);
+
+    $denied = ToolExecution::query()->findOrFail($execution->getKey());
+
+    expect($denied->decided_by)->toBe('agent')
+        ->and($denied->decision_reason)->toContain('may not use [refund_order]');
+});
+
 it('re-validates at execution time, so tampered arguments cannot slip through', function (): void {
     /** @var ToolExecution $execution */
     $execution = ToolExecution::query()->where('run_id', $this->pausedRun->getKey())->firstOrFail();

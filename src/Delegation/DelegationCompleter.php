@@ -211,6 +211,11 @@ final class DelegationCompleter
                 : ToolExecutionStatus::Failed->value,
             'result' => $result->jsonSerialize(),
             'sanitized_result' => $this->redactor->redact($result->jsonSerialize()),
+            // A child that failed, timed out, exhausted the tree budget or was
+            // cancelled closes this row as a FAILURE, and the sentence saying
+            // which of those happened has to reach the operator-facing column
+            // as well as the model. Same rule as an ordinary tool result.
+            'error_message' => $result->ok ? null : $this->redactor->redactText($result->content),
             'finished_at' => now(),
             'duration_ms' => $startedAt === null ? null : (int) $startedAt->diffInMilliseconds(now()),
         ])->save();

@@ -222,11 +222,13 @@ final class ExecuteToolCall implements ShouldQueue
         // was dispatched, so there is nothing left here to do but the trace.
         $execution->refresh();
 
+        // Status only. `Delegator` already wrote why this row is open, before
+        // the child was dispatched, and overwriting it here with the tool's
+        // summary says the same thing twice in two wordings -- one of which
+        // outlives the wait and sits on the finished row still claiming to be
+        // waiting.
         if (! $execution->status->isTerminal()) {
-            $execution->forceFill([
-                'status' => ToolExecutionStatus::Running->value,
-                'decision_reason' => $result->content,
-            ])->save();
+            $execution->forceFill(['status' => ToolExecutionStatus::Running->value])->save();
         }
 
         $steps->record(
@@ -324,7 +326,16 @@ final class ExecuteToolCall implements ShouldQueue
                 label: 'Authorization changed since this call was decided',
             );
 
-            $execution->forceFill(['status' => ToolExecutionStatus::Denied->value])->save();
+            // The row carries the decision that took effect, not the one it was
+            // created with. Without this the execution reads `decided_by: tool,
+            // reason: null` -- the shape of an ALLOWED call -- and an operator
+            // looking at a denied call is told nothing about which layer denied
+            // it or why.
+            $execution->forceFill([
+                'status' => ToolExecutionStatus::Denied->value,
+                'decided_by' => $decision->layer->value,
+                'decision_reason' => $decision->reason,
+            ])->save();
 
             return ToolResult::failure($decision->modelMessage());
         }
@@ -358,6 +369,15 @@ final class ExecuteToolCall implements ShouldQueue
                 : ($result->ok ? ToolExecutionStatus::Succeeded->value : ToolExecutionStatus::Failed->value),
             'result' => $result->jsonSerialize(),
             'sanitized_result' => $redactor->redact($result->jsonSerialize()),
+            // A tool that REFUSES rather than throws still failed, and the
+            // reason has to live somewhere an operator reads. Without this the
+            // run detail shows a failed call with an empty error -- every
+            // delegation refusal looked like that. An exception path has
+            // already written a class and a message, and does not lose them to
+            // the generic one here.
+            'error_message' => $result->ok
+                ? $execution->error_message
+                : ($execution->error_message ?? $redactor->redactText($result->content)),
             'finished_at' => now(),
             'duration_ms' => $startedAt === null ? null : (int) $startedAt->diffInMilliseconds(now()),
         ])->save();

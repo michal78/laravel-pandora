@@ -175,6 +175,10 @@ it('answers the parent when the child fails rather than leaving it parked', func
     expect($execution->status)->toBe(ToolExecutionStatus::Failed)
         ->and($execution->result['content'])->toContain('could not complete the work')
         ->and($execution->result['content'])->toContain('fell over')
+        // And where an operator reads it. A delegation that ends badly closed
+        // this row with an empty error column until the walkthrough found a
+        // failed child sitting behind a call that still said "waiting".
+        ->and($execution->error_message)->toContain('fell over')
         ->and($execution->finished_at)->not->toBeNull();
 });
 

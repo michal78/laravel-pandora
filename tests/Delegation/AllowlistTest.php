@@ -61,6 +61,11 @@ it('tells the model why, as a tool error, and keeps the parent running', functio
 
     expect($execution->status)->toBe(ToolExecutionStatus::Failed)
         ->and($execution->result['content'])->toContain('not permitted to delegate')
+        // And the same sentence where an OPERATOR looks. A tool that refuses
+        // rather than throws is still a failure, and a failed call whose error
+        // is empty is the reason a live delegation refusal read as "denied,
+        // no reason given".
+        ->and($execution->error_message)->toContain('not permitted to delegate')
         // The refusal did not end the run. A bounded refusal that looked like
         // an outage would teach operators to widen the allowlist to stop the
         // alerts.
