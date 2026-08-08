@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Storage;
 use Pandora\Audit\AuditLog;
-use Pandora\Audit\AuditLogger;
 use Pandora\Exceptions\WorkspaceDenied;
-use Pandora\Workspaces\Denials;
-use Pandora\Workspaces\Storage\ObjectStorage;
-use Pandora\Workspaces\Workspace;
+use Pandora\Tests\Support\MakesWorkspaces;
 
 /**
  * Phase 7, criterion 3 — a key that normalises outside the root is refused.
@@ -22,34 +19,29 @@ use Pandora\Workspaces\Workspace;
  * carelessly: `..` that is resolved rather than refused, a backslash on a
  * client that treats it as a separator, a scheme that some SDKs honour, and a
  * leading slash written by somebody assuming the prefix is advisory.
+ *
+ * Run against a real endpoint, and skipped without one. `Storage::fake()` is
+ * the local driver: it would answer these questions as a filesystem, which is
+ * the one thing this file must not be testing.
  */
-beforeEach(function (): void {
-    Storage::fake('objects');
+uses(MakesWorkspaces::class);
 
-    /** @var Workspace $workspace */
-    $workspace = Workspace::query()->create([
-        'name' => 'Bucket',
-        'slug' => 'bucket',
-        'disk' => 'objects',
-        'root_path' => 'workspaces/scratch',
-    ]);
+beforeEach(function (): void {
+    [$workspace, $storage] = $this->objectWorkspace();
 
     $this->workspace = $workspace;
-    $this->storage = new ObjectStorage(
-        $workspace,
-        Storage::disk('objects'),
-        new Denials($workspace, app(AuditLogger::class)),
-    );
+    $this->storage = $storage;
+    $this->prefix = rtrim($workspace->root_path, '/').'/';
 });
 
 it('prefixes an ordinary key with the workspace root', function (): void {
-    expect($this->storage->locate('notes.txt'))->toBe('workspaces/scratch/notes.txt')
-        ->and($this->storage->locate('nested/deep.txt'))->toBe('workspaces/scratch/nested/deep.txt');
+    expect($this->storage->locate('notes.txt'))->toBe($this->prefix.'notes.txt')
+        ->and($this->storage->locate('nested/deep.txt'))->toBe($this->prefix.'nested/deep.txt');
 });
 
 it('collapses redundant segments without accepting an escape', function (): void {
-    expect($this->storage->locate('./notes.txt'))->toBe('workspaces/scratch/notes.txt')
-        ->and($this->storage->locate('nested//deep.txt'))->toBe('workspaces/scratch/nested/deep.txt');
+    expect($this->storage->locate('./notes.txt'))->toBe($this->prefix.'notes.txt')
+        ->and($this->storage->locate('nested//deep.txt'))->toBe($this->prefix.'nested/deep.txt');
 });
 
 it('refuses a parent segment rather than resolving it', function (string $key): void {
@@ -121,5 +113,5 @@ it('never lets a refused key reach the store', function (): void {
         // Expected.
     }
 
-    expect(Storage::disk('objects')->allFiles())->toBe([]);
+    expect($this->storage->list())->toBe([]);
 });

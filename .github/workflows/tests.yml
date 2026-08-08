@@ -76,3 +76,44 @@ jobs:
           DB_DATABASE: pandora
           DB_USERNAME: ${{ matrix.db.conn == 'pgsql' && 'postgres' || 'root' }}
           DB_PASSWORD: password
+
+  # The object-storage leg. Optional at runtime, mandatory here, for the same
+  # reason the pgvector leg is: "optional, therefore untested" is how a feature
+  # ships with half its behaviour unexercised. `Storage::fake()` is deliberately
+  # NOT used — it is the local driver wearing an object store's name, so a suite
+  # green against it would be proving the local adapter twice.
+  #
+  # StorageContractTest, KeyNormalisationTest and TenantPrefixTest SKIP without
+  # an endpoint rather than passing, so deleting this job makes the gap visible
+  # instead of silent.
+  object-storage:
+    name: object storage · minio
+    runs-on: ubuntu-latest
+    services:
+      minio:
+        image: 'bitnami/minio:latest'
+        env:
+          MINIO_ROOT_USER: pandora
+          MINIO_ROOT_PASSWORD: pandora-secret
+          MINIO_DEFAULT_BUCKETS: pandora-test
+        ports: ['9000:9000']
+        options: >-
+          --health-cmd="curl -f http://localhost:9000/minio/health/live"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, sqlite3, pdo_sqlite
+          coverage: none
+      - run: composer update --prefer-dist --no-interaction --no-progress
+      - run: vendor/bin/pest --ci
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          PANDORA_TEST_S3_ENDPOINT: http://127.0.0.1:9000
+          PANDORA_TEST_S3_KEY: pandora
+          PANDORA_TEST_S3_SECRET: pandora-secret
+          PANDORA_TEST_S3_BUCKET: pandora-test
+          PANDORA_TEST_S3_REGION: us-east-1

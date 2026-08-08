@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Storage;
 use Pandora\Audit\AuditLogger;
+use Pandora\Tests\Support\MakesWorkspaces;
 use Pandora\Workspaces\Denials;
 use Pandora\Workspaces\Storage\ObjectStorage;
 use Pandora\Workspaces\Workspace;
@@ -17,35 +18,44 @@ use Pandora\Workspaces\Workspace;
  * workspace through an operation that looks entirely ordinary and logs nothing
  * unusual.
  *
- * It is the same mistake as a root of `/srv/agent` accepting `/srv/agent-
- * secrets`, which the filesystem adapter has guarded against since Phase 5 —
- * and it is worth its own test on this side because object storage has no
- * directory to make the boundary obvious.
+ * It is the same mistake as a root of `/srv/agent` accepting
+ * `/srv/agent-secrets`, which the filesystem adapter has guarded against since
+ * Phase 5 — and it needs its own test on this side because object storage has
+ * no directory to make the boundary obvious. It is also why this runs against
+ * a real store: whether a listing bleeds across a prefix is the *service's*
+ * behaviour, not ours.
  */
-function objectStorageFor(string $root): ObjectStorage
+uses(MakesWorkspaces::class);
+
+beforeEach(function (): void {
+    $this->disk = $this->objectDisk();
+
+    // Both roots live under one run-unique prefix, so `tenant-1` and
+    // `tenant-10` are genuine neighbours without colliding with whatever an
+    // earlier run left in the bucket.
+    $this->run = 'run-'.bin2hex(random_bytes(6));
+});
+
+function neighbouringStorage(string $disk, string $root): ObjectStorage
 {
     /** @var Workspace $workspace */
     $workspace = Workspace::query()->create([
         'name' => 'Workspace '.$root,
         'slug' => str_replace('/', '-', $root),
-        'disk' => 'objects',
+        'disk' => $disk,
         'root_path' => $root,
     ]);
 
     return new ObjectStorage(
         $workspace,
-        Storage::disk('objects'),
+        Storage::disk($disk),
         new Denials($workspace, app(AuditLogger::class)),
     );
 }
 
-beforeEach(function (): void {
-    Storage::fake('objects');
-});
-
 it('ends the prefix at a delimiter, so a shorter root cannot reach a longer one', function (): void {
-    $one = objectStorageFor('tenant-1');
-    $ten = objectStorageFor('tenant-10');
+    $one = neighbouringStorage($this->disk, $this->run.'/tenant-1');
+    $ten = neighbouringStorage($this->disk, $this->run.'/tenant-10');
 
     $ten->write('secrets.txt', 'tenant ten only');
 
@@ -55,8 +65,8 @@ it('ends the prefix at a delimiter, so a shorter root cannot reach a longer one'
 });
 
 it('keeps a neighbouring prefix out of the byte count', function (): void {
-    $one = objectStorageFor('tenant-1');
-    $ten = objectStorageFor('tenant-10');
+    $one = neighbouringStorage($this->disk, $this->run.'/tenant-1');
+    $ten = neighbouringStorage($this->disk, $this->run.'/tenant-10');
 
     $one->write('mine.txt', 'four');
     $ten->write('theirs.txt', 'a much longer file that would inflate a neighbour');
@@ -65,19 +75,22 @@ it('keeps a neighbouring prefix out of the byte count', function (): void {
 });
 
 it('cannot read a neighbouring prefix by naming it', function (): void {
-    $ten = objectStorageFor('tenant-10');
+    $ten = neighbouringStorage($this->disk, $this->run.'/tenant-10');
     $ten->write('secrets.txt', 'tenant ten only');
 
-    $one = objectStorageFor('tenant-1');
+    $one = neighbouringStorage($this->disk, $this->run.'/tenant-1');
 
-    // The key `0/secrets.txt` under prefix `tenant-1/` is `tenant-1/0/…`,
-    // not `tenant-10/…`. The delimiter is what makes that true.
-    expect($one->locate('0/secrets.txt'))->toBe('tenant-1/0/secrets.txt')
+    // The key `0/secrets.txt` under prefix `tenant-1/` is `tenant-1/0/…`, not
+    // `tenant-10/…`. The delimiter is what makes that true.
+    expect($one->locate('0/secrets.txt'))->toBe($this->run.'/tenant-1/0/secrets.txt')
         ->and($one->size('0/secrets.txt'))->toBe(0);
 });
 
 it('writes under its own prefix and nowhere else', function (): void {
-    objectStorageFor('tenant-1')->write('nested/notes.txt', 'hello');
+    $one = neighbouringStorage($this->disk, $this->run.'/tenant-1');
 
-    expect(Storage::disk('objects')->allFiles())->toBe(['tenant-1/nested/notes.txt']);
+    $one->write('nested/notes.txt', 'hello');
+
+    expect(Storage::disk($this->disk)->allFiles($this->run))
+        ->toBe([$this->run.'/tenant-1/nested/notes.txt']);
 });
