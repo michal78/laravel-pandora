@@ -271,6 +271,22 @@
                                 <td class="pd-actions">
                                     <button type="button" class="pd-btn"
                                             wire:click="browse('{{ $entry }}')">Open</button>
+
+                                    {{--
+                                        Offered for everything the store listed, because
+                                        whether a listing entry is a file is a question for
+                                        the store rather than for the page: object storage
+                                        has no directories, so the same name can be a
+                                        prefix on one disk and a file on another. A
+                                        directory answers 404 and nothing is guessed here.
+
+                                        Streamed through the app rather than presigned. A
+                                        signed URL is a bearer token for one object until
+                                        it expires, and the audit trail records that a link
+                                        was made, not that the file left.
+                                    --}}
+                                    <a class="pd-btn"
+                                       href="{{ route('pandora.workspaces.download', ['workspace' => $workspace->slug, 'path' => $entry]) }}">Download</a>
                                 </td>
                             </tr>
                         @endforeach

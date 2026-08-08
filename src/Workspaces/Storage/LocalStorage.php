@@ -144,6 +144,29 @@ final readonly class LocalStorage implements WorkspaceStorage
         return $contents === false ? '' : $contents;
     }
 
+    /**
+     * @return resource
+     */
+    public function stream(string $relative)
+    {
+        // Located again rather than reusing anything: a handle is opened here
+        // and read later, and the whole point of re-resolving on every
+        // operation is that "later" is where a symlink gets planted.
+        $path = $this->locate($relative);
+
+        if (! is_file($path)) {
+            throw $this->denials->deny($relative, 'not_a_file');
+        }
+
+        $handle = fopen($path, 'rb');
+
+        if ($handle === false) {
+            throw $this->denials->deny($relative, 'unreadable');
+        }
+
+        return $handle;
+    }
+
     public function write(string $relative, string $contents): int
     {
         $path = $this->locate($relative, mustExist: false);

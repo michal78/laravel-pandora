@@ -59,6 +59,21 @@ interface WorkspaceStorage
     public function read(string $relative): string;
 
     /**
+     * A read handle on one file, for sending bytes somewhere without holding
+     * them all at once.
+     *
+     * Separate from `read()` because the caller is different in kind: `read()`
+     * serves an agent, which is going to put the contents in a model request
+     * and is bounded by that. A download serves a browser, and a workspace is
+     * allowed to hold a file larger than the worker's memory limit.
+     *
+     * @return resource
+     *
+     * @throws WorkspaceDenied
+     */
+    public function stream(string $relative);
+
+    /**
      * @return int bytes actually written, which is not always what was asked
      *
      * @throws WorkspaceDenied

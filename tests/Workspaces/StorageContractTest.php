@@ -74,6 +74,67 @@ it('refuses to read something that is not there', function (string $kind): void 
     expect(fn (): string => $storage->read('absent.txt'))->toThrow(WorkspaceDenied::class);
 })->with('adapters');
 
+/**
+ * Streaming, which the download surface needs and which each adapter answers
+ * with an entirely different mechanism: an `fopen` on a resolved path, and a
+ * ranged GET wearing a stream wrapper. The contract is that neither of those
+ * details reaches the caller.
+ */
+it('streams back exactly what it wrote', function (string $kind): void {
+    [, $storage] = $this->makeWorkspaceOn($kind);
+
+    $storage->write('notes.txt', 'streamed byte for byte');
+
+    $handle = $storage->stream('notes.txt');
+
+    expect(is_resource($handle))->toBeTrue()
+        ->and(stream_get_contents($handle))->toBe('streamed byte for byte');
+
+    fclose($handle);
+})->with('adapters');
+
+it('streams a file larger than one chunk', function (string $kind): void {
+    [, $storage] = $this->makeWorkspaceOn($kind);
+
+    // The point of a handle is that the bytes never all land in one process at
+    // once, so a payload that fits in a single read proves nothing about the
+    // loop that consumes it.
+    $payload = str_repeat('0123456789abcdef', 4096); // 64 KiB
+
+    $storage->write('big.bin', $payload);
+
+    $handle = $storage->stream('big.bin');
+    $read = '';
+
+    while (! feof($handle)) {
+        $chunk = fread($handle, 8192);
+
+        if ($chunk === false) {
+            break;
+        }
+
+        $read .= $chunk;
+    }
+
+    fclose($handle);
+
+    expect($read)->toBe($payload);
+})->with('adapters');
+
+it('refuses to stream something that is not there', function (string $kind): void {
+    [, $storage] = $this->makeWorkspaceOn($kind);
+
+    expect(fn () => $storage->stream('absent.txt'))->toThrow(WorkspaceDenied::class);
+})->with('adapters');
+
+it('refuses to stream a path that leaves the root', function (string $kind): void {
+    [, $storage] = $this->makeWorkspaceOn($kind);
+
+    // Re-resolved here as everywhere else: a handle is opened now and read
+    // later, and "later" is exactly when a symlink gets planted.
+    expect(fn () => $storage->stream('../escape.txt'))->toThrow(WorkspaceDenied::class);
+})->with('adapters');
+
 it('deletes what it wrote and stops finding it', function (string $kind): void {
     [, $storage] = $this->makeWorkspaceOn($kind);
 

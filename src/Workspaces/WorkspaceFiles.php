@@ -68,6 +68,34 @@ final class WorkspaceFiles
     }
 
     /**
+     * A read handle on one file, for sending it somewhere byte by byte.
+     *
+     * Containment is proven exactly as it is for a read, because it is a read
+     * -- the difference is only that the bytes never all exist in this process
+     * at once. Whoever is allowed to open the handle is decided above this,
+     * and the audit record for a download is written by whoever asked, because
+     * "an agent read this" and "a person exported this" are different facts.
+     *
+     * @return resource
+     *
+     * @throws WorkspaceDenied
+     */
+    public function stream(string $relative)
+    {
+        return $this->storage->stream($relative);
+    }
+
+    public function size(string $relative): int
+    {
+        return $this->storage->size($relative);
+    }
+
+    public function isFile(string $relative): bool
+    {
+        return $this->storage->isFile($relative);
+    }
+
+    /**
      * Write a file, enforcing the quota and the MIME allowlist.
      *
      * @throws WorkspaceDenied

@@ -70,6 +70,26 @@ final readonly class ObjectStorage implements WorkspaceStorage
         return $this->guard(fn (): string => (string) $this->disk->get($key));
     }
 
+    /**
+     * @return resource
+     */
+    public function stream(string $relative)
+    {
+        $key = $this->locate($relative);
+
+        if (! $this->guard(fn (): bool => $this->disk->exists($key))) {
+            throw $this->denials->deny($relative, 'not_a_file');
+        }
+
+        $handle = $this->guard(fn () => $this->disk->readStream($key));
+
+        if (! is_resource($handle)) {
+            throw $this->denials->deny($relative, 'unreadable');
+        }
+
+        return $handle;
+    }
+
     public function write(string $relative, string $contents): int
     {
         $key = $this->locate($relative, mustExist: false);
