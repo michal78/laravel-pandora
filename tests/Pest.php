@@ -24,6 +24,8 @@ uses(TestCase::class)->in(
     'Delegation',
     'Mcp',
     'McpServer',
+    'Channels',
+    'Extensions',
 );
 
 /**

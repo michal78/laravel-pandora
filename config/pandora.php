@@ -80,6 +80,8 @@ return [
 
     'features' => [
         'workspaces' => env('PANDORA_FEATURE_WORKSPACES', true),
+        'channels' => env('PANDORA_FEATURE_CHANNELS', true),
+        'extensions' => env('PANDORA_FEATURE_EXTENSIONS', true),
     ],
 
     /*
@@ -119,6 +121,9 @@ return [
         'settings.manage' => 'pandora.settings.manage',
         'runs.trace.view' => 'pandora.runs.trace.view',
         'mcp.manage' => 'pandora.mcp.manage',
+        'channels.view' => 'pandora.channels.view',
+        'channels.manage' => 'pandora.channels.manage',
+        'extensions.view' => 'pandora.extensions.view',
     ],
 
     /*
@@ -800,6 +805,66 @@ return [
         // model cannot emit enough to matter -- but a bound on how much of a
         // workspace's remaining quota one confused call can consume.
         'max_write_bytes' => 1048576, // 1 MB
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Channels
+    |--------------------------------------------------------------------------
+    |
+    | A channel is a medium a conversation happens through. Pandora ships the
+    | contract and no messaging adapter: adapters are extensions, installed with
+    | `composer require`, and installing one connects nothing (ADR-0016).
+    |
+    | Nothing here decides who anybody is. A channel tells us that a participant
+    | typed something; which host user that is -- if any -- comes from the link
+    | table and from nowhere else, because the alternative is treating a remote
+    | workspace administrator's assertion as a credential (ADR-0015).
+    |
+    */
+
+    'channels' => [
+
+        // Adapters registered at boot. An extension's service provider is the
+        // usual way in; this list exists so a host application can register one
+        // without writing a provider.
+        'adapters' => [
+            // Vendor\Slack\SlackChannel::class,
+        ],
+
+        'linking' => [
+            /*
+            | The word a participant sends to ask for a code. The code goes back
+            | into the channel, to them, and is redeemed while signed in to this
+            | application -- one half proves they hold the channel account, the
+            | other proves they hold the host account, and linking is the claim
+            | that those are the same person.
+            */
+            'command' => env('PANDORA_CHANNEL_LINK_COMMAND', 'link'),
+
+            // Where the reply tells them to go. Null names the application
+            // generically, which works and reads worse; set it.
+            'redeem_url' => env('PANDORA_CHANNEL_LINK_URL'),
+
+            // Short, because it is a credential that grants an identity, and
+            // because a code that outlives the conversation it appeared in is a
+            // code somebody finds in a scrollback.
+            'code_ttl_seconds' => 900,
+            'code_length' => 8,
+
+            // Per identity, per hour. Asking for a new code invalidates the
+            // last one, so this bounds how fast the code space can be walked.
+            'max_codes_per_hour' => 5,
+
+            // Per redeeming user, per hour.
+            'max_attempts_per_hour' => 10,
+
+            // How often an unlinked participant is told how to link. They are
+            // refused every time regardless; this only bounds how often we
+            // answer, so a stranger cannot aim our instructions at their own
+            // channel as a flood.
+            'instruction_interval_seconds' => 600,
+        ],
     ],
 
     /*

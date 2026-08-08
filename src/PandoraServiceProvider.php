@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pandora;
 
+use Illuminate\Cache\RateLimiter;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Auth\Factory;
@@ -31,6 +32,11 @@ use Pandora\Automation\EventTriggerRegistry;
 use Pandora\Automation\ObservationManager;
 use Pandora\Automation\Schedule\NextRun;
 use Pandora\Automation\Webhooks\WebhookReceiver;
+use Pandora\Channels\ChannelDispatcher;
+use Pandora\Channels\ChannelInbox;
+use Pandora\Channels\ChannelRegistry;
+use Pandora\Channels\ChannelReplier;
+use Pandora\Channels\LinkCodes;
 use Pandora\Console\Commands\AgentListCommand;
 use Pandora\Console\Commands\AgentRunCommand;
 use Pandora\Console\Commands\AutomationListCommand;
@@ -52,6 +58,7 @@ use Pandora\Context\ContextBuilder;
 use Pandora\Context\Providers\RunToolLoopProvider;
 use Pandora\Contracts\ActorResolver;
 use Pandora\Contracts\AgentDefinition;
+use Pandora\Contracts\Channel;
 use Pandora\Contracts\ContextProvider;
 use Pandora\Contracts\CredentialResolver;
 use Pandora\Contracts\EmbeddingProvider;
@@ -142,6 +149,7 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->registerTools();
         $this->registerAutomation();
         $this->registerMemory();
+        $this->registerChannels();
         $this->registerRuntime();
 
         $this->app->singleton(Pandora::class, static fn (Container $app): Pandora => new Pandora($app));
@@ -154,6 +162,7 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->registerGates();
         $this->registerConfiguredAgents();
         $this->registerConfiguredTools();
+        $this->registerConfiguredChannels();
         $this->registerAutomationSchedule();
         $this->registerAutomationTriggers();
         $this->registerDelegation();
@@ -175,6 +184,31 @@ final class PandoraServiceProvider extends ServiceProvider
         $events = $this->app->make(Dispatcher::class);
 
         $events->listen(RunStateChanged::class, [DelegationCompleter::class, 'handle']);
+        $events->listen(RunStateChanged::class, [ChannelReplier::class, 'handle']);
+    }
+
+    /**
+     * Register the channel adapters this deployment has installed.
+     *
+     * Registered, not connected. An adapter here can carry a conversation only
+     * once an operator has created an account for it, pointed it at an agent
+     * and enabled it -- three deliberate acts, none of which `composer require`
+     * performs (ADR-0016).
+     */
+    private function registerConfiguredChannels(): void
+    {
+        /** @var list<class-string<Channel>> $adapters */
+        $adapters = $this->app->make(Config::class)->get('pandora.channels.adapters', []);
+
+        if ($adapters === []) {
+            return;
+        }
+
+        $registry = $this->app->make(ChannelRegistry::class);
+
+        foreach ($adapters as $adapter) {
+            $registry->register($adapter);
+        }
     }
 
     // ---------------------------------------------------------------- register
@@ -741,6 +775,49 @@ final class PandoraServiceProvider extends ServiceProvider
         }
 
         $this->app->make(ToolRegistry::class)->registerMany($tools);
+    }
+
+    private function registerChannels(): void
+    {
+        // A singleton for the same reason the tool registry is one:
+        // registration happens at boot, and a fresh registry per resolution
+        // would make an extension's adapter invisible to the request that
+        // needs it.
+        $this->app->singleton(ChannelRegistry::class, static fn (Container $app): ChannelRegistry => new ChannelRegistry($app));
+
+        $this->app->singleton(ChannelDispatcher::class, static fn (Container $app): ChannelDispatcher => new ChannelDispatcher(
+            $app->make(ChannelRegistry::class),
+            $app->make(AuditLogger::class),
+            $app->make(Redactor::class),
+        ));
+
+        // `pandora.db` rather than the default connection: Pandora's tables may
+        // live somewhere else entirely, and a link written to the wrong
+        // connection is a link that silently does not exist.
+        $this->app->singleton(LinkCodes::class, static fn (Container $app): LinkCodes => new LinkCodes(
+            $app->make('pandora.db'),
+            $app->make(AuditLogger::class),
+            $app->make(RateLimiter::class),
+            $app->make(Config::class),
+        ));
+
+        $this->app->singleton(ChannelInbox::class, static fn (Container $app): ChannelInbox => new ChannelInbox(
+            $app->make('pandora.db'),
+            $app->make(ChannelRegistry::class),
+            $app->make(ChannelDispatcher::class),
+            $app->make(LinkCodes::class),
+            $app->make(ConversationManager::class),
+            $app->make(TenantManager::class),
+            $app->make(ActorManager::class),
+            $app->make(AuditLogger::class),
+            $app->make(Pandora::class),
+            $app->make(RateLimiter::class),
+            $app->make(Config::class),
+        ));
+
+        $this->app->singleton(ChannelReplier::class, static fn (Container $app): ChannelReplier => new ChannelReplier(
+            $app->make(ChannelDispatcher::class),
+        ));
     }
 
     private function registerConfiguredAgents(): void

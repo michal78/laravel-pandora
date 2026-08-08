@@ -43,6 +43,10 @@ final class PendingAgentRun
 
     private ?string $idempotencyKey = null;
 
+    private ?string $channel = null;
+
+    private ?string $participantId = null;
+
     /** @var array<string, mixed> */
     private array $context = [];
 
@@ -89,6 +93,23 @@ final class PendingAgentRun
     public function asSystem(string $label = 'system'): self
     {
         $this->actor = ActorContext::system($label);
+
+        return $this;
+    }
+
+    /**
+     * Run on behalf of one participant on one channel.
+     *
+     * Both values enter the session isolation key, which is what stops two
+     * people in one Slack channel sharing a context boundary (T3). The
+     * participant identifier is Pandora's, not the channel's -- it carries the
+     * link epoch, so a re-linked handle starts a new boundary rather than
+     * inheriting the previous holder's history.
+     */
+    public function viaChannel(string $channel, ?string $participantId = null): self
+    {
+        $this->channel = $channel;
+        $this->participantId = $participantId;
 
         return $this;
     }
@@ -227,7 +248,8 @@ final class PendingAgentRun
             agent: $this->agent,
             actor: $actor,
             conversation: $conversation,
-            channel: $conversation?->channel ?? 'web',
+            channel: $this->channel ?? $conversation?->channel ?? 'web',
+            participantId: $this->participantId,
             origin: $this->trigger->value,
         );
 
