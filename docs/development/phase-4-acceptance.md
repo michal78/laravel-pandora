@@ -109,7 +109,7 @@ are audited; the agent's Automations tab lists its automations; `pandora:automat
 
 Autonomous promotion of an observation into an automation — Future, by ADR-0009 and the parity
 matrix. A visual schedule/DAG editor. Delivery of an automation's result to a channel: `delivery` is
-stored on the row and honoured in Phase 7, when there is somewhere to deliver to. Per-automation
+stored on the row and honoured in Phase 8, when there is somewhere to deliver to. Per-automation
 provider overrides, which belong with the agent.
 
 ## Definition of done

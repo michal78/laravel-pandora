@@ -14,9 +14,10 @@
 | 3.5 | Agents page | ✅ 20/20 — host walkthrough driven 2026-08-07; found a missing slug on the Overview tab, fixed, and a stale stub-tab list in the walkthrough itself |
 | 4 | Automation | ✅ 26/26 on all four engines; host walkthrough complete |
 | 5 | Memory and context | ✅ 28/28 incl. a real pgvector CI leg; host walkthrough driven 2026-08-07 — four defects, all fixed, one of them a cross-user memory disclosure on the Memory page |
-| 6 | Multi-agent and MCP | ⬜ |
-| 7 | Channels and extensions | ⬜ |
-| 8 | Hardening and release | ⬜ |
+| 6 | Multi-agent and MCP | 🔨 13/30 — delegation done, driven against a live model and four defects fixed; MCP not started |
+| 7 | Workspaces, released and on object storage | ⬜ 0/21 — scope widened by ADR-0013 |
+| 8 | Channels and extensions | ⬜ |
+| 9 | Hardening and release | ⬜ |
 
 ---
 
@@ -309,7 +310,7 @@ needs Postgres and runs in CI instead, the second is Phase 7.
 
 ---
 
-## Phase 6 — Multi-agent and MCP ⬜
+## Phase 6 — Multi-agent and MCP 🔨
 
 `DelegateToAgent`, child runs, depth limits, budget inheritance, cancellation propagation, structured
 results · MCP client with transports, discovery, schema caching and hashing, per-agent permissions,
@@ -322,7 +323,32 @@ without explicit configuration.
 
 ---
 
-## Phase 7 — Channels and extension ecosystem ⬜
+## Phase 7 — Workspaces, released and on object storage ⬜
+
+The workspace engine was built in Phase 5 and deferred before release, because a workspace is only
+as safe as the answer to *who chose the root* — and the obvious UI for that is a form with a path
+field, which is a form that accepts `/`.
+
+ADR-0013 widened the phase. Workspaces and context files move to S3-compatible object storage
+(AWS, DigitalOcean, Hetzner, MinIO, R2) with local as a configured choice rather than a runtime
+fallback. That reopens `WorkspaceFiles`, deliberately: containment today is
+resolve-with-`realpath`-then-check, and object storage has no `realpath`, no symlinks and no
+directories, so the property has to be re-derived per adapter rather than ported.
+
+A storage contract with two adapters · lexical key normalisation · tenant prefixes that cannot
+collide · paginated listing · MIME from the bytes on both adapters · context files behind an ETag
+cache with bounded reads · streamed, audited downloads · a root-selection mechanism that does not
+accept free text · the Workspaces page and the agent's **Workspace** tab un-deferred ·
+`pandora.features.workspaces` on by default · a MinIO leg in CI.
+
+**Acceptance:** traversal and symlink escape fail on local; a key normalising outside the root is
+refused on object storage; the same containment suite passes on both adapters or the build fails.
+An unreachable disk is a tool error and never a silent write somewhere else. Pandora stores no
+object-storage credential. See `docs/development/phase-7-acceptance.md` — 21 criteria.
+
+---
+
+## Phase 8 — Channels and extension ecosystem ⬜
 
 `Channel` contract · identity linking (channel identity is never application identity) · Slack as the
 reference extension package · extension manifest format · Composer-installed extension discovery and
@@ -333,7 +359,7 @@ providers, tools and channels through the documented contracts alone, with no co
 
 ---
 
-## Phase 8 — Hardening and release ⬜
+## Phase 9 — Hardening and release ⬜
 
 Security review against the full threat model · performance tests (large conversations, many
 concurrent runs, long traces) · CI matrix across SQLite / MySQL / MariaDB / PostgreSQL · upgrade

@@ -1,82 +1,162 @@
 # Phase 7 — Acceptance Test Plan
 
-> **Status: built, not released. 0 of 6 criteria accepted.**
+> **Status: scope widened by ADR-0013. 0 of 21 criteria accepted.**
 >
-> Unusually for a phase plan, most of the code already exists. It was written during Phase 5 and
-> deferred before release, so the criteria below are ticked when the surface ships enabled and a
-> human has driven it — not when the tests pass, which they already do.
+> This phase was originally six criteria: turn on a feature that was already built. ADR-0013 moved
+> workspaces and context files onto S3-compatible object storage, which reopens the one thing the
+> earlier plan put out of scope — `WorkspaceFiles` itself — and adds a second adapter that has to
+> earn the same guarantees by different means.
+>
+> Criteria are ticked when the named test asserts them and passes. The three carried from Phase 5
+> are **not** pre-ticked: they pass today against a local filesystem, and this phase requires them
+> to pass against both adapters, which is a different claim.
 
-Phase 5 built agent file workspaces and then declined to release them. The engine is finished:
-containment, quotas and MIME detection are implemented and covered, and their tests run on every
-commit. What is missing is the part that is hardest to take back — a way in.
+Phase 5 built agent file workspaces and then declined to release them. The engine was finished —
+containment, quotas and MIME detection implemented and covered — and what was missing was the part
+hardest to take back: a way in.
 
-That is the whole reason for the deferral. A workspace is a directory an agent may read and write
-inside, and every guarantee about it reduces to one question: who chose the root? Phase 5 answered
-"an operator, in code", which is correct and also the reason the walkthrough stalled — there is no
-way to create a workspace from the control center, and the obvious fix is a form with a path field.
-A form with a path field is a form that accepts `/`. Getting that wrong is not a bug that shows up
-in a test; it is arbitrary filesystem access granted through the UI to anyone holding
-`pandora.workspaces.access`.
+That deferral was about one question. A workspace is somewhere an agent may read and write, and
+every guarantee reduces to *who chose the root?* Phase 5 answered "an operator, in code", which is
+correct and is also why the walkthrough stalled: there is no way to create a workspace from the
+control center, and the obvious fix is a form with a path field. A form with a path field is a form
+that accepts `/`.
 
-So the phase exists to answer the question properly rather than quickly.
+ADR-0013 adds a second question of the same shape: *what does containment even mean when there is
+no filesystem?* Object storage has no `realpath`, no symlinks and no directories, so the property
+that makes a workspace safe cannot be ported to it — it has to be re-derived. The danger is that
+this looks like a driver swap, and a driver swap would delete the containment model while leaving
+every existing test green.
 
-Three properties dominate the acceptance bar:
+Four properties dominate the acceptance bar:
 
-**A root is chosen by configuration, never by a request.** Whatever creation path the UI eventually
-offers, the set of permissible roots is declared where an operator declares things — in config, in
-the deployment — and the UI selects from it. A field that accepts an arbitrary absolute path is not
-a narrower version of this; it is the thing this property exists to forbid.
+**Containment is per adapter, and both halves are load-bearing.** Local keeps resolve-with-realpath
+then check, on every operation. Object storage normalises the key lexically and prefixes it. Neither
+is a weaker version of the other; they are answers to different problems, and a shared
+implementation that satisfied both would be satisfying neither carefully.
 
-**A feature held back is held back for everybody.** `pandora.features.workspaces` is not an
-ability. No gate, no operator flag and no tenant configuration reaches past it while it is false,
-because a flag that a sufficiently privileged user can talk their way around is a flag that is on.
+**A root is chosen by configuration, never by a request.** Unchanged, and now it means a disk *and*
+a prefix. The set of permissible roots is declared where an operator declares things, and the UI
+selects from it. A field accepting an arbitrary path — or an arbitrary bucket — is the thing this
+property exists to forbid.
 
-**Deferral does not un-test the code.** The Phase 5 tests stay green throughout. A feature that is
-deleted and rewritten a phase later arrives untested and claims to be proven; this one stays in the
-tree, keeps running, and turns on.
+**A configured disk is never quietly substituted.** An unreachable disk fails as a tool error and
+the run continues. It does not fall back to local storage, because a file written to a fallback
+exists on exactly one container, every other node reads past it, and nothing about that looks like
+an error to anyone.
+
+**A feature held back is held back for everybody.** `pandora.features.workspaces` is not an ability.
+No gate, no operator flag and no tenant configuration reaches past it while it is false.
 
 ## Scope
 
-`pandora.features.workspaces` enabled by default · a root-selection mechanism that does not accept
-free-text paths · workspace creation and editing in the control center · the Workspaces page
-un-deferred · the agent's **Workspace** tab un-deferred · the Phase 5 walkthrough's workspace
+A storage contract with **two adapters** (local, object) · `Workspace::disk` becoming load-bearing ·
+lexical key normalisation for object keys · tenant prefixes that cannot collide · paginated listing ·
+MIME from bytes on both adapters · quota accounting through `HEAD` rather than `filesize()` ·
+context files on object storage with an ETag cache and bounded range reads · streamed, audited
+downloads · `pandora.features.workspaces` enabled by default · a root-selection mechanism that does
+not accept free text · workspace creation in the control center · the Workspaces page and the
+agent's **Workspace** tab un-deferred · a **MinIO leg in CI** · the Phase 5 walkthrough's workspace
 section driven by a human.
 
-Out of scope: changes to `WorkspaceFiles` containment, quota or MIME behaviour. That code is
-finished, and a phase that reopens it is a phase that has found a bug rather than shipped a feature.
+**No longer out of scope.** The earlier plan excluded changes to `WorkspaceFiles` containment,
+quota and MIME behaviour on the grounds that the code was finished. ADR-0013 reopens it
+deliberately: it is finished for one adapter, and this phase adds a second.
+
+Out of scope: per-workspace S3 credentials (ADR-0013 keeps credentials in the host's
+`filesystems.php`), presigned URLs, and any sync or replication between disks.
 
 ## Design decisions carried in from Phase 5
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Containment | `realpath()` then prefix check, on **every** operation | A check at open time and a use at write time is a TOCTOU window a symlink fits through. |
+| Local containment | `realpath()` then prefix check, on **every** operation | A check at open time and a use at write time is a TOCTOU window a symlink fits through. |
 | Quota | Reserved before the write, reconciled after | Checking `used_bytes` then writing is the same race as Phase 4's `last_run_at` check, with the same fix. |
-| MIME | Matched on the **detected** type via `finfo`, never the extension | An extension is an assertion by whoever named the file, and in a workspace that whoever is a model. |
-| Empty MIME allowlist | Permits everything | A MIME list narrows what may enter an already-bounded workspace. An operator who set none has not implicitly banned everything — unlike a root list, which fails closed. |
-| Browsing | The control center reads through `WorkspaceFiles`, subject to the same containment as an agent | A page that could show a file an agent cannot read is a way to confirm what lives outside the root. |
+| MIME | Matched on the **detected** type, never the extension | An extension is an assertion by whoever named the file, and in a workspace that whoever is a model. |
+| Empty MIME allowlist | Permits everything | A MIME list narrows what may enter an already-bounded workspace. Unlike a root list, which fails closed. |
+| Browsing | The control center reads through the same containment as an agent | A page that could show a file an agent cannot read is a way to confirm what lives outside the root. |
 
-## Design decisions this phase must take
+## Design decisions taken in ADR-0013
+
+| Decision | Choice | Rationale |
+|---|---|---|
+| Adapter seam | One contract, containment written **per adapter** | A shared base class would have to be correct for a filesystem and for a key-value store at once. The local case would lose resolve-then-check and no test would notice. |
+| Object containment | Lexical normalisation — reject null bytes, `..` after normalisation, absolute and scheme-shaped keys — then prefix | There is no link to follow and no race to lose. This is the whole answer, not a first pass. |
+| Unreachable disk | An ordinary tool error; the run continues | Same as an unhealthy provider in Phase 3. Failover would split the source of truth silently. |
+| Credentials | The host's `filesystems.php` disks only | A second secret store is a second thing to leak. Costs runtime per-tenant buckets, knowingly. |
+| MIME on object storage | Still the magic bytes | `Content-Type` is metadata the *uploader* chose. It is attacker-controlled exactly like an extension, and it looks more authoritative. |
+| Context files | `HEAD` for the ETag, cached bytes when unchanged, bounded range read | They are read on every iteration of every run; the naive version is a full network read per file per iteration. |
+| Downloads | Streamed through the app | A presigned URL is a bearer token for one object until it expires — forwardable, proxy-loggable, and invisible to the audit trail once issued. |
+
+## Design decisions this phase must still take
 
 | Question | Why it is open |
 |---|---|
-| How a root is chosen in the UI | The deferral exists for this. Candidates: a configured allowlist of permitted parent directories that the UI selects from; a single configured base under which named subdirectories are created; creation left in code with the UI offering only edit. |
-| Whether a workspace may be edited after creation | Changing a root re-points every path already written. Probably a new workspace rather than an edited one. |
-| Whether deletion removes files | Almost certainly not — detaching a workspace should not be a way to delete a directory by accident. |
+| How a disk and root are chosen in the UI | The deferral exists for this. Candidates: a configured allowlist of `disk:prefix` pairs the UI selects from; a single configured base per disk under which named prefixes are created; creation left in code with the UI offering only browse. |
+| Whether a workspace may be edited after creation | Changing a disk or root re-points every path already written, and on object storage does not move a single byte. Probably a new workspace rather than an edited one. |
+| Whether deletion removes files | Almost certainly not. On object storage it is additionally N delete calls with no transaction, so a partial failure leaves a half-deleted prefix and a row that says it is gone. |
+| What an empty directory means in the UI | Object storage has none. A tree view that invents them will show directories that vanish when their last object is deleted. |
 
 ## Acceptance criteria
 
+### Containment — the property, on both adapters
+
 | # | Criterion | Verified by |
 |---|---|---|
-| 1 | A workspace confines reads and writes to its root — **traversal and symlink escape both fail** | `Workspaces/ContainmentTest` (Phase 5 criterion 25) |
-| 2 | A write exceeding the quota is refused before it lands, and `used_bytes` stays accurate under concurrent writes | `Workspaces/QuotaTest` (Phase 5 criterion 26) |
-| 3 | A disallowed MIME type is refused on detected type, not on the claimed extension | `Workspaces/MimeTest` (Phase 5 criterion 27) |
-| 4 | **A tenant cannot see, read, write or export another tenant's workspace through the UI** | The workspace half of Phase 5 criterion 28 |
-| 5 | **A root outside the configured permissible set is refused, whatever the UI submits** | New — the decision this phase exists to take |
-| 6 | The feature flag withholds the surface from an operator holding every ability | `UI/WorkspacesPageTest` |
+| 1 | A local workspace confines reads and writes to its root — **traversal and symlink escape both fail** | `Workspaces/ContainmentTest` (local leg) |
+| 2 | **The same containment suite passes against the object adapter**, and a failure on either adapter fails the build | `Workspaces/ContainmentTest` (object leg) |
+| 3 | **An object key normalising to anything outside the root is refused** — `..` in every spelling, absolute paths, scheme-shaped keys, and a null byte anywhere | `Workspaces/KeyNormalisationTest` |
+| 4 | **A tenant prefix cannot match a longer one** — `tenant-1/` never reaches `tenant-10/` | `Workspaces/TenantPrefixTest` |
+| 5 | A path is re-resolved on **every** operation; there is no validated fast path on either adapter | `Workspaces/ContainmentTest` |
+
+### The disk itself
+
+| # | Criterion | Verified by |
+|---|---|---|
+| 6 | **An unreachable disk produces a tool error and the run continues** — nothing is written locally, and no read is served from anywhere else | `Workspaces/DiskUnavailableTest` |
+| 7 | A workspace with no disk configured uses the local disk, and a host that configured no object storage works untouched | `Workspaces/DiskDefaultTest` |
+| 8 | **Pandora stores no object-storage credential** — no endpoint, key or secret exists in the schema, the UI or any API response | `Workspaces/NoCredentialTest` |
+
+### Quota, MIME and listing
+
+| # | Criterion | Verified by |
+|---|---|---|
+| 9 | A write exceeding the quota is refused **before it lands**, and `used_bytes` stays accurate under concurrent writes, on both adapters | `Workspaces/QuotaTest` |
+| 10 | Overwrite accounting is correct on object storage, where the previous size comes from a `HEAD` rather than a stat | `Workspaces/QuotaTest` |
+| 11 | A disallowed MIME type is refused on the **detected** type on both adapters | `Workspaces/MimeTest` |
+| 12 | **An object whose `Content-Type` says `image/png` while its bytes say otherwise is refused** — the metadata is never consulted | `Workspaces/MimeTest` |
+| 13 | Listing a workspace paginates, and a workspace holding more objects than one page returns all of them | `Workspaces/ListingTest` |
+
+### Context files
+
+| # | Criterion | Verified by |
+|---|---|---|
+| 14 | A context file on object storage is read within the byte budget — an oversized object costs one truncated read, not the worker's memory | `Context/ObjectContextFileTest` |
+| 15 | **An unchanged object is served from cache without re-reading its body**, and a changed ETag invalidates it | `Context/ObjectContextFileTest` |
+| 16 | Context file roots on object storage remain an **allowlist**, and a path outside it is refused exactly as a local one is | `Context/ObjectContextFileTest` |
+
+### The surface
+
+| # | Criterion | Verified by |
+|---|---|---|
+| 17 | **A root outside the configured permissible set is refused, whatever the UI submits** | `UI/WorkspaceCreateTest` |
+| 18 | **A tenant cannot see, read, write or export another tenant's workspace through the UI** | `UI/WorkspacesPageTest` |
+| 19 | The feature flag withholds the surface from an operator holding every ability | `UI/WorkspacesPageTest` |
+| 20 | **A download streams through the app, is authorized and is audited; no presigned URL is issued for any workspace** | `UI/WorkspaceDownloadTest` |
+| 21 | **A human drives the workspace section of the walkthrough**, against a real object-storage bucket | `phase-7-walkthrough.md` |
+
+## What the tests must run against
+
+The object leg runs against **MinIO in CI**, the way the pgvector leg runs against `pgvector/pg17`.
+This is not a preference. A mocked S3 client proves that the mock agrees with the code that drives
+it, and every interesting behaviour here — key semantics, `HEAD` on a missing object, listing
+pagination, what happens when the endpoint is unreachable — is behaviour of the *service*.
+
+The local leg keeps running everywhere with no service at all, so a contributor without Docker can
+still run the suite and get an honest partial answer.
 
 ## Notes
 
-The walkthrough section for workspaces stays in `phase-5-walkthrough.md` until this phase runs, and
-is driven then rather than now. The host application created a workspace in code during the Phase 5
-walkthrough (`storage/app/pandora-workspace`); it is harmless with the flag off, since nothing
-reaches it.
+The walkthrough section for workspaces stays in `phase-5-walkthrough.md` until this phase runs. The
+host application created a local workspace in code during the Phase 5 walkthrough
+(`storage/app/pandora-workspace`); it is harmless with the flag off, and it becomes the local leg's
+fixture when the flag turns on.

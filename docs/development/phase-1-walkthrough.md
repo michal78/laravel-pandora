@@ -33,7 +33,7 @@ otherwise. A queue worker must be running or nothing here completes.
       not one silent pause followed by a finished answer.
 - [x] The answer arrives **incrementally**, not in a single block.
       *(`BROADCAST_CONNECTION=log`, so this is the polling fallback — criterion
-      22. Streaming over Reverb is a Phase 8 item.)*
+      22. Streaming over Reverb is a Phase 9 item.)*
 - [x] A second message in the same conversation carries the first exchange as
       context — the agent can refer back to it.
 - [ ] The agent named above the thread is **the one the conversation was started
