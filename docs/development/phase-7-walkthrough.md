@@ -85,11 +85,18 @@ landmines as Phase 6:
 
 - [ ] Ask the agent to write a file. It appears in the bucket under the
       workspace's prefix and nowhere else, and the page lists it.
-- [ ] **Usage.** `used_bytes` moves with the write. Put an object in the prefix
-      by hand (`mc cp`, or the MinIO console) and it does *not* — press
-      **Recount** and it does. The counter is authoritative for enforcement and
-      the store is authoritative for truth; this is the button that reconciles
-      them.
+- [ ] **Upload a file yourself**, from the page, into the workspace you are
+      browsing. It lands where the breadcrumb says, and the agent can read it
+      back on its next run — this is how a source document gets to an agent
+      without anybody touching the bucket.
+- [ ] The upload obeys the same rules an agent's write does, because it is the
+      same write: with a MIME allowlist set, a file whose bytes disagree with
+      its extension is refused; over quota is refused before it lands.
+- [ ] **Usage.** `used_bytes` moves with the write, including with an upload.
+      Put an object in the prefix out of band (`mc cp`, or the MinIO console)
+      and it does *not* — press **Recount** and it does. The counter is
+      authoritative for enforcement and the store is authoritative for truth;
+      this is the button that reconciles them.
 - [ ] Set a small quota and have the agent write past it. Refused **before the
       bytes land**, and nothing appears in the bucket.
 - [ ] Set an allowed MIME list of `text/plain`, then have the agent write a PNG.

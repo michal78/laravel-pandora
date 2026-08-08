@@ -710,6 +710,13 @@ return [
         // offers unlimited, which stays a deliberate choice rather than what
         // happens when nobody types a number.
         'default_quota_bytes' => 104857600, // 100 MB
+
+        // The largest file the control center will accept in one upload. Not
+        // the quota -- the quota is what a workspace may hold in total, this
+        // is what one request may carry into the worker's memory at once.
+        // Declared here rather than left to `upload_max_filesize`, because the
+        // PHP limit is a deployment accident and this is a policy.
+        'max_upload_bytes' => 26214400, // 25 MB
     ],
 
     /*

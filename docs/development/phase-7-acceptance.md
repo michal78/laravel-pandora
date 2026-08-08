@@ -1,6 +1,6 @@
 # Phase 7 — Acceptance Test Plan
 
-> **Status: 20 of 21 criteria accepted. What remains is a human driving it.**
+> **Status: 21 of 22 criteria accepted. What remains is a human driving it.**
 >
 > This phase was originally six criteria: turn on a feature that was already built. ADR-0013 moved
 > workspaces and context files onto S3-compatible object storage, which reopens the one thing the
@@ -16,6 +16,12 @@
 > driver wearing an object store's name; a suite green against that would be proving the local
 > adapter twice. Without an endpoint the suite reports those 72 tests as skipped rather than green;
 > with one it is 1,440 passed and 8 skipped, the 8 being the pgvector leg that needs PostgreSQL.
+>
+> Criterion 22 was added during the phase. The control center could browse and download and never
+> write, so the only ways into a workspace were an agent and `mc cp` — which is a workaround
+> standing in for a feature, and the walkthrough was carrying it as an instruction. The upload goes
+> through `WorkspaceFiles` rather than beside it, so it inherits every guarantee instead of
+> restating any of them.
 >
 > Criteria 17–20 are the surface, and they are built: roots are declared in
 > `pandora.workspaces.roots` and chosen by key, isolation is asserted for every verb rather than
@@ -71,8 +77,9 @@ A storage contract with **two adapters** (local, object) · `Workspace::disk` be
 lexical key normalisation for object keys · tenant prefixes that cannot collide · paginated listing ·
 MIME from bytes on both adapters · quota accounting through `HEAD` rather than `filesize()` ·
 context files on object storage with an ETag cache and bounded range reads · streamed, audited
-downloads · `pandora.features.workspaces` enabled by default · a root-selection mechanism that does
-not accept free text · workspace creation in the control center · the Workspaces page and the
+downloads · operator upload through the agent write path · `pandora.features.workspaces` enabled by
+default · a root-selection mechanism that does not accept free text · workspace creation in the
+control center · the Workspaces page and the
 agent's **Workspace** tab un-deferred · a **MinIO leg in CI** · the Phase 5 walkthrough's workspace
 section driven by a human.
 
@@ -112,6 +119,8 @@ Out of scope: per-workspace S3 credentials (ADR-0013 keeps credentials in the ho
 | Root selection | Named roots in `pandora.workspaces.roots`; the UI selects a **key** and the path is composed as `<base>/<tenant>/<slug>` | The deferral existed for this. A request's entire vocabulary for saying where a workspace lives is a key an operator declared, so there is no spelling of a root that is not one of them. An empty root list permits nothing — the opposite direction from the MIME allowlist, because this one decides where the boundary *is*. |
 | Editing | Name, description, quota, MIME list and enabled are editable; **`disk` and `root_path` never are** | Re-pointing a root orphans every path already written and, on object storage, moves not one byte. A new workspace is the honest expression of that change. |
 | Deletion | Removes the row and detaches agents; **files are left where they are**, and the page says which disk and prefix still hold them | On object storage a bulk delete is N calls with no transaction. A partial failure leaves a half-emptied prefix under a row claiming it is gone, which is worse than bytes nobody deleted. |
+| Operator upload | Through `WorkspaceFiles::write`, never beside it; bounded by a declared `max_upload_bytes` | Quota reservation, detected-MIME matching and containment are properties of the write path. A second way in would arrive with its own slightly different version of each, and the one that gets written by accident skips the quota. The size bound is policy rather than `upload_max_filesize`, which is a deployment accident. |
+| Uploaded filename | Reduced to a bare name, then handed to the adapter, which checks it again | The browser sends the name it was given, so it is chosen by whoever made the file. Reduced rather than rejected because `Q1 (final).pdf` is not an attack; checked twice because neither check is trusted to be the only one. |
 | Directories | Derived from what the store reports; the UI **invents none** and offers no create-folder | On object storage a prefix exists exactly because objects do, so nothing can vanish when its last object is deleted. On a filesystem an empty directory is a real thing the store reports and an agent can also see, so it is shown — the rule is *never synthesised*, not *never empty*. |
 
 ## Acceptance criteria
@@ -161,6 +170,7 @@ Out of scope: per-workspace S3 credentials (ADR-0013 keeps credentials in the ho
 | 19 ✅ | The feature flag withholds the surface from an operator holding every ability | `UI/WorkspacesPageTest` · `UI/WorkspaceDownloadTest` |
 | 20 ✅ | **A download streams through the app, is authorized and is audited; no presigned URL is issued for any workspace** | `UI/WorkspaceDownloadTest` |
 | 21 | **A human drives the workspace section of the walkthrough**, against a real object-storage bucket | `phase-7-walkthrough.md` |
+| 22 ✅ | **An operator uploads a file through the same write path an agent uses** — quota, detected MIME and containment apply unchanged, and a filename trying to be a path cannot escape | `UI/WorkspaceUploadTest` |
 
 ## What the tests must run against
 

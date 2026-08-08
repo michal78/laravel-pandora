@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 use Pandora\Agents\Agent;
 use Pandora\Audit\AuditLogger;
 use Pandora\Exceptions\WorkspaceDenied;
@@ -40,6 +42,8 @@ use Pandora\Workspaces\WorkspaceRoots;
  */
 final class WorkspacesIndex extends Component
 {
+    use WithFileUploads;
+
     #[Url(as: 'workspace', except: '')]
     public string $selected = '';
 
@@ -64,6 +68,9 @@ final class WorkspacesIndex extends Component
 
     /** Comma-separated. Empty permits every type, and narrows an already-bounded workspace when it is not. */
     public string $formMimeTypes = '';
+
+    /** A file an operator is putting into the workspace being browsed. */
+    public ?TemporaryUploadedFile $file = null;
 
     public function mount(): void
     {
@@ -327,6 +334,68 @@ final class WorkspacesIndex extends Component
         }
     }
 
+    /**
+     * Put a file into the workspace currently being browsed.
+     *
+     * Written through `WorkspaceFiles` like everything else, which is the
+     * whole design: the quota is reserved before the bytes land, the MIME
+     * allowlist is matched on the detected type, and containment is proven by
+     * the adapter. An upload that wrote to the disk directly would be a second
+     * way in with its own idea of when a workspace is full.
+     *
+     * The client filename is hostile in exactly the way an agent's path is --
+     * it is chosen by whoever made the file, and the browser sends it
+     * unchanged. It is reduced to a bare name here, and then the adapter
+     * refuses anything that still escapes; neither check is trusted to be the
+     * only one.
+     */
+    public function uploadFile(AuditLogger $audit): void
+    {
+        $this->guard();
+
+        $workspace = $this->workspace();
+
+        if ($workspace === null) {
+            return;
+        }
+
+        $this->validate([
+            'file' => ['required', 'file', 'max:'.(int) (self::maxUploadBytes() / 1024)],
+        ], attributes: ['file' => 'file']);
+
+        /** @var TemporaryUploadedFile $file */
+        $file = $this->file;
+        $name = $this->safeFilename((string) $file->getClientOriginalName());
+        $relative = $this->path === '' ? $name : $this->path.'/'.$name;
+
+        try {
+            // Read whole, because that is what the write path takes and what
+            // the quota accounting is expressed in. Bounded by the validation
+            // above rather than by hope: this is the one place a workspace
+            // reads a file into the worker instead of streaming it.
+            $this->files($workspace)->write($relative, (string) $file->get());
+        } catch (WorkspaceDenied $e) {
+            $this->error = $e->userMessage();
+            $this->file = null;
+
+            return;
+        }
+
+        // Recorded on top of the `workspace.file_written` the write itself
+        // logs. "An agent wrote this" and "a person put this here" are
+        // different facts, and only one of them is somebody's decision.
+        $audit->record(
+            action: 'workspace.file_uploaded',
+            targetType: 'workspace',
+            targetId: (string) $workspace->getKey(),
+            metadata: ['path' => $relative, 'bytes' => $file->getSize(), 'disk' => $workspace->disk],
+        );
+
+        $this->file = null;
+        $this->error = null;
+        $this->notice = 'Uploaded '.$relative.'.';
+    }
+
     public function render(): View
     {
         // Held back rather than removed. Nothing below runs while the feature
@@ -362,6 +431,7 @@ final class WorkspacesIndex extends Component
             'canManage' => PandoraGate::allows('workspaces.access'),
             'roots' => $this->roots()->all(),
             'editing' => $this->form === '' || $this->form === 'create' ? null : $this->find($this->form),
+            'maxUploadBytes' => self::maxUploadBytes(),
         ])->layout('pandora::layouts.app', ['title' => 'Workspaces']);
     }
 
@@ -380,6 +450,38 @@ final class WorkspacesIndex extends Component
         }
 
         PandoraGate::authorize('workspaces.access');
+    }
+
+    /**
+     * The largest file the page will accept.
+     *
+     * A bound is declared rather than left to `upload_max_filesize`, because
+     * the PHP limit is a deployment accident and this is a policy. It is not
+     * the quota: the quota is what the workspace may hold in total, and this
+     * is what one request may carry into the worker's memory at once.
+     */
+    public static function maxUploadBytes(): int
+    {
+        $configured = config('pandora.workspaces.max_upload_bytes');
+
+        return is_numeric($configured) ? (int) $configured : 26214400;
+    }
+
+    /**
+     * A bare filename, from a string chosen by whoever made the file.
+     *
+     * Reduced rather than rejected, because an operator uploading `Q1 (final).pdf`
+     * has done nothing wrong. What cannot survive is anything that makes it a
+     * path: the adapter would refuse that too, and this is the first of the
+     * two checks rather than the only one.
+     */
+    private function safeFilename(string $name): string
+    {
+        $name = basename(str_replace('\\', '/', $name));
+        $name = (string) preg_replace('/[^A-Za-z0-9._-]/', '_', $name);
+        $name = ltrim($name, '.');
+
+        return $name === '' ? 'upload' : Str::limit($name, 120, '');
     }
 
     private function roots(): WorkspaceRoots

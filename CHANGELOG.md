@@ -22,6 +22,11 @@ All notable changes to this project are documented here. The format follows
   it. `pandora.workspaces.roots` declares where workspaces may live — a disk and a base prefix, by
   key — and the path is composed as `<base>/<tenant>/<slug>`. A request names a key or it names
   nothing; an empty root list permits nothing rather than everything.
+- **Operator uploads** from the Workspaces page, into the directory being browsed. Written through
+  `WorkspaceFiles::write`, so the quota, the detected-MIME allowlist and containment apply exactly
+  as they do to an agent's write; `pandora.workspaces.max_upload_bytes` bounds one request. Recorded
+  as `workspace.file_uploaded` alongside the write's own entry, because "an agent wrote this" and
+  "a person put this here" are different facts.
 - **Streamed, audited downloads.** `/pandora/workspaces/{workspace}/download?path=…` sends the bytes
   through the application, chunk by chunk, and writes a `workspace.file_downloaded` audit entry.
 - `pandora.features.workspaces` **defaults to on**, which un-defers the Workspaces page and the

@@ -244,6 +244,35 @@
                 <span class="pd-mono">/{{ $path }}</span>
             </div>
 
+            @if ($canManage && ! $unreachable)
+                {{--
+                    Written through the same `WorkspaceFiles` an agent writes
+                    through, so the quota is reserved before the bytes land and
+                    the MIME allowlist is matched on the detected type. An
+                    upload that touched the disk directly would be a second way
+                    in with its own idea of when a workspace is full.
+                --}}
+                <div class="pd-card-body" style="border-top: 1px solid var(--pd-border)">
+                    <form wire:submit="uploadFile" class="pd-row">
+                        <div class="pd-field" style="flex: 1">
+                            <label class="pd-label" for="pd-ws-upload">
+                                Upload into <span class="pd-mono">/{{ $path }}</span>
+                            </label>
+                            <input id="pd-ws-upload" type="file" class="pd-input" wire:model="file">
+                            @error('file') <p class="pd-error">{{ $message }}</p> @enderror
+                            <p class="pd-help">
+                                Up to {{ number_format($maxUploadBytes / 1048576, 0) }} MB, and subject
+                                to the workspace's quota and allowed types exactly as an agent's write
+                                is. The filename is reduced to a bare name.
+                            </p>
+                        </div>
+
+                        <button type="submit" class="pd-btn pd-btn-primary"
+                                wire:loading.attr="disabled" wire:target="file,uploadFile">Upload</button>
+                    </form>
+                </div>
+            @endif
+
             @if ($unreachable)
                 {{--
                     A root that has moved or been unmounted. Said plainly: an

@@ -232,6 +232,26 @@ to exactly the same containment rules as an agent. A page that could show a file
 an agent cannot read would be a way to confirm what lives outside the root, and
 the whole point of the root is that nobody finds out.
 
+## Uploads
+
+An operator with `pandora.workspaces.access` can put a file into a workspace
+from the control center, into whichever directory the page is browsing.
+
+It goes through `WorkspaceFiles::write` — the same call an agent's write tool
+makes — so it is not a second way in. The quota is reserved before the bytes
+land, the MIME allowlist is matched on the **detected** type, and containment is
+proven by the adapter, none of which the upload restates. `max_upload_bytes`
+bounds one request; the quota bounds the workspace.
+
+The filename the browser sends is chosen by whoever made the file, so it is
+reduced to a bare name — `../../etc/passwd` becomes `passwd` — and then handed
+to the adapter, which checks it again. Neither check is trusted to be the only
+one.
+
+An upload records `workspace.file_uploaded` in addition to the
+`workspace.file_written` the write itself logs. "An agent wrote this" and "a
+person put this here" are different facts.
+
 ## Downloads
 
 A file is downloaded through the application, at
