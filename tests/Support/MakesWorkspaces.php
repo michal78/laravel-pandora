@@ -12,6 +12,7 @@ use Pandora\Workspaces\Storage\LocalStorage;
 use Pandora\Workspaces\Storage\ObjectStorage;
 use Pandora\Workspaces\Storage\WorkspaceStorage;
 use Pandora\Workspaces\Workspace;
+use Pandora\Workspaces\WorkspaceFiles;
 
 /**
  * Builds a workspace on either kind of storage, for the suites that must pass
@@ -31,40 +32,56 @@ use Pandora\Workspaces\Workspace;
 trait MakesWorkspaces
 {
     /**
+     * @param array<string, mixed> $attributes
      * @return array{0: Workspace, 1: WorkspaceStorage}
      */
-    public function makeWorkspaceOn(string $kind, ?string $slug = null): array
+    public function makeWorkspaceOn(string $kind, ?string $slug = null, array $attributes = []): array
     {
         return $kind === 'object'
-            ? $this->objectWorkspace($slug)
-            : $this->localWorkspace($slug);
+            ? $this->objectWorkspace($slug, $attributes)
+            : $this->localWorkspace($slug, $attributes);
     }
 
     /**
+     * The same, wrapped in the quota-and-MIME layer that sits above the seam.
+     *
+     * @param array<string, mixed> $attributes
+     * @return array{0: Workspace, 1: WorkspaceFiles, 2: WorkspaceStorage}
+     */
+    public function makeFilesOn(string $kind, array $attributes = []): array
+    {
+        [$workspace, $storage] = $this->makeWorkspaceOn($kind, null, $attributes);
+
+        return [$workspace, new WorkspaceFiles($workspace, app(AuditLogger::class), $storage), $storage];
+    }
+
+    /**
+     * @param array<string, mixed> $attributes
      * @return array{0: Workspace, 1: WorkspaceStorage}
      */
-    public function localWorkspace(?string $slug = null): array
+    public function localWorkspace(?string $slug = null, array $attributes = []): array
     {
         $root = sys_get_temp_dir().'/pandora-ws-'.bin2hex(random_bytes(6));
 
         mkdir($root, 0777, true);
 
-        $workspace = $this->workspaceRow('local', $root, $slug);
+        $workspace = $this->workspaceRow('local', $root, $slug, $attributes);
 
         return [$workspace, new LocalStorage($workspace, $this->denials($workspace))];
     }
 
     /**
+     * @param array<string, mixed> $attributes
      * @return array{0: Workspace, 1: WorkspaceStorage}
      */
-    public function objectWorkspace(?string $slug = null): array
+    public function objectWorkspace(?string $slug = null, array $attributes = []): array
     {
         $disk = $this->objectDisk();
 
         // A prefix per test. Object storage has no cheap "empty this
         // directory", and a leaked object from an earlier test would show up
         // as a listing that is right in a way nobody arranged.
-        $workspace = $this->workspaceRow($disk, 'ws-'.bin2hex(random_bytes(6)), $slug);
+        $workspace = $this->workspaceRow($disk, 'ws-'.bin2hex(random_bytes(6)), $slug, $attributes);
 
         return [$workspace, new ObjectStorage($workspace, Storage::disk($disk), $this->denials($workspace))];
     }
@@ -122,10 +139,13 @@ trait MakesWorkspaces
         }
     }
 
-    private function workspaceRow(string $disk, string $root, ?string $slug): Workspace
+    /**
+     * @param array<string, mixed> $attributes
+     */
+    private function workspaceRow(string $disk, string $root, ?string $slug, array $attributes = []): Workspace
     {
         /** @var Workspace $workspace */
-        $workspace = Workspace::query()->create([
+        $workspace = Workspace::query()->create($attributes + [
             'name' => 'Scratch',
             'slug' => $slug ?? 'scratch-'.bin2hex(random_bytes(4)),
             'disk' => $disk,
