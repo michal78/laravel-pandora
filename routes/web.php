@@ -9,8 +9,11 @@ use Pandora\UI\Livewire\AgentsIndex;
 use Pandora\UI\Livewire\ApprovalsIndex;
 use Pandora\UI\Livewire\AutomationDetail;
 use Pandora\UI\Livewire\AutomationsIndex;
+use Pandora\UI\Livewire\ChannelLink;
+use Pandora\UI\Livewire\ChannelsIndex;
 use Pandora\UI\Livewire\Chat;
 use Pandora\UI\Livewire\Dashboard;
+use Pandora\UI\Livewire\ExtensionsIndex;
 use Pandora\UI\Livewire\McpIndex;
 use Pandora\UI\Livewire\MemoryIndex;
 use Pandora\UI\Livewire\ProvidersIndex;
@@ -43,6 +46,15 @@ Route::get('/tools', ToolsIndex::class)->name('tools');
 Route::get('/approvals', ApprovalsIndex::class)->name('approvals');
 Route::get('/memory', MemoryIndex::class)->name('memory');
 Route::get('/mcp', McpIndex::class)->name('mcp');
+Route::get('/channels', ChannelsIndex::class)->name('channels');
+// Deliberately not behind a channels ability: linking your own account to your
+// own identity is not an administrative act, and requiring an operator for
+// every link is what pushes an installation towards the shortcut ADR-0015
+// exists to refuse.
+Route::get('/channels/link', ChannelLink::class)->name('channels.link');
+// Inspection only. There is no sibling route that installs, updates or fetches
+// anything, and a test fails if one appears (ADR-0016).
+Route::get('/extensions', ExtensionsIndex::class)->name('extensions');
 Route::get('/workspaces', WorkspacesIndex::class)->name('workspaces');
 // Streamed through the app, never presigned: a signed object URL is a bearer
 // token that leaves no trace of the download it authorises (ADR-0013).

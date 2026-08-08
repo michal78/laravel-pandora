@@ -7,6 +7,7 @@ use Livewire\Livewire;
 use Pandora\Agents\Agent;
 use Pandora\Agents\AgentRegistry;
 use Pandora\Audit\AuditLog;
+use Pandora\Channels\ChannelAccount;
 use Pandora\Core\Tenancy\TenantContext;
 use Pandora\Core\Tenancy\TenantManager;
 use Pandora\Mcp\McpServer;
@@ -480,8 +481,8 @@ it('says a tab is not built yet, without quoting a release at anyone', function 
     // An operator who cannot find where tools are granted should learn that
     // the page is coming, not conclude that agents cannot be granted tools.
     //
-    // Memory, Skills and Workspace were on this list until they were built,
-    // and their absence here is the assertion that they are no longer
+    // Memory, Skills, Workspace and Channels were on this list until they were
+    // built, and their absence here is the assertion that they are no longer
     // promises.
     //
     // No phase or version number is quoted: a number left unrevised is how a
@@ -490,9 +491,6 @@ it('says a tab is not built yet, without quoting a release at anyone', function 
     Livewire::test(AgentDetail::class, ['agent' => 'support'])
         ->call('selectTab', 'tools')
         ->assertSee('Tools is not here yet')
-        ->assertDontSee('Phase')
-        ->call('selectTab', 'channels')
-        ->assertSee('Channels is not here yet')
         ->assertDontSee('Phase');
 
     // 'permissions' was here until Phase 6 built it. A tab that stayed on the
@@ -501,7 +499,8 @@ it('says a tab is not built yet, without quoting a release at anyone', function 
 
     expect(array_keys(AgentDetail::PENDING_TABS))
         ->not->toContain('memory')
-        ->and(array_keys(AgentDetail::PENDING_TABS))->not->toContain('skills');
+        ->and(array_keys(AgentDetail::PENDING_TABS))->not->toContain('skills')
+        ->and(array_keys(AgentDetail::PENDING_TABS))->not->toContain('channels');
 });
 
 /**
@@ -909,4 +908,144 @@ it('lists an approved remote tool, and flags one that changed under it', functio
     Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
         ->call('selectTab', 'permissions')
         ->assertSee('changed since approval');
+});
+
+/**
+ * Phase 8, criterion 29 — the Channels tab, replacing the Phase 3.5 stub.
+ *
+ * Binding an account here is a routing decision and nothing more. It does not
+ * enable the account, and it grants no participant anything: everybody
+ * messaging through it is still refused until they have linked their own
+ * account. That separation is the whole reason this can be a one-click control
+ * on an agent page at all.
+ */
+function channelAccountFor(string $slug = 'acme-slack', ?Agent $agent = null): ChannelAccount
+{
+    /** @var ChannelAccount $account */
+    $account = ChannelAccount::query()->create([
+        'channel' => 'fake',
+        'name' => ucfirst(str_replace('-', ' ', $slug)),
+        'slug' => $slug,
+        'external_id' => 'W-'.$slug,
+        'agent_id' => $agent?->getKey(),
+    ]);
+
+    return $account;
+}
+
+it('lists channels among the tabs that are not here yet when the flag is off', function (): void {
+    config()->set('pandora.features.channels', false);
+
+    $agent = AgentFactory::database();
+    $this->actingAsUser();
+
+    expect(array_keys(AgentDetail::pendingTabs()))->toContain('channels');
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'channels')
+        ->assertSee('answers here and nowhere else');
+});
+
+it('shows the accounts routing to this agent', function (): void {
+    config()->set('pandora.features.channels', true);
+    Gate::define('pandora.channels.manage', static fn (): bool => true);
+
+    $agent = AgentFactory::database();
+    channelAccountFor('acme-slack', $agent);
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'channels')
+        ->assertSee('Acme slack')
+        ->assertSee('W-acme-slack');
+});
+
+it('binds an unbound account to the agent and audits it', function (): void {
+    config()->set('pandora.features.channels', true);
+    Gate::define('pandora.channels.manage', static fn (): bool => true);
+
+    $agent = AgentFactory::database();
+    $account = channelAccountFor();
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'channels')
+        ->call('bindChannelAccount', (string) $account->getKey());
+
+    expect($account->fresh()->agent_id)->toBe($agent->getKey())
+        // Bound, and still disabled. Routing and opening a door are two
+        // decisions.
+        ->and($account->fresh()->enabled)->toBeFalse()
+        ->and(AuditLog::query()->where('action', 'channel.account_bound')->count())->toBe(1);
+});
+
+it('refuses to steal an account already answering as another agent', function (): void {
+    config()->set('pandora.features.channels', true);
+    Gate::define('pandora.channels.manage', static fn (): bool => true);
+
+    $incumbent = AgentFactory::database(['slug' => 'incumbent']);
+    $newcomer = AgentFactory::database(['slug' => 'newcomer']);
+    $account = channelAccountFor('acme-slack', $incumbent);
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $newcomer->slug])
+        ->call('selectTab', 'channels')
+        ->call('bindChannelAccount', (string) $account->getKey())
+        ->assertSet('error', fn (?string $e): bool => str_contains((string) $e, 'another agent'));
+
+    expect($account->fresh()->agent_id)->toBe($incumbent->getKey());
+});
+
+it('unbinds an account so messages arriving there are refused', function (): void {
+    config()->set('pandora.features.channels', true);
+    Gate::define('pandora.channels.manage', static fn (): bool => true);
+
+    $agent = AgentFactory::database();
+    $account = channelAccountFor('acme-slack', $agent);
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'channels')
+        ->call('unbindChannelAccount', (string) $account->getKey());
+
+    expect($account->fresh()->agent_id)->toBeNull()
+        ->and(AuditLog::query()->where('action', 'channel.account_unbound')->count())->toBe(1);
+});
+
+it('refuses a forged bind from somebody without pandora.channels.manage', function (): void {
+    config()->set('pandora.features.channels', true);
+    Gate::define('pandora.channels.manage', static fn (): bool => false);
+
+    $agent = AgentFactory::database();
+    $account = channelAccountFor();
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('bindChannelAccount', (string) $account->getKey())
+        ->assertForbidden();
+
+    expect($account->fresh()->agent_id)->toBeNull();
+});
+
+it('cannot bind another tenant channel account', function (): void {
+    config()->set('pandora.features.channels', true);
+    Gate::define('pandora.channels.manage', static fn (): bool => true);
+
+    $theirs = inTenant('globex', fn () => channelAccountFor('globex-slack'));
+
+    inTenant('acme', function () use ($theirs): void {
+        $agent = AgentFactory::database();
+        $this->actingAsUser();
+
+        Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+            ->call('bindChannelAccount', (string) $theirs->getKey())
+            ->assertSet('error', 'That channel account does not exist.');
+    });
+
+    expect(ChannelAccount::acrossAllTenants()->findOrFail($theirs->getKey())->agent_id)->toBeNull();
 });

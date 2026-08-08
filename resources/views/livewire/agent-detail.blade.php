@@ -71,6 +71,7 @@
                 'skills' => 'Skills',
                 'memory' => 'Memory',
                 'workspace' => 'Workspace',
+                'channels' => 'Channels',
                 'permissions' => 'Permissions',
                 'runs' => 'Runs',
                 'usage' => 'Usage',
@@ -80,6 +81,10 @@
             // pending list below and is rendered there.
             if (isset($pendingTabs['workspace'])) {
                 unset($liveTabs['workspace']);
+            }
+
+            if (isset($pendingTabs['channels'])) {
+                unset($liveTabs['channels']);
             }
         @endphp
 
@@ -753,6 +758,77 @@
                 <a class="pd-btn pd-btn-ghost"
                    href="{{ route('pandora.workspaces', ['workspace' => $workspace->slug]) }}"
                    wire:navigate>Browse files</a>
+            @endif
+        </x-pandora::card>
+    @endif
+
+    {{-- ------------------------------------------------------------ channels --}}
+    @if ($tab === 'channels' && ! isset($pendingTabs['channels']))
+        <x-pandora::card title="Where this agent can be reached">
+            <p class="pd-help">
+                A channel account routes one remote workspace to one agent. Binding an account here
+                does not enable it, and grants nobody anything: every participant is still refused
+                until they have linked their own account, in the channel and then signed in here.
+            </p>
+
+            @if ($channelAccounts->isEmpty())
+                <p class="pd-muted">
+                    Nothing routes to this agent. It answers in the control center and nowhere else.
+                </p>
+            @else
+                <table class="pd-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Account</th>
+                            <th scope="col">Channel</th>
+                            <th scope="col">State</th>
+                            <th scope="col"><span class="pd-visually-hidden">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($channelAccounts as $account)
+                            <tr>
+                                <td>
+                                    <div class="pd-strong">{{ $account->name }}</div>
+                                    <div class="pd-muted pd-mono">{{ $account->external_id }}</div>
+                                </td>
+                                <td class="pd-mono">{{ $account->channel }}</td>
+                                <td>
+                                    <x-pandora::badge>{{ $account->enabled ? 'enabled' : 'disabled' }}</x-pandora::badge>
+                                </td>
+                                <td class="pd-actions">
+                                    @if ($canManageChannels)
+                                        <button type="button" class="pd-btn pd-btn-danger"
+                                                wire:click="unbindChannelAccount('{{ $account->getKey() }}')">Unbind</button>
+                                    @endif
+                                    <a class="pd-btn pd-btn-ghost"
+                                       href="{{ route('pandora.channels', ['account' => $account->slug]) }}"
+                                       wire:navigate>Identities</a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @endif
+
+            @if ($canManageChannels && $bindableAccounts->isNotEmpty())
+                {{--
+                    Only accounts bound to nobody are offered. Re-pointing one
+                    that already answers as another agent belongs on the
+                    Channels page, where the identities that would change hands
+                    are in front of you.
+                --}}
+                <div class="pd-stack">
+                    <h3 class="pd-label">Unbound accounts</h3>
+                    @foreach ($bindableAccounts as $account)
+                        <div class="pd-row">
+                            <span class="pd-strong">{{ $account->name }}</span>
+                            <span class="pd-muted pd-mono">{{ $account->channel }}</span>
+                            <button type="button" class="pd-btn"
+                                    wire:click="bindChannelAccount('{{ $account->getKey() }}')">Bind to this agent</button>
+                        </div>
+                    @endforeach
+                </div>
             @endif
         </x-pandora::card>
     @endif

@@ -13,6 +13,7 @@ use Pandora\Agents\Agent;
 use Pandora\Agents\AgentRegistry;
 use Pandora\Audit\AuditLogger;
 use Pandora\Automation\Automation;
+use Pandora\Channels\ChannelAccount;
 use Pandora\Mcp\McpTool;
 use Pandora\Mcp\McpToolApproval;
 use Pandora\Memory\Enums\MemoryScope;
@@ -115,8 +116,6 @@ final class AgentDetail extends Component
             'note' => 'Tool grants are stored on the agent and enforced today; this tab will edit them rather than requiring a class definition or a seeder.',
         ],
 
-        'channels' => ['label' => 'Channels', 'note' => 'Where this agent can be reached, and which identities map to it.'],
-
         // 'permissions' is no longer here: Phase 6 built it. What it shows is
         // what this agent may reach beyond its own tools -- who it may
         // delegate to, and which remote tools somebody approved for it.
@@ -135,6 +134,13 @@ final class AgentDetail extends Component
     public static function pendingTabs(): array
     {
         $pending = self::PENDING_TABS;
+
+        if (Feature::disabled('channels')) {
+            $pending['channels'] = [
+                'label' => 'Channels',
+                'note' => 'Where this agent can be reached from outside the control center, and who is allowed to reach it. Until then it answers here and nowhere else, which is what it would do with no channel account bound in any case.',
+            ];
+        }
 
         if (Feature::disabled('workspaces')) {
             $pending['workspace'] = [
@@ -375,6 +381,9 @@ final class AgentDetail extends Component
             'skills' => $this->tab === 'skills' ? $this->skillsFor($agent) : collect(),
             'workspace' => $this->tab === 'workspace' ? $this->workspaceFor($agent) : null,
             'workspaces' => $this->tab === 'workspace' ? $this->selectableWorkspaces() : collect(),
+            'channelAccounts' => $this->tab === 'channels' ? $this->channelAccountsFor($agent) : collect(),
+            'bindableAccounts' => $this->tab === 'channels' ? $this->bindableAccounts() : collect(),
+            'canManageChannels' => PandoraGate::allows('channels.manage'),
             'remoteTools' => $this->tab === 'permissions' ? $this->remoteToolsFor($agent) : [],
             'delegatable' => $this->tab === 'permissions' ? $agent->delegatableAgents() : [],
             'canManageMemory' => PandoraGate::allows('memory.manage'),
@@ -555,6 +564,134 @@ final class AgentDetail extends Component
         $this->currency = $agent->currency;
         $this->autonomyLevel = $agent->autonomy_level->value;
         $this->workspaceId = (string) ($agent->workspace_id ?? '');
+    }
+
+    /**
+     * The channel accounts routing to this agent.
+     *
+     * @return Collection<int, ChannelAccount>
+     */
+    private function channelAccountsFor(Agent $agent): Collection
+    {
+        /** @var Collection<int, ChannelAccount> $accounts */
+        $accounts = ChannelAccount::query()
+            ->where('agent_id', $agent->getKey())
+            ->orderBy('name')
+            ->get();
+
+        return $accounts;
+    }
+
+    /**
+     * Accounts an operator could point at this agent: the ones bound to nobody.
+     *
+     * Accounts already answering as another agent are deliberately absent.
+     * Re-pointing one is a real operation and it belongs on the Channels page,
+     * where the identities that would change hands are visible — moving a
+     * workspace to a different agent from the agent's own page is the sort of
+     * thing somebody does without noticing what came with it.
+     *
+     * @return Collection<int, ChannelAccount>
+     */
+    private function bindableAccounts(): Collection
+    {
+        /** @var Collection<int, ChannelAccount> $accounts */
+        $accounts = ChannelAccount::query()
+            ->whereNull('agent_id')
+            ->orderBy('name')
+            ->get();
+
+        return $accounts;
+    }
+
+    /**
+     * Point a channel account at this agent, or stop it answering here.
+     *
+     * Binding does not enable anything: an account created disabled stays
+     * disabled until somebody says otherwise on the Channels page. And it grants
+     * no identity anything — the people messaging through it are still refused
+     * until each of them has linked.
+     */
+    public function bindChannelAccount(string $accountId, AuditLogger $audit): void
+    {
+        PandoraGate::authorize('channels.manage');
+
+        if (Feature::disabled('channels')) {
+            abort(404);
+        }
+
+        $agent = $this->agent();
+
+        if ($agent === null) {
+            abort(404);
+        }
+
+        // Tenant-scoped, so an id from another tenant is not found rather than
+        // bound. This is the only place a channel account id arrives from a
+        // request on this page.
+        /** @var ChannelAccount|null $account */
+        $account = ChannelAccount::query()->find($accountId);
+
+        if ($account === null) {
+            $this->error = 'That channel account does not exist.';
+
+            return;
+        }
+
+        if ($account->agent_id !== null && $account->agent_id !== $agent->getKey()) {
+            $this->error = 'That account already answers as another agent. Re-point it from the Channels page.';
+
+            return;
+        }
+
+        $account->update(['agent_id' => $agent->getKey()]);
+
+        $audit->record(
+            action: 'channel.account_bound',
+            targetType: ChannelAccount::class,
+            targetId: (string) $account->getKey(),
+            metadata: ['agent' => $agent->slug, 'channel' => $account->channel, 'account' => $account->slug],
+        );
+
+        $this->error = null;
+        $this->saved = $account->name.' now routes to this agent.'
+            .($account->enabled ? '' : ' It is still disabled.');
+    }
+
+    public function unbindChannelAccount(string $accountId, AuditLogger $audit): void
+    {
+        PandoraGate::authorize('channels.manage');
+
+        if (Feature::disabled('channels')) {
+            abort(404);
+        }
+
+        $agent = $this->agent();
+
+        if ($agent === null) {
+            abort(404);
+        }
+
+        /** @var ChannelAccount|null $account */
+        $account = ChannelAccount::query()
+            ->where('agent_id', $agent->getKey())
+            ->find($accountId);
+
+        if ($account === null) {
+            return;
+        }
+
+        $account->update(['agent_id' => null]);
+
+        $audit->record(
+            action: 'channel.account_unbound',
+            targetType: ChannelAccount::class,
+            targetId: (string) $account->getKey(),
+            metadata: ['agent' => $agent->slug, 'account' => $account->slug],
+        );
+
+        $this->error = null;
+        $this->saved = $account->name.' no longer routes anywhere. Messages arriving there are refused.';
     }
 
     /**

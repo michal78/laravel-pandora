@@ -225,6 +225,27 @@ Two honest fixes, and this is a decision rather than an obvious bug fix:
 Not Phase 7's, and not scheduled. Recorded here rather than fixed, because either answer changes
 what an operator's `app/Agents` directory means.
 
+## A published config in the Testbench skeleton was shadowing the package config (2026-08-08) ✅ **fixed**
+
+Found while adding `pandora.features.channels`. The new key was absent at runtime in tests, and the
+cause was a *published* `config/pandora.php` sitting in
+`vendor/orchestra/testbench-core/laravel/config/`, written by a `vendor:publish` during Phase 7 work
+and dated 2026-08-08 05:47.
+
+`mergeConfigFrom()` merges one level deep. A top-level key present in the application's config wins
+outright, so the stale file's `features` and `abilities` arrays replaced the package's entirely —
+silently, and only for the keys those arrays contained. New top-level keys (`mcp`, `channels`,
+`extensions`) came through fine, which is why nothing noticed for two phases.
+
+Deleted. The package config is the authority in the package's own suite, and a published copy in a
+gitignored vendor directory is a fixture nobody is maintaining. Nothing regressed — the file's
+`features.workspaces` matched the package's, so its only effect had been to hide the two flags added
+in this phase.
+
+Worth remembering as a class of problem rather than an incident: a config file that shadows and a
+config file that overrides look identical until a key is added, and the failure presents as "my new
+feature flag does nothing".
+
 ---
 
 ## Q10 — Two undriven walkthroughs carried into Phase 8 ⏸ **deferred, deliberately**
