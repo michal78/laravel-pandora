@@ -87,8 +87,15 @@ Driven headlessly through `AgentRunner::forUser()` with a live model.
       call. *(This did not exist. See Defect 4. Driven by rendering the
       component against the live run rather than by clicking — the links
       themselves are still unclicked.)*
-- [ ] The audit log shows `delegation.started` and `delegation.completed`.
-      *(Not driven — browser.)*
+- [x] The audit log records `delegation.started` and `delegation.completed`, both
+      on the parent. *(Verified in the audit table against the live run, not yet
+      on the audit page.)*
+- [x] **The child recovers from its own repetition.** In the live run the model
+      repeated one `lookup_order` call, was refused as a duplicate, *read the
+      refusal*, and answered from the result it already had — one
+      `tool.denied` at `notice`, then a completed run. That single denial is the
+      whole of Defect 1 in miniature: the guard always worked, and what was
+      missing was the model being able to see it.
 
 ## Refusals — the part that must not look like an outage
 
