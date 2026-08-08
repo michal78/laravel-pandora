@@ -1,9 +1,26 @@
 # Phase 6 — Acceptance Test Plan
 
-> **Status: not started. 0 of 30 criteria verified.**
+> **Status: delegation done, MCP not started. 13 of 30 criteria verified.**
 >
 > Nothing below is ticked on the strength of code existing; each criterion is ticked only when the
 > named automated test asserts it and that test passes.
+>
+> Criteria 1–13 (delegation) are verified and the suite is green on every commit. Criteria 14–30
+> (MCP) have no code and no tests: `src/Mcp` does not exist.
+>
+> **Two defects reached the walkthrough that the suite could not have caught**, and both are worth
+> reading before writing the MCP half:
+>
+> - A run with no conversation could not see its own tool loop, so every delegated child repeated
+>   one call until its iteration budget ended it. The suite scripted children that answered on
+>   their first turn, so nothing ever asked what a child could remember. Now
+>   `Delegation/ChildMemoryTest`.
+> - A refused call recorded nothing an operator could read — the reason existed only in a result
+>   blob or not at all. Delegation refusals are correct, bounded and were invisible.
+>
+> The pattern in both: the guard was right, the run was wrong, and nothing failed loudly enough to
+> notice. A criterion asserting a refusal is *recorded* is worth as much as one asserting it
+> happened.
 
 Every phase so far has widened what Pandora can *do*. Phase 6 is the first that widens who is
 allowed to ask — an agent may now call another agent, and a tool may now live on a machine that is
@@ -75,19 +92,19 @@ authenticated Pandora MCP server with an explicit exposure allowlist · MCP UI �
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 1 | A child run persists `parent_run_id` and `delegation_depth = parent + 1`, with `origin` = delegation | `Delegation/ChildRunTest` |
-| 2 | **A child's effective abilities are the intersection of parent and child agent — an ability the parent lacks is absent from the child** | `Delegation/IntersectionTest` |
-| 3 | **A tool denied to the parent cannot be called by the child, even when the child agent allows it** | `Delegation/IntersectionTest` |
-| 4 | The intersection is persisted on the child run and reproduced in its trace | `Delegation/IntersectionTest` |
-| 5 | An agent absent from the parent agent's delegation allowlist cannot be delegated to; the default allowlist is empty | `Delegation/AllowlistTest` |
-| 6 | **Delegation beyond `max_delegation_depth` denies the tool and the parent continues with a tool error** | `Delegation/DepthTest` |
-| 7 | A delegation whose ancestry already contains the target agent is refused before the child run is created | `Delegation/CycleTest` |
-| 8 | **A child's token and monetary spend is debited to the parent's tree and cannot exceed the parent's remaining budget** | `Delegation/BudgetTest` |
-| 9 | A child that exhausts the shared budget ends `budget_exhausted` and the parent is told, rather than the tree continuing | `Delegation/BudgetTest` |
-| 10 | The parent enters `waiting_for_tool` and resumes with the child's structured result appended as a tool result | `Delegation/LifecycleTest` |
-| 11 | **Cancelling a parent cancels its children, transitively; cancelling a child never cancels the parent** | `Delegation/CancellationTest` |
-| 12 | A child's result is redacted and treated as untrusted content on the way into the parent's context | `Delegation/UntrustedResultTest` |
-| 13 | A delegated run is attributable — the trace names the initiating actor, not the parent agent | `Delegation/AttributionTest` |
+| 1 ✅ | A child run persists `parent_run_id` and `delegation_depth = parent + 1`, with `origin` = delegation | `Delegation/ChildRunTest` |
+| 2 ✅ | **A child's effective abilities are the intersection of parent and child agent — an ability the parent lacks is absent from the child** | `Delegation/IntersectionTest` |
+| 3 ✅ | **A tool denied to the parent cannot be called by the child, even when the child agent allows it** | `Delegation/IntersectionTest` |
+| 4 ✅ | The intersection is persisted on the child run and reproduced in its trace | `Delegation/IntersectionTest` |
+| 5 ✅ | An agent absent from the parent agent's delegation allowlist cannot be delegated to; the default allowlist is empty | `Delegation/AllowlistTest` |
+| 6 ✅ | **Delegation beyond `max_delegation_depth` denies the tool and the parent continues with a tool error** | `Delegation/DepthTest` |
+| 7 ✅ | A delegation whose ancestry already contains the target agent is refused before the child run is created | `Delegation/CycleTest` |
+| 8 ✅ | **A child's token and monetary spend is debited to the parent's tree and cannot exceed the parent's remaining budget** | `Delegation/BudgetTest` |
+| 9 ✅ | A child that exhausts the shared budget ends `budget_exhausted` and the parent is told, rather than the tree continuing | `Delegation/BudgetTest` |
+| 10 ✅ | The parent enters `waiting_for_tool` and resumes with the child's structured result appended as a tool result | `Delegation/LifecycleTest` |
+| 11 ✅ | **Cancelling a parent cancels its children, transitively; cancelling a child never cancels the parent** | `Delegation/CancellationTest` |
+| 12 ✅ | A child's result is redacted and treated as untrusted content on the way into the parent's context | `Delegation/UntrustedResultTest` |
+| 13 ✅ | A delegated run is attributable — the trace names the initiating actor, not the parent agent | `Delegation/AttributionTest` |
 | 14 | An MCP server persists with transport, endpoint, encrypted credential and health; the credential is never readable through the UI or API | `Mcp/ServerTest` |
 | 15 | **stdio transport is refused unless explicitly enabled in configuration** | `Mcp/TransportTest` |
 | 16 | Discovery writes `pandora_mcp_tools` with schema and hash and leaves every tool **unapproved** | `Mcp/DiscoveryTest` |
@@ -108,7 +125,8 @@ authenticated Pandora MCP server with an explicit exposure allowlist · MCP UI �
 
 Test files: `Delegation/ChildRunTest` · `IntersectionTest` · `AllowlistTest` · `DepthTest` ·
 `CycleTest` · `BudgetTest` · `LifecycleTest` · `CancellationTest` · `UntrustedResultTest` ·
-`AttributionTest`; `Mcp/ServerTest` · `TransportTest` · `DiscoveryTest` · `ApprovalTest` ·
+`AttributionTest` · `ChildMemoryTest` (a child must be able to see its own tool loop — a run with
+no conversation has no message history, and the amnesia reads as a budget failure); `Mcp/ServerTest` · `TransportTest` · `DiscoveryTest` · `ApprovalTest` ·
 `SchemaHashTest` · `NamespaceTest` · `UntrustedDescriptionTest` · `RemoteFailureTest` ·
 `HealthTest` · `AuditTest` · `SkillDiscoveryTest` · `CommandsTest`; `McpServer/ExposureTest` ·
 `AuthorizationTest` · `TenancyTest`; plus `UI/McpPageTest` and additions to `UI/AgentDetailTest`
