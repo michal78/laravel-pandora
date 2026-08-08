@@ -1,12 +1,21 @@
 # Phase 6 — Acceptance Test Plan
 
-> **Status: delegation done, MCP not started. 13 of 30 criteria verified.**
+> **Status: all 30 criteria verified. The walkthrough has not been driven.**
 >
 > Nothing below is ticked on the strength of code existing; each criterion is ticked only when the
 > named automated test asserts it and that test passes.
 >
-> Criteria 1–13 (delegation) are verified and the suite is green on every commit. Criteria 14–30
-> (MCP) have no code and no tests: `src/Mcp` does not exist.
+> Criteria 1–13 (delegation) and 14–30 (MCP) are verified and the suite is green on every commit.
+> What is NOT done is the last line of the definition of done: a human driving the pages in a host
+> application, including the check the suite structurally cannot make — a real MCP server, changed
+> after approval, whose tool stops working until a person looks at what changed. Every box in the
+> MCP section of `phase-6-walkthrough.md` is unticked and stays that way until it has been.
+>
+> The MCP half runs against `FakeMcpServer`, which ships in `src/Testing` because it is a
+> deliverable rather than a fixture: it hangs, goes unreachable, returns oversized bodies, offers
+> names that cannot be published, and rewrites a description while keeping every parameter. Every
+> criterion below about a remote server is a claim about how we behave when the other end
+> misbehaves, and a suite that only ever ran against a well-behaved one asserts none of them.
 >
 > **Two defects reached the walkthrough that the suite could not have caught**, and both are worth
 > reading before writing the MCP half:
@@ -105,23 +114,23 @@ authenticated Pandora MCP server with an explicit exposure allowlist · MCP UI �
 | 11 ✅ | **Cancelling a parent cancels its children, transitively; cancelling a child never cancels the parent** | `Delegation/CancellationTest` |
 | 12 ✅ | A child's result is redacted and treated as untrusted content on the way into the parent's context | `Delegation/UntrustedResultTest` |
 | 13 ✅ | A delegated run is attributable — the trace names the initiating actor, not the parent agent | `Delegation/AttributionTest` |
-| 14 | An MCP server persists with transport, endpoint, encrypted credential and health; the credential is never readable through the UI or API | `Mcp/ServerTest` |
-| 15 | **stdio transport is refused unless explicitly enabled in configuration** | `Mcp/TransportTest` |
-| 16 | Discovery writes `pandora_mcp_tools` with schema and hash and leaves every tool **unapproved** | `Mcp/DiscoveryTest` |
-| 17 | **An unapproved remote tool is not offered to the model and is refused if called** | `Mcp/ApprovalTest` |
-| 18 | Approval is per agent per tool — approving for one agent grants nothing to another | `Mcp/ApprovalTest` |
-| 19 | **A changed schema hash clears approval, records `mcp.schema_changed`, and the tool fails closed until re-approved** | `Mcp/SchemaHashTest` |
-| 20 | **The hash covers the description — a server that changes only its description invalidates approval** | `Mcp/SchemaHashTest` |
-| 21 | **A remote tool cannot shadow or be resolved as a core tool, whatever it names itself** | `Mcp/NamespaceTest` |
-| 22 | A remote description is length-bounded and escaped where rendered; it never occupies an instruction position in the prompt | `Mcp/UntrustedDescriptionTest` |
-| 23 | A remote call that hangs fails on timeout as a tool error, and an oversized response is truncated and refused, without failing the worker | `Mcp/RemoteFailureTest` |
-| 24 | An unhealthy server's tools are unavailable, and the run says so rather than waiting | `Mcp/HealthTest` |
-| 25 | Remote tool calls are recorded as tool executions with arguments and results redacted like any other | `Mcp/AuditTest` |
-| 26 | **The MCP server is disabled by default and exposes nothing that the allowlist does not name** | `McpServer/ExposureTest` |
-| 27 | **An authenticated MCP server call is authorized against the actor behind the token — a valid token for an actor lacking the ability is refused** | `McpServer/AuthorizationTest` |
-| 28 | An MCP server call cannot reach another tenant's data, whatever it asks for | `McpServer/TenancyTest` |
-| 29 | A skill discovered from MCP lands unapproved, is stored as instructions only, and is never executed | `Mcp/SkillDiscoveryTest` |
-| 30 | `pandora:mcp:list`, `:discover` and `:approve` behave, and `:approve` refuses a tool whose hash has changed since discovery | `Mcp/CommandsTest` |
+| 14 ✅ | An MCP server persists with transport, endpoint, encrypted credential and health; the credential is never readable through the UI or API | `Mcp/ServerTest` |
+| 15 ✅ | **stdio transport is refused unless explicitly enabled in configuration** | `Mcp/TransportTest` |
+| 16 ✅ | Discovery writes `pandora_mcp_tools` with schema and hash and leaves every tool **unapproved** | `Mcp/DiscoveryTest` |
+| 17 ✅ | **An unapproved remote tool is not offered to the model and is refused if called** | `Mcp/ApprovalTest` |
+| 18 ✅ | Approval is per agent per tool — approving for one agent grants nothing to another | `Mcp/ApprovalTest` |
+| 19 ✅ | **A changed schema hash clears approval, records `mcp.schema_changed`, and the tool fails closed until re-approved** | `Mcp/SchemaHashTest` |
+| 20 ✅ | **The hash covers the description — a server that changes only its description invalidates approval** | `Mcp/SchemaHashTest` |
+| 21 ✅ | **A remote tool cannot shadow or be resolved as a core tool, whatever it names itself** | `Mcp/NamespaceTest` |
+| 22 ✅ | A remote description is length-bounded and escaped where rendered; it never occupies an instruction position in the prompt | `Mcp/UntrustedDescriptionTest` |
+| 23 ✅ | A remote call that hangs fails on timeout as a tool error, and an oversized response is truncated and refused, without failing the worker | `Mcp/RemoteFailureTest` |
+| 24 ✅ | An unhealthy server's tools are unavailable, and the run says so rather than waiting | `Mcp/HealthTest` |
+| 25 ✅ | Remote tool calls are recorded as tool executions with arguments and results redacted like any other | `Mcp/AuditTest` |
+| 26 ✅ | **The MCP server is disabled by default and exposes nothing that the allowlist does not name** | `McpServer/ExposureTest` |
+| 27 ✅ | **An authenticated MCP server call is authorized against the actor behind the token — a valid token for an actor lacking the ability is refused** | `McpServer/AuthorizationTest` |
+| 28 ✅ | An MCP server call cannot reach another tenant's data, whatever it asks for | `McpServer/TenancyTest` |
+| 29 ✅ | A skill discovered from MCP lands unapproved, is stored as instructions only, and is never executed | `Mcp/SkillDiscoveryTest` |
+| 30 ✅ | `pandora:mcp:list`, `:discover` and `:approve` behave, and `:approve` refuses a tool whose hash has changed since discovery | `Mcp/CommandsTest` |
 
 Test files: `Delegation/ChildRunTest` · `IntersectionTest` · `AllowlistTest` · `DepthTest` ·
 `CycleTest` · `BudgetTest` · `LifecycleTest` · `CancellationTest` · `UntrustedResultTest` ·
@@ -157,15 +166,15 @@ delegation — a child outliving its parent's run.
 
 ## Definition of done
 
-- [ ] All 30 criteria have tests, and they pass
-- [ ] `vendor/bin/pest` green on all four engines, including the pgvector leg
-- [ ] `vendor/bin/phpstan analyse` clean at level 8, with no ignores and no baseline entries
-- [ ] `vendor/bin/pint --test` clean
+- [x] All 30 criteria have tests, and they pass
+- [ ] `vendor/bin/pest` green on all four engines, including the pgvector leg — green on SQLite; the matrix has not been re-run since MCP landed
+- [x] `vendor/bin/phpstan analyse` clean at level 8, with no ignores and no baseline entries
+- [x] `vendor/bin/pint --test` clean
 - [ ] `docs/development/progress.md`, `docs/roadmap.md`, `docs/architecture/database-model.md`,
       `docs/architecture/security-model.md` (T8 and T10 rows now point at tests), a new
       `docs/guides/delegation.md`, `docs/guides/mcp.md` and `CHANGELOG.md` updated
-- [ ] An ADR for the MCP trust boundary — what is hashed, what clears approval, and why the server
-      is off by default
+- [x] An ADR for the MCP trust boundary — what is hashed, what clears approval, and why the server
+      is off by default — `docs/adr/0014-mcp-trust-boundary.md`
 - [ ] **A human drives the pages in a host application**, against a `phase-6-walkthrough.md`,
       including the check the suite structurally cannot make: a real MCP server, changed after
       approval, whose tool stops working until a person looks at what changed

@@ -317,9 +317,15 @@ results · MCP client with transports, discovery, schema caching and hashing, pe
 namespacing, health · optional authenticated Pandora MCP server with an explicit exposure allowlist ·
 MCP UI · the agent's **Permissions** tab · `pandora:mcp:list`.
 
+Discovery approves nothing, ever. Approval is per agent and per tool, and it is approval of a hash
+covering the tool's **description** as well as its schema — because a server that keeps every
+parameter and rewrites its description into an instruction is the easier attack and the one with no
+other detection (ADR-0014).
+
 **Acceptance:** delegation cannot escalate privilege — the child's abilities are the intersection.
 Depth limits hold. A changed remote schema hash revokes approval. Nothing is exposed by the MCP server
-without explicit configuration.
+without explicit configuration. See `docs/development/phase-6-acceptance.md` — **all 30 criteria
+verified**; what remains is a human driving `phase-6-walkthrough.md` against a real MCP server.
 
 ---
 

@@ -160,3 +160,95 @@ The MCP half — servers, discovery, schema hashing, approval, the Pandora MCP
 server and the agent's Permissions tab. None of it is built. Criteria 14–30 of
 `phase-6-acceptance.md` remain open, and this document grows a second half when
 they close.
+
+## MCP — not driven
+
+> Every box below is unticked. The delegation half of this document was driven on
+> 2026-08-08 and found four defects; this half has not been driven at all, and
+> the phase is not done until it has.
+
+The check the suite structurally cannot make is the last one: **a real server,
+changed after approval, whose tool stops working until a person looks at what
+changed.** `FakeMcpServer` proves we handle a rewritten description; it cannot
+prove that an operator meets that situation and understands it.
+
+### Before you start
+
+- [ ] **`vendor:publish --tag=pandora-config --force`.** A published config from
+      before this phase has no `mcp` block at all, so the client is off, no
+      transport is enabled and the server does not exist. All three read as
+      "MCP is broken" rather than "MCP is not configured".
+      *And check `vendor/orchestra/testbench-core/laravel/config/` if you run the
+      package suite — a stale published config there shadows the package's own.
+      It has reappeared twice.*
+- [ ] `vendor:publish --tag=pandora-migrations`, then `migrate`. Three new tables.
+- [ ] **A real MCP server you control**, so you can change it mid-walkthrough.
+      Anything that speaks `tools/list` and `tools/call` over HTTP will do.
+- [ ] `pandora.mcp.client.enabled` true, and a credential in the encrypted store
+      if your server wants one.
+
+### Registering and discovering
+
+- [ ] Register a server. The row takes a namespace, an endpoint and the NAME of a
+      credential — confirm there is nowhere on it to paste a token.
+- [ ] `php artisan pandora:mcp:discover`. It reports what it found and says
+      **"Nothing was approved."**
+- [ ] `/pandora/mcp` lists the server, its health, and every tool as approved for
+      **nobody**.
+- [ ] The description shown is the server's own, marked as remote. Put markup and
+      an "ignore previous instructions" sentence in one on your server, rediscover,
+      and confirm the page renders it as text.
+
+### Approving
+
+- [ ] `pandora:mcp:approve <tool> <agent>`. The agent's **Permissions** tab now
+      lists it.
+- [ ] Ask the agent to use it. It works, and the call appears as an ordinary tool
+      execution on the run trace with its arguments redacted.
+- [ ] A **second agent** cannot call it. Approval is per agent.
+- [ ] Approve with `--hash=` and a hash you made up. Refused.
+
+### The one that matters
+
+- [ ] **Change the tool's description on your server** — keep every parameter
+      identical. Rediscover.
+- [ ] The approval is gone. `pandora:mcp:list --tools` says unapproved; the page
+      says the tool changed and approvals were cleared; the audit log has
+      `mcp.schema_changed` at `warning` naming the description as what moved.
+- [ ] The agent can no longer call it, and says so rather than failing oddly.
+- [ ] Re-approve. It works again. **Was it obvious what had changed and why you
+      were being asked?** If not, that is the finding.
+
+### When the server misbehaves
+
+- [ ] Stop the server. The agent's call fails as a tool error and the run
+      continues. Two failed probes later its tools are not offered at all.
+- [ ] Make it hang. One tool call is lost, not one worker.
+- [ ] Make it return something enormous. Refused on size.
+- [ ] Confirm the model was never told your hostname, port or credential error —
+      only that the tool was unavailable.
+
+### stdio
+
+- [ ] Register a stdio server without enabling the transport. Refused, naming
+      `pandora.mcp.transports.stdio.enabled`.
+- [ ] Enable it, point it at a real local MCP binary, confirm it works, then turn
+      it back off.
+
+### Being a server
+
+- [ ] With `pandora.mcp.server.enabled` false, the endpoint 404s.
+- [ ] Enable it with an empty allowlist: `tools/list` returns nothing.
+- [ ] Expose one tool. It is listed and callable by a user who holds its ability.
+- [ ] **Call it as a user who does not hold the ability.** Refused, and
+      `mcp.exposure_denied` is recorded at `warning`. This is the check that
+      distinguishes a token from an authorization.
+- [ ] Ask for a tool that is not exposed. The same answer as one that does not
+      exist.
+- [ ] Expose `inspect_run_status` deliberately and call it. It refuses cleanly,
+      saying it needs a run — not a stack trace.
+
+### What this found
+
+*Fill this in. If it found nothing, say so — a walkthrough with an empty findings
+section is indistinguishable from one nobody ran.*

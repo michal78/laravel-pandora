@@ -69,7 +69,38 @@ All notable changes to this project are documented here. The format follows
   filename. The store's own type and the extension are both chosen by whoever wrote the file, and
   in a workspace that is a model.
 
-## Phase 6 — Delegation (unreleased)
+## Phase 6 — Delegation and MCP (unreleased)
+
+### Added
+
+- **An MCP client**: servers, transports, discovery, per-agent approval, namespacing and health.
+  Remote tools reach a run as ordinary tools — same validation, same policy, same execution row,
+  same redaction.
+- **Approval is per agent, per tool, and of a HASH** covering the remote name, the namespaced name,
+  the **description** and the input schema. A server that rewrites any of them has un-approved
+  itself: the approval is cleared, `mcp.schema_changed` is recorded at `warning`, and the tool fails
+  closed until a human approves the new version.
+- **A Pandora MCP server**, off by default, exposing only what an allowlist names and authorizing
+  every call against the actor behind the token.
+- **Skill discovery from MCP** — instructions only, disabled, attached to nobody (ADR-0008).
+- `pandora:mcp:list`, `pandora:mcp:discover` and `pandora:mcp:approve`; the MCP page; the agent's
+  **Permissions** tab.
+- **`FakeMcpServer`** in `src/Testing` — a remote server that hangs, disappears, returns oversized
+  bodies and rewrites its descriptions. A deliverable, not a fixture.
+
+### Security
+
+- **Discovery approves nothing**, for anybody, ever. There is no trusted-server flag and no
+  auto-approve key: anything that both discovers and enables is a remote-controlled permission grant.
+- **A remote tool can never resolve where a core tool is expected.** The namespace separator is
+  reserved at registration, and resolution is split by origin rather than by comparing strings.
+- **`stdio` is refused unless explicitly enabled** — it executes a local binary named by a database
+  row. The command is passed as an argument list, never through a shell.
+- Remote descriptions are bounded, escaped where rendered, marked as foreign, and never placed in an
+  instruction position.
+- A remote failure — hang, outage, oversized body, protocol error — is an ordinary tool error. The
+  model is told less than the operator.
+- Pandora stores **no MCP credential**: a server row names a key in the existing encrypted store.
 
 ### Fixed
 
