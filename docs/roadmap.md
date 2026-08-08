@@ -351,7 +351,11 @@ refused on object storage; the same containment suite passes on both adapters or
 An unreachable disk is a tool error and never a silent write somewhere else. Pandora stores no
 object-storage credential, and issues no presigned URL for any workspace — downloads stream through
 the app so the audit trail records that the file left rather than that a link was made.
-See `docs/development/phase-7-acceptance.md` — **20 of 21 criteria accepted**; what remains is a
+An agent reaches its workspace through `list_files`, `read_file` and `write_file`, none of which
+takes a workspace argument: the workspace comes from the agent, which holds at most one, so a
+sentence in a document it is reading has nowhere to select from.
+
+See `docs/development/phase-7-acceptance.md` — **24 of 25 criteria accepted**; what remains is a
 human driving `phase-7-walkthrough.md` against a real bucket.
 
 ---

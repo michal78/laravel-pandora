@@ -1,6 +1,6 @@
 # Phase 7 — Acceptance Test Plan
 
-> **Status: 21 of 22 criteria accepted. What remains is a human driving it.**
+> **Status: 24 of 25 criteria accepted. What remains is a human driving it.**
 >
 > This phase was originally six criteria: turn on a feature that was already built. ADR-0013 moved
 > workspaces and context files onto S3-compatible object storage, which reopens the one thing the
@@ -87,14 +87,11 @@ section driven by a human.
 quota and MIME behaviour on the grounds that the code was finished. ADR-0013 reopens it
 deliberately: it is finished for one adapter, and this phase adds a second.
 
-**Not in this phase, and not scheduled anywhere else — recorded here so it stops being invisible.**
-An agent still cannot reach a workspace file. `read_file` and `write_file` were named "Phase 7
-workspace tools" by the Phase 5 walkthrough and were never carried into these criteria when
-ADR-0013 rewrote the phase around storage; `WorkspaceFiles` has two callers and both are the
-control center. Attaching a workspace to an agent is likewise code-only — `agents.workspace_id`
-exists and no UI writes it — and an agent may hold exactly one, that being a single nullable column
-rather than a decision anybody took. So this phase delivers a workspace an operator can fill and
-empty, and nothing an agent can use.
+**Found missing mid-phase, and now criteria 23–25.** An agent could not reach a workspace file at
+all: `read_file` and `write_file` were named "Phase 7 workspace tools" by the Phase 5 walkthrough
+and were never carried into these criteria when ADR-0013 rewrote the phase around storage, so
+`WorkspaceFiles` had two callers and both were the control center. Attaching a workspace was
+likewise code-only. Both are built.
 
 Out of scope: per-workspace S3 credentials (ADR-0013 keeps credentials in the host's
 `filesystems.php`), presigned URLs, and any sync or replication between disks.
@@ -130,6 +127,7 @@ Out of scope: per-workspace S3 credentials (ADR-0013 keeps credentials in the ho
 | Deletion | Removes the row and detaches agents; **files are left where they are**, and the page says which disk and prefix still hold them | On object storage a bulk delete is N calls with no transaction. A partial failure leaves a half-emptied prefix under a row claiming it is gone, which is worse than bytes nobody deleted. |
 | Operator upload | Through `WorkspaceFiles::write`, never beside it; bounded by a declared `max_upload_bytes` | Quota reservation, detected-MIME matching and containment are properties of the write path. A second way in would arrive with its own slightly different version of each, and the one that gets written by accident skips the quota. The size bound is policy rather than `upload_max_filesize`, which is a deployment accident. |
 | Uploaded filename | Reduced to a bare name, then handed to the adapter, which checks it again | The browser sends the name it was given, so it is chosen by whoever made the file. Reduced rather than rejected because `Q1 (final).pdf` is not an attack; checked twice because neither check is trusted to be the only one. |
+| One workspace per agent | Kept, and now for a reason rather than by inheritance from the Phase 5 schema | A single workspace is what lets the file tools take no workspace argument. With many, a tool needs a name to select between them, and that name is a string the model emits — so "write this to the finance workspace" acquires somewhere to land. Many-per-agent stays possible; it would need its own answer to that, and no need for it has appeared. |
 | Directories | Derived from what the store reports; the UI **invents none** and offers no create-folder | On object storage a prefix exists exactly because objects do, so nothing can vanish when its last object is deleted. On a filesystem an empty directory is a real thing the store reports and an agent can also see, so it is shown — the rule is *never synthesised*, not *never empty*. |
 
 ## Acceptance criteria
@@ -180,6 +178,14 @@ Out of scope: per-workspace S3 credentials (ADR-0013 keeps credentials in the ho
 | 20 ✅ | **A download streams through the app, is authorized and is audited; no presigned URL is issued for any workspace** | `UI/WorkspaceDownloadTest` |
 | 21 | **A human drives the workspace section of the walkthrough**, against a real object-storage bucket | `phase-7-walkthrough.md` |
 | 22 ✅ | **An operator uploads a file through the same write path an agent uses** — quota, detected MIME and containment apply unchanged, and a filename trying to be a path cannot escape | `UI/WorkspaceUploadTest` |
+
+### The agent's half
+
+| # | Criterion | Verified by |
+|---|---|---|
+| 23 ✅ | **An agent can list, read and write inside its workspace, and takes no workspace argument to do it** — the workspace comes from the agent, which holds at most one | `Workspaces/WorkspaceToolsTest` |
+| 24 ✅ | **A workspace is attached and detached from the agent page**, tenant-scoped and audited, and withheld by the flag from an operator holding every ability | `UI/AgentDetailTest` |
+| 25 ✅ | **Every workspace refusal reaches the agent as a tool failure and the run continues** — traversal, quota, disallowed type, missing root, unreachable disk — and a read is bounded, with truncation reported | `Workspaces/WorkspaceToolsTest` |
 
 ## What the tests must run against
 

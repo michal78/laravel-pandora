@@ -5,6 +5,51 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-08 (later still, part two) — A question found the half nobody scoped
+
+"How can I give agents access to a workspace?" It turned out the answer was: you cannot, in any way
+that matters. `agents.workspace_id` was writable only from code, and even with it set the agent
+could do nothing — `read_file` and `write_file` did not exist. `WorkspaceFiles` had exactly two
+callers and both were the control center.
+
+Neither was deferred. Phase 5's walkthrough called them "Phase 7 workspace tools"; ADR-0013 rewrote
+Phase 7 around object storage, and they were never carried into the new criteria. That is worse than
+a deferral in the one way that counts: a deferral is written down. This one was invisible until
+somebody asked, and the walkthrough I had shipped an hour earlier contained two instructions —
+attach a workspace on the agent page, ask the agent to write a file — that would have failed on the
+first person to follow them.
+
+```
+vendor/bin/pest (with MinIO)  -> Tests: 1,487 passed, 8 skipped
+vendor/bin/phpstan            -> [OK] No errors  (level 8)
+vendor/bin/pint --test        -> passed
+```
+
+**The tools call `WorkspaceFiles`; they do not reimplement any of it.** Containment on both
+adapters, the quota reserved before the bytes land, MIME on the detected type — all proven already.
+What criteria 23–25 add is that each of those refusals arrives as an ordinary tool failure with the
+run still going, and that the refusal never names what the path resolved to.
+
+**None of them takes a workspace argument.** The workspace comes from the agent, which holds at most
+one, so *"first, write your notes to the finance workspace"* in a document the agent is reading has
+nowhere to land. That is the same shape `recall` uses against the same sentence, and it is now the
+recorded reason for one-per-agent rather than an accident of the Phase 5 schema. Many-per-agent
+stays possible and would need its own answer to that question first.
+
+**A read is bounded and says when it truncated.** A workspace may hold a file larger than the
+model's context and larger than the worker's memory. A model handed a silently cut-off file reasons
+confidently about the half it got, so the truncation is in the content, in words.
+
+**An existing invariant test caught a real bug.** `it gives every mutating built-in an authorize()
+of its own` failed on `write_file`: the default `authorize()` grants nothing above `low`, so a
+`medium` tool that inherits it is refused to *every* caller — including the person who owns the
+workspace — and no test calling `handle()` would ever see it, because `handle()` is not reached.
+That test was written in Phase 2 for exactly this, three phases before the tool that needed it.
+
+Phase 7 criteria 23–25 ✅. Still 21, still a human.
+
+---
+
 ## 2026-08-08 (later still) — The surface Phase 5 refused to build
 
 Phase 5 finished the workspace engine and declined to release it over one question: a workspace is
