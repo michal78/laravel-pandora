@@ -63,6 +63,7 @@ use Pandora\Core\Actor\GuardActorResolver;
 use Pandora\Core\Tenancy\NullTenantResolver;
 use Pandora\Core\Tenancy\TenantManager;
 use Pandora\Delegation\DelegationCompleter;
+use Pandora\Mcp\Server\McpServerController;
 use Pandora\Memory\Embeddings\HashEmbeddingProvider;
 use Pandora\Memory\Embeddings\MemoryEmbedder;
 use Pandora\Memory\MemoryCurator;
@@ -855,6 +856,8 @@ final class PandoraServiceProvider extends ServiceProvider
             $this->loadRoutesFrom(__DIR__.'/../routes/channels.php');
         }
 
+        $this->registerMcpServerRoute($config);
+
         if (! $config->get('pandora.routes.enabled', true) || ! $config->get('pandora.ui.enabled', true)) {
             return;
         }
@@ -893,6 +896,37 @@ final class PandoraServiceProvider extends ServiceProvider
             'as' => 'pandora.',
         ]), function (): void {
             $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+        });
+    }
+
+    /**
+     * Pandora as an MCP server, if a deployment asked for one.
+     *
+     * Registered separately from the control center and from the API, because
+     * it is off by default and independent of both: installing the package
+     * exposes nothing, and a host running the UI has not thereby published its
+     * tools to anybody's agent (ADR-0014).
+     */
+    private function registerMcpServerRoute(Config $config): void
+    {
+        if ($config->get('pandora.mcp.server.enabled', false) !== true) {
+            return;
+        }
+
+        /** @var array<int, string> $middleware */
+        $middleware = $config->get('pandora.mcp.server.middleware', ['api']);
+        /** @var string $path */
+        $path = $config->get('pandora.mcp.server.path', 'mcp');
+        /** @var string $prefix */
+        $prefix = $config->get('pandora.routes.prefix', 'pandora');
+
+        Route::group(array_filter([
+            'prefix' => $prefix,
+            'middleware' => $middleware,
+            'domain' => $config->get('pandora.routes.domain'),
+            'as' => 'pandora.',
+        ]), static function () use ($path): void {
+            Route::post($path, McpServerController::class)->name('mcp.server');
         });
     }
 
