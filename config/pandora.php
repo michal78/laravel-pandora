@@ -683,6 +683,18 @@ return [
     | Credentials are never here. A disk names them and `filesystems.php` holds
     | them (ADR-0013); Pandora stores no endpoint, key or secret of its own.
     |
+    | Only a local root ships, and that is not a preference for local storage --
+    | it is the only disk every Laravel application is guaranteed to have. A
+    | shipped `s3` root would offer an operator a choice that fails the moment
+    | somebody picks it, on every host that never configured that disk. Add the
+    | object root once the disk behind it exists:
+    |
+    |   'bucket' => [
+    |       'label' => 'Object storage',
+    |       'disk' => 's3',            // any S3-compatible disk: AWS, Spaces,
+    |       'base_prefix' => 'workspaces',  // Hetzner, MinIO, R2
+    |   ],
+    |
     */
 
     'workspaces' => [
