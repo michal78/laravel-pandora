@@ -162,6 +162,51 @@ it('does not show another tenant\'s workspace', function (): void {
     });
 });
 
+/**
+ * Phase 7, criterion 18 — the isolation holds for every verb, not just the
+ * listing.
+ *
+ * A page that hides another tenant's workspace and then acts on it when asked
+ * by slug is not isolated; it is politely arranged. Every lookup goes through
+ * the model's tenant scope, so the row is not merely filtered out of a view --
+ * it is not found.
+ */
+it('does not act on another tenant\'s workspace when handed its slug', function (): void {
+    $acme = inTenant('acme', function (): Workspace {
+        /** @var Workspace $workspace */
+        $workspace = Workspace::query()->create([
+            'name' => 'Acme only',
+            'slug' => 'acme-only',
+            'disk' => 'local',
+            'root_path' => $this->root,
+            'quota_bytes' => 4096,
+            'used_bytes' => 9999,
+        ]);
+
+        return $workspace;
+    });
+
+    inTenant('globex', function (): void {
+        Livewire::test(WorkspacesIndex::class)
+            ->call('startEditing', 'acme-only')
+            ->set('formName', 'Stolen')
+            ->set('formQuota', '1')
+            ->call('save')
+            ->call('select', 'acme-only')
+            ->call('recount')
+            ->call('delete', 'acme-only');
+    });
+
+    $acme->refresh();
+
+    expect($acme->name)->toBe('Acme only')
+        ->and($acme->quota_bytes)->toBe(4096)
+        // Not recounted either: a recount is a write, and it is also a way to
+        // learn how many bytes a workspace you cannot see is holding.
+        ->and($acme->used_bytes)->toBe(9999)
+        ->and($acme->exists)->toBeTrue();
+});
+
 it('requires pandora.access to open at all', function (): void {
     Gate::define('pandora.access', static fn (): bool => false);
 
@@ -209,4 +254,39 @@ it('withholds the page from an operator holding every ability', function (): voi
         ->assertOk()
         ->assertSee('not here yet')
         ->assertDontSee('Scratch');
+});
+
+/**
+ * Criterion 19, in the form that actually matters. Withholding a page is not
+ * withholding a feature: the page is where a flag gets honoured, and a forged
+ * Livewire call is exactly the request that never renders one.
+ */
+it('withholds every action behind the flag, not just the page', function (string $action, array $arguments): void {
+    config()->set('pandora.features.workspaces', false);
+
+    Gate::before(static fn (): bool => true);
+
+    Livewire::test(WorkspacesIndex::class)
+        ->set('selected', 'scratch')
+        ->call($action, ...$arguments)
+        ->assertNotFound();
+})->with([
+    ['recount', []],
+    ['startCreating', []],
+    ['startEditing', ['scratch']],
+    ['save', []],
+    ['delete', ['scratch']],
+]);
+
+it('leaves the workspace untouched by an action forged while the flag is off', function (): void {
+    config()->set('pandora.features.workspaces', false);
+
+    Gate::before(static fn (): bool => true);
+
+    $this->workspace->update(['used_bytes' => 9999]);
+
+    Livewire::test(WorkspacesIndex::class)->set('selected', 'scratch')->call('recount');
+
+    expect($this->workspace->refresh()->used_bytes)->toBe(9999)
+        ->and(Workspace::query()->count())->toBe(1);
 });

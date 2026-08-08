@@ -16,6 +16,145 @@
     @endif
 
     <x-pandora::card title="Workspaces" :padded="false">
+        @if ($canManage && $form === '')
+            <x-slot:actions>
+                <button type="button" class="pd-btn pd-btn-primary"
+                        wire:click="startCreating">New workspace</button>
+            </x-slot:actions>
+        @endif
+
+        {{--
+            Creating one. There is no path field, and that is the whole point:
+            the form offers the roots an operator declared, by key, and the
+            path is composed from whichever was chosen. A form with a path
+            field is a form that accepts `/`.
+        --}}
+        @if ($form === 'create')
+            <div class="pd-card-body" style="border-bottom: 1px solid var(--pd-border)">
+                @if ($roots === [])
+                    <p class="pd-muted">
+                        No workspace roots are configured, so none can be created here. An
+                        operator declares them in <span class="pd-mono">pandora.workspaces.roots</span>
+                        -- a disk from your filesystems configuration, and a base prefix inside it.
+                        An unconfigured allowlist permits nothing rather than everything.
+                    </p>
+                @else
+                    <form wire:submit="create" class="pd-stack">
+                        <div class="pd-field">
+                            <label class="pd-label" for="pd-ws-root">Root</label>
+                            <select id="pd-ws-root" class="pd-select" wire:model="rootKey">
+                                @foreach ($roots as $key => $root)
+                                    <option value="{{ $key }}">{{ $root->describe() }}</option>
+                                @endforeach
+                            </select>
+                            @error('rootKey') <p class="pd-error">{{ $message }}</p> @enderror
+                            <p class="pd-help">
+                                Where the bytes land. The workspace gets its own prefix under this
+                                root, one nothing else shares, and it cannot be changed afterwards.
+                            </p>
+                        </div>
+
+                        <div class="pd-grid pd-grid-split">
+                            <div class="pd-field">
+                                <label class="pd-label" for="pd-ws-name">Name</label>
+                                <input id="pd-ws-name" type="text" class="pd-input" wire:model="formName" autofocus>
+                                @error('formName') <p class="pd-error">{{ $message }}</p> @enderror
+                                <p class="pd-help">The slug and the prefix are derived from this.</p>
+                            </div>
+
+                            <div class="pd-field">
+                                <label class="pd-label" for="pd-ws-description">Description <span class="pd-faint">(optional)</span></label>
+                                <input id="pd-ws-description" type="text" class="pd-input" wire:model="formDescription">
+                                @error('formDescription') <p class="pd-error">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+
+                        <div class="pd-grid pd-grid-split">
+                            <div class="pd-field">
+                                <label class="pd-label" for="pd-ws-quota">Quota in bytes</label>
+                                <input id="pd-ws-quota" type="number" min="0" class="pd-input" wire:model="formQuota">
+                                @error('formQuota') <p class="pd-error">{{ $message }}</p> @enderror
+                                <p class="pd-help">Empty means unlimited, which stays a decision rather than a default.</p>
+                            </div>
+
+                            <div class="pd-field">
+                                <label class="pd-label" for="pd-ws-mimes">Allowed types <span class="pd-faint">(optional)</span></label>
+                                <input id="pd-ws-mimes" type="text" class="pd-input" wire:model="formMimeTypes"
+                                       placeholder="text/plain, application/pdf">
+                                @error('formMimeTypes') <p class="pd-error">{{ $message }}</p> @enderror
+                                <p class="pd-help">
+                                    Comma-separated, matched on the type detected from the bytes and
+                                    never the extension. Empty allows every type.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="pd-row">
+                            <button type="submit" class="pd-btn pd-btn-primary">Create workspace</button>
+                            <button type="button" class="pd-btn pd-btn-ghost" wire:click="cancelForm">Cancel</button>
+                        </div>
+                    </form>
+                @endif
+            </div>
+        @elseif ($editing !== null)
+            <div class="pd-card-body" style="border-bottom: 1px solid var(--pd-border)">
+                <form wire:submit="save" class="pd-stack">
+                    {{--
+                        Where the bytes are is shown and is not a field. Re-pointing a
+                        root orphans every path already written, and on object storage
+                        the move that would fix that does not exist: no rename, only a
+                        copy of every object and a delete of every original, with no
+                        transaction around the pair.
+                    --}}
+                    <div class="pd-field">
+                        <label class="pd-label">Storage</label>
+                        <div class="pd-locked">
+                            <span class="pd-locked-mark" aria-hidden="true">◆</span>
+                            <span class="pd-mono">{{ $editing->disk }}:{{ $editing->root_path }}</span>
+                        </div>
+                        <p class="pd-help">
+                            Fixed for the life of the workspace. Files already written are named by
+                            this path; moving it would leave them where nothing reads. Somewhere else
+                            means a new workspace.
+                        </p>
+                    </div>
+
+                    <div class="pd-grid pd-grid-split">
+                        <div class="pd-field">
+                            <label class="pd-label" for="pd-ws-edit-name">Name</label>
+                            <input id="pd-ws-edit-name" type="text" class="pd-input" wire:model="formName">
+                            @error('formName') <p class="pd-error">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="pd-field">
+                            <label class="pd-label" for="pd-ws-edit-description">Description</label>
+                            <input id="pd-ws-edit-description" type="text" class="pd-input" wire:model="formDescription">
+                            @error('formDescription') <p class="pd-error">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+
+                    <div class="pd-grid pd-grid-split">
+                        <div class="pd-field">
+                            <label class="pd-label" for="pd-ws-edit-quota">Quota in bytes</label>
+                            <input id="pd-ws-edit-quota" type="number" min="0" class="pd-input" wire:model="formQuota">
+                            @error('formQuota') <p class="pd-error">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="pd-field">
+                            <label class="pd-label" for="pd-ws-edit-mimes">Allowed types</label>
+                            <input id="pd-ws-edit-mimes" type="text" class="pd-input" wire:model="formMimeTypes">
+                            @error('formMimeTypes') <p class="pd-error">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+
+                    <div class="pd-row">
+                        <button type="submit" class="pd-btn pd-btn-primary">Save</button>
+                        <button type="button" class="pd-btn pd-btn-ghost" wire:click="cancelForm">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        @endif
+
         @if ($workspaces->isEmpty())
             <div class="pd-card-body pd-muted">
                 No workspaces. An agent without one can reach no files at all, which is
@@ -63,6 +202,23 @@
                             <td class="pd-actions">
                                 <button type="button" class="pd-btn"
                                         wire:click="select('{{ $item->slug }}')">Browse</button>
+
+                                @if ($canManage)
+                                    <button type="button" class="pd-btn"
+                                            wire:click="startEditing('{{ $item->slug }}')">Edit</button>
+
+                                    {{--
+                                        Removes the row and detaches every agent
+                                        pointing at it. The files stay: deleting
+                                        them is N calls with no transaction, and a
+                                        partial failure leaves a half-emptied
+                                        prefix under a row claiming it is gone.
+                                    --}}
+                                    <button type="button" class="pd-btn pd-btn-danger"
+                                            wire:click="delete('{{ $item->slug }}')"
+                                            wire:confirm="Remove this workspace? Agents using it lose access immediately. The files are left where they are, at {{ $item->disk }}:{{ $item->root_path }}."
+                                    >Remove</button>
+                                @endif
                             </td>
                         </tr>
                     @endforeach
