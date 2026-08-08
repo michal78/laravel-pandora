@@ -101,14 +101,14 @@ Out of scope: per-workspace S3 credentials (ADR-0013 keeps credentials in the ho
 | Context files | `HEAD` for the ETag, cached bytes when unchanged, bounded range read | They are read on every iteration of every run; the naive version is a full network read per file per iteration. |
 | Downloads | Streamed through the app | A presigned URL is a bearer token for one object until it expires — forwardable, proxy-loggable, and invisible to the audit trail once issued. |
 
-## Design decisions this phase must still take
+## Design decisions taken in this phase
 
-| Question | Why it is open |
-|---|---|
-| How a disk and root are chosen in the UI | The deferral exists for this. Candidates: a configured allowlist of `disk:prefix` pairs the UI selects from; a single configured base per disk under which named prefixes are created; creation left in code with the UI offering only browse. |
-| Whether a workspace may be edited after creation | Changing a disk or root re-points every path already written, and on object storage does not move a single byte. Probably a new workspace rather than an edited one. |
-| Whether deletion removes files | Almost certainly not. On object storage it is additionally N delete calls with no transaction, so a partial failure leaves a half-deleted prefix and a row that says it is gone. |
-| What an empty directory means in the UI | Object storage has none. A tree view that invents them will show directories that vanish when their last object is deleted. |
+| Decision | Choice | Rationale |
+|---|---|---|
+| Root selection | Named roots in `pandora.workspaces.roots`; the UI selects a **key** and the path is composed as `<base>/<tenant>/<slug>` | The deferral existed for this. A request's entire vocabulary for saying where a workspace lives is a key an operator declared, so there is no spelling of a root that is not one of them. An empty root list permits nothing — the opposite direction from the MIME allowlist, because this one decides where the boundary *is*. |
+| Editing | Name, description, quota, MIME list and enabled are editable; **`disk` and `root_path` never are** | Re-pointing a root orphans every path already written and, on object storage, moves not one byte. A new workspace is the honest expression of that change. |
+| Deletion | Removes the row and detaches agents; **files are left where they are**, and the page says which disk and prefix still hold them | On object storage a bulk delete is N calls with no transaction. A partial failure leaves a half-emptied prefix under a row claiming it is gone, which is worse than bytes nobody deleted. |
+| Directories | Derived from what the store reports; the UI **invents none** and offers no create-folder | On object storage a prefix exists exactly because objects do, so nothing can vanish when its last object is deleted. On a filesystem an empty directory is a real thing the store reports and an agent can also see, so it is shown — the rule is *never synthesised*, not *never empty*. |
 
 ## Acceptance criteria
 

@@ -71,14 +71,15 @@ return [
     | feature stays present and stays tested -- what a flag withdraws is the way
     | in, not the code -- so turning one on is a decision rather than a port.
     |
-    | 'workspaces' holds back the agent file workspace UI, deferred to Phase 7.
-    | Containment, quotas and MIME detection are finished and covered; nothing
-    | reaches them while this is false.
+    | 'workspaces' holds back the agent file workspace UI. Released in Phase 7
+    | and on by default; set it false to withdraw the surface again, which
+    | withdraws it from everybody -- an operator holding every ability included,
+    | because this is not a question about who is asking.
     |
     */
 
     'features' => [
-        'workspaces' => env('PANDORA_FEATURE_WORKSPACES', false),
+        'workspaces' => env('PANDORA_FEATURE_WORKSPACES', true),
     ],
 
     /*
@@ -659,6 +660,44 @@ return [
         'observations' => [
             'expire_after_days' => 30,
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Workspaces
+    |--------------------------------------------------------------------------
+    |
+    | The roots a workspace may be created under, and nothing else is one. Each
+    | entry names a disk from your `filesystems.php` and a base prefix inside
+    | it; the control center offers these by key and derives the rest.
+    |
+    | An operator declares WHERE workspaces may live. A workspace created in
+    | the UI supplies only a name, and its root is composed as
+    | `<base>/<tenant>/<slug>` -- so the form has no path field, because a form
+    | with a path field is a form that accepts `/`.
+    |
+    | An empty list means no workspace can be created through the UI at all.
+    | That is the correct failure direction for an allowlist: unconfigured
+    | means nothing is permitted, not everything.
+    |
+    | Credentials are never here. A disk names them and `filesystems.php` holds
+    | them (ADR-0013); Pandora stores no endpoint, key or secret of its own.
+    |
+    */
+
+    'workspaces' => [
+        'roots' => [
+            'local' => [
+                'label' => 'Local storage',
+                'disk' => env('PANDORA_WORKSPACE_DISK', 'local'),
+                'base_prefix' => env('PANDORA_WORKSPACE_PREFIX', 'pandora-workspaces'),
+            ],
+        ],
+
+        // The default quota offered by the creation form, in bytes. Null
+        // offers unlimited, which stays a deliberate choice rather than what
+        // happens when nobody types a number.
+        'default_quota_bytes' => 104857600, // 100 MB
     ],
 
     /*

@@ -70,6 +70,22 @@ final class WorkspaceDenied extends PandoraException
         );
     }
 
+    /**
+     * A workspace was asked for under a root no operator declared.
+     *
+     * The key is named back because a key is not a path: it is the vocabulary
+     * the request was allowed to use, and an operator reading this needs to
+     * know which word was not in it. `rootMissing` above is a different fact
+     * -- a declared root that has gone away.
+     */
+    public static function rootNotPermitted(string $key): self
+    {
+        return new self(
+            "No workspace root is configured under the key [{$key}].",
+            'root_not_permitted',
+        );
+    }
+
     public static function noWorkspace(): self
     {
         return new self(
@@ -84,6 +100,7 @@ final class WorkspaceDenied extends PandoraException
             'quota_exceeded' => 'The workspace is full.',
             'disk_unavailable' => 'The workspace storage cannot be reached right now. Try again, or work without files.',
             'no_workspace' => 'This agent has no workspace.',
+            'root_not_permitted' => 'That storage root is not one an operator has made available.',
             'mime_not_allowed' => 'That kind of file is not allowed in this workspace.',
             default => 'That path is not available in this workspace.',
         };
