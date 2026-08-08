@@ -5,6 +5,62 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-08 — Delegation driven against a live model, and every guard was right while the work failed
+
+Phase 6A shipped a commit earlier with 13 criteria covered and a green suite. Driving it against a
+real model found four defects, none of which the suite could have caught, and the shape of all four
+is the same: nothing threw, nothing logged at `error`, and the run produced the wrong outcome
+anyway.
+
+```
+vendor/bin/pest        -> Tests: 1,265 passed, 8 skipped
+vendor/bin/phpstan     -> [OK] No errors  (level 8)
+vendor/bin/pint --test -> passed
+```
+
+Host: `laravel-test` on Sail (PHP 8.5, MySQL, Redis), real `gpt-4o-mini`, one queue worker, four
+agents — `coordinator` may delegate to `researcher`.
+
+**The one that matters: a delegated child could not see its own tool loop.** `RecentMessagesProvider`
+was the only source of prior-turn history and it returns nothing without a conversation. A child
+run has none, deliberately. So the child rebuilt its context from scratch every iteration: it
+called `lookup_order`, could not see the result, called it again, was refused as a duplicate, could
+not see that either, and repeated until its iteration budget ended the run. The parent was then
+told the shared budget was exhausted — true, and completely misleading about why. Every autonomous
+trigger creates conversation-less runs too, so schedule, webhook, event and console runs had the
+same amnesia the moment they made a second tool call.
+
+`RunToolLoopProvider` reconstructs the loop from the tool execution rows for exactly those runs. In
+the live re-run the child repeated one call, was refused, *read the refusal*, and answered from the
+result it already had.
+
+**Refusals recorded nothing an operator could read.** Three paths wrote a failure without a reason:
+a denial at execution time kept the decision the row was created with — so a denied call read
+`decided_by: tool` with no reason, the shape of an allowed one; a tool that returns a failure
+rather than throwing never wrote `error_message`; and a child ending badly closed its parent's call
+with an empty error. Delegation refusals are bounded and correct and were invisible.
+
+**Delegation was invisible in the control center.** A child run named no parent, no asking agent and
+no intersection. The run detail now carries both directions, and an empty intersection says so in
+words — "allowed nothing" and "not delegated" are different facts.
+
+**Two stale-config landmines, both real.** A published `config/pandora.php` inside the testbench
+skeleton was shadowing the package's own, so the *suite* had been running against an Aug 7 snapshot
+with no `delegation` block at all — passing only because the code defaults happened to match. It is
+deleted. `laravel-test` had the same gap, which is why the first live re-run still failed. The
+container now appends `RunToolLoopProvider` when a published list omits it, because that particular
+omission does not read as a missing feature; it reads as a run repeating one call until its budget
+dies.
+
+**And the hour lost twice:** `queue:work` is long-lived and keeps the classes it booted with. A
+symlinked path repository updates the files instantly and the worker serves the old code, so a
+correct fix looks like it did nothing. Both landmines are in `phase-6-walkthrough.md` under *Before
+you start*, which is the only reason to write these documents.
+
+Phase 6 criteria 1–13 ✅. 14–30 (MCP) unstarted: `src/Mcp` does not exist.
+
+---
+
 ## 2026-08-07 (later the same day) — Phases 3.5 and 5 driven, and the Memory page was reading everyone's mail
 
 The other two walkthroughs, in the same sitting. Phase 3.5 and Phase 5 are now ✅; every phase up to
