@@ -181,3 +181,37 @@ genuine worker outage. Both are Phase 8 hardening items.
 because `TestCase` hardcoded the connection; it now honours `DB_CONNECTION` and the full suite passes
 on MySQL 8.4, MariaDB 11 and PostgreSQL 17. Making it real immediately found three defects — see the
 Phase 4 entry in `progress.md`.
+
+## `pandora.agents.discovery` is configuration wired to nothing (2026-08-08)
+
+Found while driving the Phase 7 workspace tools in `laravel-test`. The published config carries
+
+```php
+'agents' => [
+    'discovery' => [
+        'enabled' => env('PANDORA_AGENT_DISCOVERY', false),
+        'path' => app_path('Agents'),
+    ],
+],
+```
+
+and nothing reads it. `PandoraServiceProvider::registerConfiguredAgents()` reads
+`pandora.agents.definitions` and returns early when that list is empty; there is no equivalent of
+`ToolDiscovery::in($path)` for agents. Tools have discovery, agents have the config block for it.
+
+The failure is quiet in the way that costs an afternoon. An operator drops a class in `app/Agents`,
+sets `PANDORA_AGENT_DISCOVERY=true`, and gets nothing — no agent, no error, no log line. If a row
+for that slug already exists from an earlier registration, it is worse: the agent is there, edits to
+the definition class simply never take effect, and `syncAll(true)` reports success having iterated
+an empty list. That is exactly what happened here, and it read as "my tool grant did not save".
+
+Two honest fixes, and this is a decision rather than an obvious bug fix:
+
+- **Implement it**, mirroring `ToolDiscovery`. Discovering agents is a bigger act than discovering
+  tools, though: a tool still has to be granted before anything can call it, while a discovered
+  agent is a thing that can be run.
+- **Delete the config block.** An explicit `definitions` list is arguably the right and only way in,
+  in which case the block is a promise the code never made.
+
+Not Phase 7's, and not scheduled. Recorded here rather than fixed, because either answer changes
+what an operator's `app/Agents` directory means.
