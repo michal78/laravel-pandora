@@ -57,6 +57,76 @@
             </div>
         </x-pandora::card>
 
+        {{--
+            Delegation, in both directions, and only when there is any.
+
+            The effective tools are shown because they are the answer to the
+            question an incident asks: not "what may this agent do" but "what
+            was this run allowed to do, and why". The list is frozen at
+            delegation time, so it is the truth about this run even after
+            somebody widens the agent.
+        --}}
+        @if ($parentRun || $childRuns->isNotEmpty())
+            <x-pandora::card title="Delegation">
+                @if ($parentRun)
+                    <div class="pd-grid pd-grid-stats">
+                        <div>
+                            <div class="pd-stat-label">Delegated by</div>
+                            <div>{{ $parentRun->agent?->name ?? 'an agent' }}</div>
+                        </div>
+                        <div>
+                            <div class="pd-stat-label">Parent run</div>
+                            <div>
+                                <a href="{{ route('pandora.runs.show', $parentRun->getKey()) }}" class="pd-mono pd-link">
+                                    {{ \Illuminate\Support\Str::limit($parentRun->getKey(), 12, '…') }}
+                                </a>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="pd-stat-label">Depth</div>
+                            <div class="pd-mono">{{ $run->delegation_depth }}</div>
+                        </div>
+                    </div>
+
+                    @if ($run->effective_tools !== null)
+                        <div style="margin-top: var(--pd-space-4)">
+                            <div class="pd-stat-label">Allowed to call</div>
+                            @if ($run->effective_tools === [])
+                                <div class="pd-faint">Nothing. The parent held no tool this agent also holds.</div>
+                            @else
+                                <div class="pd-mono">{{ implode(' · ', $run->effective_tools) }}</div>
+                            @endif
+                        </div>
+                    @endif
+                @endif
+
+                @if ($childRuns->isNotEmpty())
+                    <div @if ($parentRun) style="margin-top: var(--pd-space-4)" @endif>
+                        <div class="pd-stat-label">Delegated to</div>
+                        <table class="pd-table">
+                            <thead>
+                                <tr><th>Run</th><th>Agent</th><th>State</th><th>Started</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($childRuns as $child)
+                                    <tr wire:key="child-{{ $child->getKey() }}">
+                                        <td>
+                                            <a href="{{ route('pandora.runs.show', $child->getKey()) }}" class="pd-mono pd-link">
+                                                {{ \Illuminate\Support\Str::limit($child->getKey(), 12, '…') }}
+                                            </a>
+                                        </td>
+                                        <td>{{ $child->agent?->name ?? '—' }}</td>
+                                        <td><x-pandora::status :state="$child->state" /></td>
+                                        <td class="pd-faint">{{ $child->created_at?->diffForHumans() }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </x-pandora::card>
+        @endif
+
         <x-pandora::card title="Trace">
             <x-slot:actions>
                 <span class="pd-faint">{{ $steps->count() }} steps</span>

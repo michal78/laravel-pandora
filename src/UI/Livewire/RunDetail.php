@@ -61,6 +61,11 @@ final class RunDetail extends Component
         return view('pandora::livewire.run-detail', [
             'run' => $run,
             'steps' => $run?->steps()->get() ?? collect(),
+            // Both directions. A child run reached from a list is otherwise a
+            // run with no visible reason to exist, and a parent that spent its
+            // budget on work it delegated shows the spend and not the work.
+            'parentRun' => $run?->parent()->with('agent')->first(),
+            'childRuns' => $run?->children()->with('agent')->orderBy('created_at')->get() ?? collect(),
             'canViewTrace' => PandoraGate::allows('runs.trace.view'),
             'pollIntervalMs' => (int) config('pandora.realtime.poll_interval_ms', 2500),
         ])->layout('pandora::layouts.app', ['title' => 'Run detail']);
