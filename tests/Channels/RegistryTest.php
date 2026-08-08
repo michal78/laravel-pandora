@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pandora\Channels\ChannelAccount;
 use Pandora\Channels\ChannelRegistry;
 use Pandora\Channels\Data\InboundMessage;
 use Pandora\Contracts\Channel;
@@ -30,11 +31,11 @@ it('registers an adapter and connects nothing', function (): void {
     expect($registry->has('fake'))->toBeTrue()
         ->and($registry->keys())->toContain('fake')
         // No account, so nothing can arrive and nothing can be sent.
-        ->and(Pandora\Channels\ChannelAccount::query()->count())->toBe(0);
+        ->and(ChannelAccount::query()->count())->toBe(0);
 });
 
 it('creates a new account disabled and unbound', function (): void {
-    $account = Pandora\Channels\ChannelAccount::query()->create([
+    $account = ChannelAccount::query()->create([
         'channel' => 'fake',
         'name' => 'Fresh',
         'slug' => 'fresh',

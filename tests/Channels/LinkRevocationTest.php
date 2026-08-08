@@ -7,6 +7,7 @@ use Pandora\Channels\ChannelInbox;
 use Pandora\Channels\Data\InboundOutcome;
 use Pandora\Channels\LinkCodes;
 use Pandora\Conversations\Session;
+use Pandora\Exceptions\ChannelLinkDenied;
 use Pandora\Messages\Message;
 use Pandora\Runs\Run;
 use Pandora\Tests\Support\MakesChannels;
@@ -130,5 +131,5 @@ it('kills any live code when a link is broken', function (): void {
     $this->codes->unlink($identity);
 
     expect(fn () => $this->codes->redeem($code, $user))
-        ->toThrow(Pandora\Exceptions\ChannelLinkDenied::class);
+        ->toThrow(ChannelLinkDenied::class);
 });

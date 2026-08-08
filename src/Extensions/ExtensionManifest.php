@@ -95,7 +95,6 @@ final readonly class ExtensionManifest
     }
 
     /**
-     * @param mixed $value
      * @return array<string, list<string>>
      */
     private static function provides(mixed $value): array

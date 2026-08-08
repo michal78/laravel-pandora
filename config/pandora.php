@@ -869,6 +869,41 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Extensions
+    |--------------------------------------------------------------------------
+    |
+    | Pandora INSPECTS what Composer installed. It never acquires anything:
+    | there is no marketplace, no remote install and no update check, and those
+    | are excluded rather than deferred (ADR-0016). A UI that can install code
+    | is a UI whose authorization bug is arbitrary execution.
+    |
+    | A package declares itself an extension with an `extra.pandora` block in
+    | its own `composer.json`:
+    |
+    |   "extra": {
+    |       "pandora": {
+    |           "name": "Slack",
+    |           "description": "Slack as a Pandora channel.",
+    |           "provides": { "channels": ["slack"] },
+    |           "requires": { "pandora": "^1.0" },
+    |           "documentation": "https://example.com/docs"
+    |       }
+    |   }
+    |
+    | It is read from Composer's own `installed.json`, so nothing is autoloaded
+    | and no extension code runs to render the page -- which is what lets the
+    | control center describe a package that would fatal if it were booted.
+    |
+    */
+
+    'extensions' => [
+        // Overridable so a test can point at a fixture. In a real installation
+        // the default is the only correct answer.
+        'installed_json' => env('PANDORA_INSTALLED_JSON'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Context
     |--------------------------------------------------------------------------
     |

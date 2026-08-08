@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Schema;
 use Pandora\Channels\ChannelAccount;
 use Pandora\Channels\ChannelInbox;
@@ -75,5 +76,5 @@ it('cannot register the same workspace twice on one channel', function (): void 
     // the ambiguity would be resolved by whichever row a query happened to
     // return first.
     expect(fn () => $this->makeChannelAccount(['external_id' => 'W-1']))
-        ->toThrow(Illuminate\Database\QueryException::class);
+        ->toThrow(QueryException::class);
 });

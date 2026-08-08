@@ -42,6 +42,7 @@ use Pandora\Console\Commands\AgentRunCommand;
 use Pandora\Console\Commands\AutomationListCommand;
 use Pandora\Console\Commands\AutomationRunCommand;
 use Pandora\Console\Commands\AutomationTickCommand;
+use Pandora\Console\Commands\ExtensionListCommand;
 use Pandora\Console\Commands\FlushCommand;
 use Pandora\Console\Commands\InstallCommand;
 use Pandora\Console\Commands\McpApproveCommand;
@@ -73,6 +74,8 @@ use Pandora\Core\Actor\GuardActorResolver;
 use Pandora\Core\Tenancy\NullTenantResolver;
 use Pandora\Core\Tenancy\TenantManager;
 use Pandora\Delegation\DelegationCompleter;
+use Pandora\Extensions\ExtensionDiscovery;
+use Pandora\Extensions\ExtensionInspector;
 use Pandora\Mcp\Server\McpServerController;
 use Pandora\Memory\Embeddings\HashEmbeddingProvider;
 use Pandora\Memory\Embeddings\MemoryEmbedder;
@@ -150,6 +153,7 @@ final class PandoraServiceProvider extends ServiceProvider
         $this->registerAutomation();
         $this->registerMemory();
         $this->registerChannels();
+        $this->registerExtensions();
         $this->registerRuntime();
 
         $this->app->singleton(Pandora::class, static fn (Container $app): Pandora => new Pandora($app));
@@ -698,6 +702,7 @@ final class PandoraServiceProvider extends ServiceProvider
             McpListCommand::class,
             McpDiscoverCommand::class,
             McpApproveCommand::class,
+            ExtensionListCommand::class,
             ModelSyncCommand::class,
             ProviderTestCommand::class,
             FlushCommand::class,
@@ -817,6 +822,26 @@ final class PandoraServiceProvider extends ServiceProvider
 
         $this->app->singleton(ChannelReplier::class, static fn (Container $app): ChannelReplier => new ChannelReplier(
             $app->make(ChannelDispatcher::class),
+        ));
+    }
+
+    private function registerExtensions(): void
+    {
+        // The path is a bound value rather than a `base_path()` call inside the
+        // class, so a test can point it at a fixture -- including one whose
+        // classes do not exist, which is the case that proves discovery boots
+        // nothing.
+        $this->app->singleton(ExtensionDiscovery::class, static function (Container $app): ExtensionDiscovery {
+            /** @var string|null $path */
+            $path = $app->make(Config::class)->get('pandora.extensions.installed_json');
+
+            return new ExtensionDiscovery($path ?? base_path('vendor/composer/installed.json'));
+        });
+
+        $this->app->singleton(ExtensionInspector::class, static fn (Container $app): ExtensionInspector => new ExtensionInspector(
+            $app->make(ExtensionDiscovery::class),
+            $app->make(ChannelRegistry::class),
+            $app->make(ToolRegistry::class),
         ));
     }
 
