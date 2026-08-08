@@ -5,6 +5,31 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## Phase 6 — Delegation (unreleased)
+
+### Fixed
+
+- **A run with no conversation could not see its own tool loop**, so it repeated
+  one call until its iteration budget ended it. Every delegated child is
+  conversation-less by design, as is every autonomous trigger — schedule,
+  webhook, event, console. `RunToolLoopProvider` reconstructs the loop from the
+  tool execution rows for exactly those runs; a chat run is unaffected.
+- **A refused call said nothing an operator could read.** A late denial kept the
+  decision the row was created with, a tool that returns a failure rather than
+  throwing wrote no `error_message`, and a child ending badly closed its
+  parent's call with an empty error. All three now record the reason that
+  applied.
+- A model told `No result.` about a call refused before it ran learns nothing
+  and calls again: `ToolExecution::modelContent()` now falls back to
+  `decision_reason`.
+
+### Upgrading
+
+- **If you published `config/pandora.php` before this release**, your provider
+  list predates `RunToolLoopProvider`. The package appends it when your list
+  omits it, so nothing breaks and no action is required — but adding it
+  explicitly keeps the file honest about what runs.
+
 ## Phase 5 — Memory and context (unreleased)
 
 An agent that remembers is an agent that will repeat something, so the security

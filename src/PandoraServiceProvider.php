@@ -46,6 +46,7 @@ use Pandora\Console\Commands\ProviderTestCommand;
 use Pandora\Console\Commands\StatusCommand;
 use Pandora\Console\Commands\ToolListCommand;
 use Pandora\Context\ContextBuilder;
+use Pandora\Context\Providers\RunToolLoopProvider;
 use Pandora\Contracts\ActorResolver;
 use Pandora\Contracts\AgentDefinition;
 use Pandora\Contracts\ContextProvider;
@@ -534,6 +535,21 @@ final class PandoraServiceProvider extends ServiceProvider
             $config = $app->make(Config::class);
             /** @var list<class-string<ContextProvider>> $providers */
             $providers = $config->get('pandora.context.providers', []);
+
+            // A run's memory of its own tool loop is not a preference, so this
+            // one provider is appended when the configured list omits it. The
+            // list is otherwise honoured exactly as written, order included.
+            //
+            // The case this exists for is an upgrade: a host that published
+            // `config/pandora.php` before this provider existed keeps a list
+            // that predates it, and the symptom is not an error but a run
+            // repeating one tool call until its budget dies. Nothing in a log
+            // says why. An operator who genuinely wants it gone can remove it
+            // from the container binding; leaving it out of a config file is
+            // not a way to ask for that.
+            if (! in_array(RunToolLoopProvider::class, $providers, true)) {
+                $providers[] = RunToolLoopProvider::class;
+            }
 
             return new ContextBuilder($app, $providers);
         });
