@@ -325,7 +325,8 @@ other detection (ADR-0014).
 **Acceptance:** delegation cannot escalate privilege — the child's abilities are the intersection.
 Depth limits hold. A changed remote schema hash revokes approval. Nothing is exposed by the MCP server
 without explicit configuration. See `docs/development/phase-6-acceptance.md` — **all 30 criteria
-verified**; what remains is a human driving `phase-6-walkthrough.md` against a real MCP server.
+verified**; what remains is a human driving `phase-6-walkthrough.md` against a real MCP server,
+**deliberately deferred to after Phase 8** and paid before Phase 9.
 
 ---
 
@@ -362,18 +363,34 @@ takes a workspace argument: the workspace comes from the agent, which holds at m
 sentence in a document it is reading has nowhere to select from.
 
 See `docs/development/phase-7-acceptance.md` — **24 of 25 criteria accepted**; what remains is a
-human driving `phase-7-walkthrough.md` against a real bucket.
+human driving `phase-7-walkthrough.md` against a real bucket, **deliberately deferred to after
+Phase 8** and paid before Phase 9.
 
 ---
 
-## Phase 8 — Channels and extension ecosystem ⬜
+## Phase 8 — Channels and extension ecosystem 🔨
 
 `Channel` contract · identity linking (channel identity is never application identity) · Slack as the
 reference extension package · extension manifest format · Composer-installed extension discovery and
 inspection · Channels UI · the agent's **Channels** tab · extension authoring documentation.
 
+Every phase so far served someone the host application had already authenticated. A channel supplies
+a stranger and a sentence: Slack can prove that user typed those words, and cannot prove which host
+user that is — which is the only thing every authorization decision in Pandora depends on. So an
+unlinked identity gets no run, no session and no guest seat, and linking needs evidence from both
+sides: a code issued *into the channel*, redeemed *inside an authenticated host session* (ADR-0015).
+
+Extensions arrive through `composer require` and nothing else. There is no marketplace, no remote
+install and no update mechanism — excluded rather than deferred, because a UI that can install code
+is a UI whose authorization bug is arbitrary execution. The manifest is an `extra.pandora` block read
+from `vendor/composer/installed.json`, so the control center can describe an extension it has never
+booted, including one that would fatal if it were (ADR-0016).
+
 **Acceptance:** an unlinked channel identity cannot act as a user. An extension package registers
-providers, tools and channels through the documented contracts alone, with no core changes.
+providers, tools and channels through the documented contracts alone, with no core changes — proved
+by `laravel-pandora-slack` living in its own repository, where a missing seam has to be added to core
+in the open rather than filled in the same commit. See `docs/development/phase-8-acceptance.md` —
+**33 criteria**.
 
 ---
 

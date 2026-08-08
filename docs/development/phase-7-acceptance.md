@@ -1,6 +1,13 @@
 # Phase 7 — Acceptance Test Plan
 
-> **Status: 24 of 25 criteria accepted. What remains is a human driving it.**
+> **Status: 24 of 25 criteria accepted. What remains is a human driving it — deliberately deferred
+> to after Phase 8 (decided 2026-08-08).**
+>
+> Criterion 21 does not become smaller by being postponed, and nothing else in this document is
+> re-graded on the strength of the deferral. It is written down because Phase 6 is carrying an
+> undriven walkthrough too, and two open phases make it materially harder to attribute a defect to
+> the change that caused it. The debt is knowingly taken; it is paid before Phase 9, which is the
+> phase that claims the threat model is covered.
 >
 > This phase was originally six criteria: turn on a feature that was already built. ADR-0013 moved
 > workspaces and context files onto S3-compatible object storage, which reopens the one thing the

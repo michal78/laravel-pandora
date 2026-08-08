@@ -1,6 +1,15 @@
 # Phase 6 — Acceptance Test Plan
 
-> **Status: all 30 criteria verified. The walkthrough has not been driven.**
+> **Status: all 30 criteria verified. The walkthrough has not been driven, and is deliberately
+> deferred to after Phase 8 (decided 2026-08-08).**
+>
+> The deferral is a scheduling decision, not a re-grading of the evidence: nothing below moves from
+> unticked to ticked because of it, and the phase is not "complete" while criterion 31 is open. It
+> is recorded here rather than left implied because two phases now carry an undriven walkthrough at
+> once, and an undriven walkthrough that nobody wrote down is indistinguishable from one nobody
+> remembered. When it is driven, it is driven against a real MCP server — the changed-description
+> scenario below is the whole reason the box exists, and `FakeMcpServer` structurally cannot stand
+> in for it, because what is being checked is whether the refusal makes sense to a person.
 >
 > Nothing below is ticked on the strength of code existing; each criterion is ticked only when the
 > named automated test asserts it and that test passes.

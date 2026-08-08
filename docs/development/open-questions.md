@@ -88,13 +88,22 @@ contracts; pgvector, Qdrant and others are extensions. Recorded in the parity ma
 
 ---
 
-## Q8 — Which messaging channel ships as the reference extension?
+## Q8 — Which messaging channel ships as the reference extension? ✅ **settled**
 
-**Raised:** 2026-08-05 · **Deferred to:** Phase 7
+**Raised:** 2026-08-05 · **Settled:** 2026-08-08, at the start of Phase 8
 
-**Leaning: Slack.** Best-documented API, strongest fit with business applications (Pandora's target),
-native interactive components that map cleanly onto approval cards, and an existing Laravel
+**Slack**, for the reasons the leaning already gave: best-documented API, strongest fit with business
+applications, interactive components that map cleanly onto approval cards, and an existing Laravel
 notification channel to build on.
+
+The part that was not decided until now is *where it lives*: its own Composer package in its own
+repository (`/home/michal/development/laravel-pandora-slack`), consumed by `laravel-test` through a
+path repository, the way `wisp` already is. This is the only layout under which Phase 8's second
+acceptance criterion can actually be proved. "An extension registers providers, tools and channels
+through the documented contracts alone, with no core changes" is a claim about a boundary, and a
+boundary you can reach across in the same commit is not one — a missing seam gets filled in `src/`
+in the same afternoon it is discovered, the extension keeps working, and nobody finds out until a
+second author tries the same thing without commit rights to core.
 
 ---
 
@@ -215,3 +224,29 @@ Two honest fixes, and this is a decision rather than an obvious bug fix:
 
 Not Phase 7's, and not scheduled. Recorded here rather than fixed, because either answer changes
 what an operator's `app/Agents` directory means.
+
+---
+
+## Q10 — Two undriven walkthroughs carried into Phase 8 ⏸ **deferred, deliberately**
+
+**Raised:** 2026-08-08 · **Deferred to:** after Phase 8, and before Phase 9
+
+Phase 6's MCP walkthrough and Phase 7's workspace walkthrough are both unticked, and Phase 8 starts
+anyway. This is a decision, so it is written down as one.
+
+What is being given up is not small, and the record says so plainly. Every walkthrough driven so far
+has found something the suite could not: Phase 1 found three, Phase 4 found three, Phase 5 found four
+— including a Memory page that served every user's user-scoped memories to any authenticated
+account, on an installation whose *retrieval* scoping was proven by twenty-eight passing criteria.
+The consistent shape is that the guard is correct and the surface around it is not, which is exactly
+the class of defect a test suite is worst at seeing and a person clicking is best at.
+
+Two specific things stay unproved until it happens. For Phase 6, a real MCP server whose tool
+description changes after approval — `FakeMcpServer` can produce the changed hash, but the thing
+being judged is whether the resulting refusal tells an operator what to do, and no assertion answers
+that. For Phase 7, a real bucket driven by hand rather than by MinIO in CI.
+
+The cost accepted in exchange: with three phases open at once, a defect found in September is harder
+to attribute to the change that caused it. Mitigation is only that both are paid before Phase 9,
+which is the phase that claims T1–T15 are covered — and that claim cannot be made over an undriven
+surface.
