@@ -38,6 +38,9 @@ use Pandora\Console\Commands\AutomationRunCommand;
 use Pandora\Console\Commands\AutomationTickCommand;
 use Pandora\Console\Commands\FlushCommand;
 use Pandora\Console\Commands\InstallCommand;
+use Pandora\Console\Commands\McpApproveCommand;
+use Pandora\Console\Commands\McpDiscoverCommand;
+use Pandora\Console\Commands\McpListCommand;
 use Pandora\Console\Commands\MemoryExportCommand;
 use Pandora\Console\Commands\MemoryForgetCommand;
 use Pandora\Console\Commands\MemorySweepCommand;
@@ -657,6 +660,9 @@ final class PandoraServiceProvider extends ServiceProvider
             AutomationRunCommand::class,
             AutomationTickCommand::class,
             ToolListCommand::class,
+            McpListCommand::class,
+            McpDiscoverCommand::class,
+            McpApproveCommand::class,
             ModelSyncCommand::class,
             ProviderTestCommand::class,
             FlushCommand::class,

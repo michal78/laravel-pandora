@@ -251,10 +251,19 @@ it('keeps every tool behind the Tool base class', function (): void {
 it('lets nothing but the gatekeeper decide a tool call', function (): void {
     // Every layer runs, in order, in one place. A second call site is a second
     // chance to forget one.
+    //
+    // The MCP server is the one deliberate exception and it is named here
+    // rather than excluded by a pattern, so adding a third requires editing
+    // this line. It cannot use the gatekeeper: layers 2 and 3 ask what an
+    // AGENT and a TENANT allow, and a protocol call has no agent. The exposure
+    // allowlist plays that part, and the ability check it does perform is
+    // asserted directly by McpServer/AuthorizationTest -- the invariant's
+    // PURPOSE is kept even though its letter cannot be.
     $offenders = [];
 
     foreach (pandoraSourceClasses() as $class => $path) {
-        if ($class === ToolGatekeeper::class) {
+        if ($class === ToolGatekeeper::class
+            || $class === 'Pandora\Mcp\Server\McpServerController') {
             continue;
         }
 
@@ -275,10 +284,20 @@ it('executes a tool from exactly one place', function (): void {
     // handle() is reached through ExecuteToolCall and nowhere else, which is
     // what makes idempotency and re-authorization unavoidable rather than
     // conventional.
+    //
+    // Two places now. The MCP server executes without a run, because there is
+    // no run: nobody started one, nothing is being iterated, and no budget
+    // governs a protocol call. It therefore gets none of what a run buys — no
+    // execution row, no retry, no trace beyond its audit entry. That is a real
+    // gap, it is written down in docs/guides/mcp.md rather than hidden behind
+    // a green test, and the alternative — minting a Run per protocol call — is
+    // a decision for its own phase.
     $offenders = [];
 
     foreach (pandoraSourceClasses() as $class => $path) {
-        if ($class === ExecuteToolCall::class || str_starts_with($class, 'Pandora\Tools\\')) {
+        if ($class === ExecuteToolCall::class
+            || $class === 'Pandora\Mcp\Server\McpServerController'
+            || str_starts_with($class, 'Pandora\Tools\\')) {
             continue;
         }
 
