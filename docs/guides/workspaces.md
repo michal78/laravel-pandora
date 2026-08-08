@@ -1,11 +1,8 @@
 # Workspaces
 
-> **Coming in Phase 7.** This is built and covered by tests, and it ships
-> disabled: `pandora.features.workspaces` is `false`, the Workspaces page says
-> the feature is coming, and no agent reaches a file through a workspace.
-> Set `PANDORA_FEATURE_WORKSPACES=true` to use it before then, understanding
-> that creating a workspace is a code-level act and stays one until Phase 7
-> settles how a root may be chosen from the UI.
+> **Released in Phase 7.** `pandora.features.workspaces` now defaults to `true`.
+> Set it `false` to withdraw the surface again — from everybody, including an
+> operator holding every ability, because a flag is not a permission.
 
 A workspace is a bounded piece of filesystem an agent may use. An agent with no
 workspace can reach no files at all, and that is the default — it is the right
@@ -84,6 +81,57 @@ banned everything.
 Wildcards are supported: `image/*` matches `image/png` but not `imagex/png`.
 
 ## Setup
+
+### Declaring where workspaces may live
+
+Before anything can be created in the control center, an operator says where.
+`pandora.workspaces.roots` is that declaration: a disk from your
+`filesystems.php` and a base prefix inside it, named by a key.
+
+```php
+'workspaces' => [
+    'roots' => [
+        'local'  => ['label' => 'Local storage',  'disk' => 'local',
+                     'base_prefix' => 'pandora-workspaces'],
+        'bucket' => ['label' => 'Object storage', 'disk' => 's3',
+                     'base_prefix' => 'workspaces'],
+    ],
+
+    'default_quota_bytes' => 104857600,
+],
+```
+
+The **New workspace** form offers these by key and asks for a name. It has no
+path field, and that is the whole design: the path is composed as
+`<base>/<tenant>/<slug>`, so a request's entire vocabulary for saying where a
+workspace lives is a key an operator wrote down. A form with a path field is a
+form that accepts `/`.
+
+An empty root list permits nothing rather than everything. That is the opposite
+direction from the MIME allowlist below — a MIME list narrows what may enter an
+already-bounded workspace, while a root list decides where the boundary *is*.
+
+For a local root the directory is created; `realpath()` of a directory nobody
+made is `false`, and every containment check starts there. For an object root
+there is nothing to create, because a prefix with no objects under it is already
+as real as a prefix gets.
+
+**A workspace's `disk` and `root_path` cannot be changed afterwards.** Name,
+description, quota and MIME list can. Re-pointing a root leaves every file
+already written somewhere nothing reads, and on object storage the move that
+would fix it does not exist: no rename, only a copy of every object and a delete
+of every original with no transaction around the pair. Somewhere else is a new
+workspace.
+
+**Removing a workspace does not remove its files.** The row goes, every agent
+pointing at it is detached, and the bytes stay where they are — the page names
+the disk and prefix that still hold them, and the audit entry records
+`files_removed: false`. Deleting them would be N calls with no transaction, and
+a partial failure leaves a half-emptied prefix under a row claiming it is gone.
+
+### In code
+
+Creation in code still works and is unchanged:
 
 ```php
 use Pandora\Workspaces\Workspace;
@@ -184,8 +232,28 @@ to exactly the same containment rules as an agent. A page that could show a file
 an agent cannot read would be a way to confirm what lives outside the root, and
 the whole point of the root is that nobody finds out.
 
+## Downloads
+
+A file is downloaded through the application, at
+`/pandora/workspaces/{workspace}/download?path=…`, and it is streamed rather
+than read into memory — a workspace is allowed to hold a file larger than the
+worker's memory limit.
+
+**No presigned URL is ever issued.** A signed object URL is a bearer token for
+one object until it expires: forwardable, logged by every proxy it crosses, and
+invisible to the audit trail the moment it is issued. What such a trail can
+record is that somebody asked for a link, not that the file left, who took it,
+or how many times. Streaming costs bandwidth and buys the only version of "who
+exported this" that stays true.
+
+The response is always `application/octet-stream` with `nosniff` and a sanitised
+filename. The store's `Content-Type` and the file's extension are both chosen by
+whoever wrote the file, and in a workspace that whoever is a model.
+
 ## Audit actions
 
+`workspace.created` · `workspace.updated` · `workspace.deleted` (`warning`) ·
+`workspace.file_downloaded` ·
 `workspace.file_written` · `workspace.file_deleted` ·
 `workspace.access_denied` · `workspace.quota_exceeded` (`warning`) ·
 `workspace.containment_violation` (**`critical`**)

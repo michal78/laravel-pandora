@@ -5,6 +5,65 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-08 (later still) — The surface Phase 5 refused to build
+
+Phase 5 finished the workspace engine and declined to release it over one question: a workspace is
+somewhere an agent may read and write, and every guarantee about it reduces to *who chose the root?*
+The obvious form has a path field, and a form with a path field is a form that accepts `/`. Four
+decisions were left open at the bottom of the acceptance document; all four are settled here, and
+the surface is built on top of them.
+
+```
+vendor/bin/pest (with MinIO)  -> Tests: 1,440 passed, 8 skipped
+vendor/bin/pest (without)     -> 72 of those skip instead
+vendor/bin/phpstan            -> [OK] No errors  (level 8)
+vendor/bin/pint --test        -> passed
+```
+
+**A request names a key, never a path.** `pandora.workspaces.roots` declares a small set of
+disk-and-base-prefix pairs; `WorkspaceRoots` composes `<base>/<tenant>/<slug>` from one of them and
+refuses everything else. So the criterion worth asserting is not "the path field rejects traversal"
+— it is that there is no property on the component for a path to arrive in, which is what a forged
+Livewire request actually goes looking for. An empty root list permits nothing, which is the
+opposite direction from the MIME allowlist sitting beside it: that one narrows an already-bounded
+workspace, this one decides where the boundary is.
+
+A tenant id that is not path-safe is hashed rather than sanitised. Replacing the awkward character
+maps `acme/eu` and `acme-eu` onto one prefix, and two tenants sharing a workspace is precisely what
+the tenant segment exists to prevent.
+
+**Editing offers everything except where the bytes are.** Name, description, quota and MIME list are
+fields; disk and root are shown and are not. Re-pointing a root orphans every path already written,
+and on object storage the move that would fix it does not exist — no rename, only a copy of every
+object and a delete of every original with no transaction around the pair. **Deleting removes the
+row and leaves the files**, because a bulk delete is N calls with no transaction and a partial
+failure leaves a half-emptied prefix under a row claiming it is gone. The audit entry says
+`files_removed: false` in as many words.
+
+**The flag is not a permission, and a page is where a flag gets honoured.** Every mutating action
+and the download check it themselves, because the request that skips the page is exactly the forged
+one. Tenant isolation is now asserted for every verb rather than only the listing: a page that hides
+a workspace and then acts on it when handed its slug is arranged, not isolated.
+
+**The download is the expensive choice on purpose.** A presigned URL is three lines and no
+bandwidth. It is also a bearer token for one object until it expires — forwardable, logged by every
+proxy it crosses — and the audit trail can only record that somebody asked for a link, never that
+the file left, who took it, or how many times. So `stream()` joined the storage contract and each
+adapter answered it its own way, an `fopen` on a freshly resolved path and a ranged GET wearing a
+stream wrapper, and a grep over `src/` fails on the first `->temporaryUrl(`. The absent feature is
+tested, which is what makes swapping it back in a decision rather than a commit.
+
+**Found on the way, again:** the published `config/pandora.php` under `testbench-core` had
+reappeared, shadowing the package's own with an Aug 8 snapshot. It is the Phase 6 landmine verbatim,
+and it would have hidden the feature flag flip completely. Deleted, and now named in the Phase 7
+walkthrough's *Before you start*.
+
+Phase 7 criteria 17–20 ✅. **21 is a human driving `phase-7-walkthrough.md`**, which has not
+happened — every box in that document is unticked and stays that way until it has. The workspace
+section of the Phase 5 walkthrough moved there.
+
+---
+
 ## 2026-08-08 (later) — Workspaces and context files moved to object storage
 
 ADR-0013, then the code. The `disk` column on `pandora_workspaces` had existed since Phase 5 with

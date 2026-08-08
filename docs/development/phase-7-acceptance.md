@@ -1,6 +1,6 @@
 # Phase 7 — Acceptance Test Plan
 
-> **Status: storage done. 16 of 21 criteria accepted; the surface is what remains.**
+> **Status: 20 of 21 criteria accepted. What remains is a human driving it.**
 >
 > This phase was originally six criteria: turn on a feature that was already built. ADR-0013 moved
 > workspaces and context files onto S3-compatible object storage, which reopens the one thing the
@@ -14,10 +14,14 @@
 > Criteria 1–16 are verified, and the object leg runs against a real S3-compatible endpoint — MinIO
 > in CI and locally — or **skips**. It is never run against `Storage::fake()`, which is the local
 > driver wearing an object store's name; a suite green against that would be proving the local
-> adapter twice. Without an endpoint the suite reports 69 skipped rather than 69 green.
+> adapter twice. Without an endpoint the suite reports those 72 tests as skipped rather than green;
+> with one it is 1,440 passed and 8 skipped, the 8 being the pgvector leg that needs PostgreSQL.
 >
-> Criteria 17–21 are the surface: root selection, tenant isolation through the UI, streamed
-> downloads, and a human driving it. None of that is built.
+> Criteria 17–20 are the surface, and they are built: roots are declared in
+> `pandora.workspaces.roots` and chosen by key, isolation is asserted for every verb rather than
+> only the listing, and a download streams through the app with the audit entry a presigned URL
+> could not have produced. Criterion 21 is a human driving `phase-7-walkthrough.md`, which has not
+> happened — every box in that document is unticked, and it stays that way until it has.
 >
 > **Two things the real store settled that reasoning had not.** `Content-Type` on an object is
 > whatever the uploader wrote — MinIO reports `image/png` for a key holding text, and the workspace
@@ -152,10 +156,10 @@ Out of scope: per-workspace S3 credentials (ADR-0013 keeps credentials in the ho
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 17 | **A root outside the configured permissible set is refused, whatever the UI submits** | `UI/WorkspaceCreateTest` |
-| 18 | **A tenant cannot see, read, write or export another tenant's workspace through the UI** | `UI/WorkspacesPageTest` |
-| 19 | The feature flag withholds the surface from an operator holding every ability | `UI/WorkspacesPageTest` |
-| 20 | **A download streams through the app, is authorized and is audited; no presigned URL is issued for any workspace** | `UI/WorkspaceDownloadTest` |
+| 17 ✅ | **A root outside the configured permissible set is refused, whatever the UI submits** | `UI/WorkspaceCreateTest` |
+| 18 ✅ | **A tenant cannot see, read, write or export another tenant's workspace through the UI** | `UI/WorkspacesPageTest` · `UI/WorkspaceDownloadTest` |
+| 19 ✅ | The feature flag withholds the surface from an operator holding every ability | `UI/WorkspacesPageTest` · `UI/WorkspaceDownloadTest` |
+| 20 ✅ | **A download streams through the app, is authorized and is audited; no presigned URL is issued for any workspace** | `UI/WorkspaceDownloadTest` |
 | 21 | **A human drives the workspace section of the walkthrough**, against a real object-storage bucket | `phase-7-walkthrough.md` |
 
 ## What the tests must run against

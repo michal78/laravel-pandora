@@ -18,6 +18,23 @@ All notable changes to this project are documented here. The format follows
   every run, so the naive version is a full GET per file per iteration. A root may now be written
   `disk:<name>/<prefix>`, and roots vouch only for their own kind.
 - A **MinIO leg in CI**, mandatory for the same reason the pgvector leg is.
+- **Workspace creation, editing and removal in the control center**, with no path field anywhere in
+  it. `pandora.workspaces.roots` declares where workspaces may live — a disk and a base prefix, by
+  key — and the path is composed as `<base>/<tenant>/<slug>`. A request names a key or it names
+  nothing; an empty root list permits nothing rather than everything.
+- **Streamed, audited downloads.** `/pandora/workspaces/{workspace}/download?path=…` sends the bytes
+  through the application, chunk by chunk, and writes a `workspace.file_downloaded` audit entry.
+- `pandora.features.workspaces` **defaults to on**, which un-defers the Workspaces page and the
+  agent's **Workspace** tab.
+
+### Changed
+
+- A workspace's `disk` and `root_path` are **immutable after creation**. Everything else — name,
+  description, quota, MIME allowlist — is editable. Re-pointing a root orphans every path already
+  written and, on object storage, moves not one byte.
+- Deleting a workspace removes the row and detaches its agents; **the files are left where they
+  are**, and the audit entry records `files_removed: false`. A bulk delete is N calls with no
+  transaction, and a partial failure leaves a half-emptied prefix under a row claiming it is gone.
 
 ### Security
 
@@ -27,6 +44,15 @@ All notable changes to this project are documented here. The format follows
 - `Content-Type` on an object is never consulted. It is chosen by whoever uploaded, exactly like a
   file extension, and it looks more authoritative — MIME still comes from the magic bytes.
 - Pandora stores **no object-storage credential**. A workspace names a disk the host configured.
+- **No presigned URL is issued for any workspace**, and a test greps `src/` to keep it that way. A
+  signed object URL is a bearer token until it expires — forwardable, logged by every proxy it
+  crosses, and invisible to the audit trail the moment it is issued.
+- The feature flag is checked in **every mutating action and in the download**, not only when the
+  page renders. A page is where a flag gets honoured and a forged request is the one that never
+  renders one.
+- A download's `Content-Type` is always `application/octet-stream` with `nosniff` and a sanitised
+  filename. The store's own type and the extension are both chosen by whoever wrote the file, and
+  in a workspace that is a model.
 
 ## Phase 6 — Delegation (unreleased)
 

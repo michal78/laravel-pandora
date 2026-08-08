@@ -341,10 +341,18 @@ cache with bounded reads · streamed, audited downloads · a root-selection mech
 accept free text · the Workspaces page and the agent's **Workspace** tab un-deferred ·
 `pandora.features.workspaces` on by default · a MinIO leg in CI.
 
+Roots are declared in `pandora.workspaces.roots` — a disk and a base prefix, by key — and the
+creation form has no path field: the path is composed as `<base>/<tenant>/<slug>`, so a request's
+whole vocabulary for saying where a workspace lives is something an operator wrote down. A disk and
+root are immutable afterwards, and deleting a workspace leaves its files where they are.
+
 **Acceptance:** traversal and symlink escape fail on local; a key normalising outside the root is
 refused on object storage; the same containment suite passes on both adapters or the build fails.
 An unreachable disk is a tool error and never a silent write somewhere else. Pandora stores no
-object-storage credential. See `docs/development/phase-7-acceptance.md` — 21 criteria.
+object-storage credential, and issues no presigned URL for any workspace — downloads stream through
+the app so the audit trail records that the file left rather than that a link was made.
+See `docs/development/phase-7-acceptance.md` — **20 of 21 criteria accepted**; what remains is a
+human driving `phase-7-walkthrough.md` against a real bucket.
 
 ---
 

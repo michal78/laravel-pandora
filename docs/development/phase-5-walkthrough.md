@@ -115,48 +115,21 @@ Two sections cannot be driven on this host, and neither is a defect:
 - [x] Open `/pandora/memory` as user 2 and look for user 1's personal memory.
       **Defect 4, fixed** — see below. It was there, and it should not have been.
 
-## Workspaces — deferred to Phase 7
+## Workspaces — released in Phase 7
 
-**Not driven in this walkthrough.** The surface ships disabled behind
-`pandora.features.workspaces`, so the only two things to check here are that it
-says so and that nothing reaches past it:
+**Moved.** The checks live in `phase-7-walkthrough.md`, along with the object
+storage, the creation form and the streamed download that did not exist when
+this document was written.
 
-- [x] The sidebar shows **Workspaces** marked *Coming soon*, and it does not link.
-- [x] `/pandora/workspaces` says the feature is coming and names no workspace,
-      even for an operator holding every ability.
-- [x] An agent's **Workspace** tab says the same.
+What was true here and stayed true: the surface shipped disabled behind
+`pandora.features.workspaces`, and while it was false nothing reached past it —
+the sidebar said *Coming soon* and did not link, `/pandora/workspaces` named no
+workspace even for an operator holding every ability, and the agent's
+**Workspace** tab said the same. Those three were driven and passed.
 
-The checks below are the Phase 7 walkthrough. They are kept here because the
-behaviour they describe is built and covered — `Workspaces/ContainmentTest`,
-`QuotaTest` and `MimeTest` run on every commit — and because a checklist deleted
-is a checklist rewritten from memory later. Set
-`PANDORA_FEATURE_WORKSPACES=true` to drive them early.
-
-- [ ] Create a workspace pointing at a real directory and attach it to an agent.
-      **In code, not in the UI** — see `docs/guides/workspaces.md`. `disk` and
-      `root_path` are operator configuration, and a form that accepts a root
-      path is a form that accepts `/`; the Workspaces page browses and never
-      creates. If you want a walkthrough one:
-
-      ```php
-      $workspace = Workspace::query()->create([
-          'name' => 'Walkthrough', 'slug' => 'walkthrough', 'disk' => 'local',
-          'root_path' => storage_path('app/pandora-workspace'),
-          'quota_bytes' => 10 * 1024 * 1024, 'allowed_mime_types' => [],
-      ]);
-
-      $agent->update(['workspace_id' => $workspace->getKey()]);
-      ```
-- [ ] The **Workspaces** page lists it with its usage and quota. Usage reads 0
-      until something writes through `WorkspaceFiles` or you press **Recount** —
-      files placed on disk by hand are not counted before then.
-- [ ] Browsing shows the files that are there, and descending into a folder works.
-- [ ] `ln -s /etc/passwd <root>/innocent.txt`, then refresh. **The symlink does
-      not appear in the listing**, and the audit log records a
-      `workspace.containment_violation` at `critical` if anything reads it.
-- [ ] Set a small quota, have the agent write past it. The write is refused and
-      the file does not appear on disk.
-- [ ] Change `used_bytes` by hand, press **Recount**, and it corrects itself.
+The flag now defaults to on, so the same three checks are worth running once
+more in their new position: with the flag explicitly false. They are the last
+section of the Phase 7 walkthrough.
 
 ## The agent's tabs
 
