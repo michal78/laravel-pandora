@@ -181,7 +181,22 @@ prove that an operator meets that situation and understands it.
       *And check `vendor/orchestra/testbench-core/laravel/config/` if you run the
       package suite — a stale published config there shadows the package's own.
       It has reappeared twice.*
-- [ ] `vendor:publish --tag=pandora-migrations`, then `migrate`. Three new tables.
+- [ ] `vendor:publish --tag=pandora-migrations`, then **delete the duplicates it
+      just made**, then `migrate`. Three new tables.
+
+      The publish re-copies the *whole* directory with fresh timestamps, so
+      every migration you already ran arrives a second time under a new name and
+      `migrate` dies trying to add a column that exists. Keep only the files you
+      do not already have:
+
+      ```bash
+      ls database/migrations | grep "$(date +%Y_%m_%d)"   # what just landed
+      # remove all but the genuinely new ones, then:
+      php artisan migrate
+      ```
+
+      This bites on every phase that adds a table, and it bit while writing this
+      document.
 - [ ] **A real MCP server you control**, so you can change it mid-walkthrough.
       Anything that speaks `tools/list` and `tools/call` over HTTP will do.
 - [ ] `pandora.mcp.client.enabled` true, and a credential in the encrypted store

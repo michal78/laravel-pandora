@@ -42,6 +42,10 @@ landmines as Phase 6:
       the package suite: a stale published config there shadows the package's
       own and the suite quietly stops exercising what you ship. It had
       reappeared once already.*
+- [ ] **If you re-publish migrations, delete the duplicates first.**
+      `vendor:publish --tag=pandora-migrations` re-copies the whole directory
+      with fresh timestamps, so migrations you have already run arrive again
+      under new names and `migrate` fails adding a column that exists.
 - [ ] **A real bucket, or a real MinIO.** `Storage::fake()` is the local driver
       wearing an object store's name — it has directories, it has symlinks, and
       `..` behaves like a filesystem. Driving this walkthrough against a fake
