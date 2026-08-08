@@ -168,11 +168,20 @@ final class ToolExecution extends Model
 
     /**
      * What the model is shown as this call's result.
+     *
+     * `decision_reason` is in the chain because a call refused before it ever
+     * ran -- by the gatekeeper, or as a duplicate -- has no result and no
+     * error, only the sentence explaining the refusal. Leaving it out is how a
+     * model is told "No result." about a call it was refused, learns nothing,
+     * and makes the identical call again.
      */
     public function modelContent(): string
     {
         /** @var string $content */
-        $content = $this->result['content'] ?? $this->error_message ?? 'No result.';
+        $content = $this->result['content']
+            ?? $this->error_message
+            ?? $this->decision_reason
+            ?? 'No result.';
 
         return $content;
     }

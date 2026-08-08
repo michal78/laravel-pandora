@@ -6,6 +6,7 @@ use Pandora\Context\Providers\ContextFilesProvider;
 use Pandora\Context\Providers\EnvironmentContextProvider;
 use Pandora\Context\Providers\MemoryContextProvider;
 use Pandora\Context\Providers\RecentMessagesProvider;
+use Pandora\Context\Providers\RunToolLoopProvider;
 use Pandora\Context\Providers\SystemInstructionsProvider;
 use Pandora\Core\Actor\GuardActorResolver;
 use Pandora\Core\Tenancy\NullTenantResolver;
@@ -683,6 +684,10 @@ return [
             // for and can repeat.
             MemoryContextProvider::class,
             RecentMessagesProvider::class,
+            // Only ever contributes for a run with no conversation, where no
+            // messages exist to recall. Last, and adjacent to the provider it
+            // stands in for, so the two are read together.
+            RunToolLoopProvider::class,
         ],
 
         'recent_messages' => [
