@@ -1,9 +1,9 @@
 # Phase 6 — Host Walkthrough
 
 > Status: **the delegation half driven 2026-08-08, headlessly, and it found
-> three defects.** All three are fixed and covered. The browser checks — the run
-> detail, the child's trace, the audit page — are **not** driven yet and are
-> marked as such below.
+> four defects.** All four are fixed and covered. The remaining browser checks —
+> the audit page, cancellation as a button, the links clicked rather than
+> rendered — are **not** driven yet and are marked as such below.
 >
 > The MCP half of Phase 6 has no code, so it has no checks here.
 
@@ -81,8 +81,12 @@ Driven headlessly through `AgentRunner::forUser()` with a live model.
       runs, and its tool-call row stays open.
 - [x] The child's answer comes back as a **tool result**, and the parent's final
       message reports what the researcher found rather than what it guessed.
-- [ ] The **run detail page** shows the delegation, links parent to child, and
-      the child's trace is reachable from it. *(Not driven — browser.)*
+- [x] The **run detail page** shows the delegation in both directions: the
+      parent lists its children with their state, the child names the agent that
+      asked and links back up, and the child shows the tools it was allowed to
+      call. *(This did not exist. See Defect 4. Driven by rendering the
+      component against the live run rather than by clicking — the links
+      themselves are still unclicked.)*
 - [ ] The audit log shows `delegation.started` and `delegation.completed`.
       *(Not driven — browser.)*
 
@@ -131,6 +135,13 @@ went through the second path.
 written, and the second wording outlived the wait — so a *failed* delegation
 displayed "Delegated to Researcher. Waiting for its answer." beside an empty
 error.
+
+**Defect 4 — delegation was invisible in the control center. Fixed.**
+A child run reached from the runs list named no parent, no asking agent and no
+intersection: the columns were on the row and on no page. The run detail now
+carries both directions, and an empty intersection says so in words rather than
+rendering as blank space, because "allowed nothing" and "not delegated" are
+different facts. Covered by `UI/DelegationTraceTest`.
 
 **Not a defect, but it cost an hour twice:** a long-lived queue worker serving
 stale code, and a published config shadowing the package's own. Both are in
