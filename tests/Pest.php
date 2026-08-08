@@ -22,6 +22,8 @@ uses(TestCase::class)->in(
     'Context',
     'Workspaces',
     'Delegation',
+    'Mcp',
+    'McpServer',
 );
 
 /**

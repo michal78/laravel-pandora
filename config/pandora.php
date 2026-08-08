@@ -664,6 +664,77 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | MCP
+    |--------------------------------------------------------------------------
+    |
+    | Model Context Protocol: tools that live on a machine you do not own,
+    | described by someone you have never met. See ADR-0014 for the trust
+    | boundary; the short version is that everything a server says is untrusted
+    | content, including the parts that look like configuration.
+    |
+    | Nothing here approves anything. Discovery writes rows and leaves every
+    | tool unapproved, per agent, until a human says otherwise -- there is no
+    | auto-approve key and no "trusted server" flag, because anything that both
+    | discovers and enables is a remote-controlled permission grant.
+    |
+    */
+
+    'mcp' => [
+
+        'client' => [
+            'enabled' => env('PANDORA_MCP_ENABLED', false),
+
+            // How long one remote call may take, and how much of a response
+            // is read before it is refused. A server that hangs must cost one
+            // tool call, not one worker.
+            'timeout_seconds' => (int) env('PANDORA_MCP_TIMEOUT', 30),
+            'max_response_bytes' => (int) env('PANDORA_MCP_MAX_RESPONSE', 262144), // 256 KB
+
+            // A remote description is third-party text shown to a model and to
+            // an operator. Bounded on the way in, escaped on the way out, and
+            // never placed where an instruction goes.
+            'max_description_length' => 2000,
+
+            // The separator between a server's namespace and a remote tool
+            // name. Reserved: a core tool may not contain it, so no remote
+            // name can be mistaken for one.
+            'namespace_separator' => '.',
+        ],
+
+        'transports' => [
+            'http' => ['enabled' => true],
+            'sse' => ['enabled' => true],
+
+            /*
+            | stdio means executing a local binary named by a database row.
+            | That is reasonable on a developer machine and is never reasonable
+            | by default: it turns write access to one table into arbitrary
+            | local execution. Enabling it is a deliberate act, and the refusal
+            | names this key so nobody has to guess.
+            */
+            'stdio' => ['enabled' => env('PANDORA_MCP_STDIO', false)],
+        ],
+
+        /*
+        | The Pandora MCP server -- Pandora exposing ITS tools to somebody
+        | else's agent. Off by default: installing a package should expose
+        | nothing.
+        |
+        | `exposed_tools` is an allowlist and an empty one means nothing is
+        | served. It decides what EXISTS; it does not decide who may call it.
+        | Every call is separately authorized against the actor behind the
+        | token, because skipping that makes the token a superuser.
+        */
+        'server' => [
+            'enabled' => env('PANDORA_MCP_SERVER_ENABLED', false),
+            'path' => env('PANDORA_MCP_SERVER_PATH', 'mcp'),
+            'middleware' => ['api'],
+            'exposed_tools' => [],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Workspaces
     |--------------------------------------------------------------------------
     |
