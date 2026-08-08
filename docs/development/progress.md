@@ -5,6 +5,91 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-08 (late) — Phase 8: a stranger types something
+
+Every phase before this one served somebody the host application had already authenticated. A
+channel is the first thing that hands Pandora a message from a person it has never seen, through a
+system it does not control.
+
+```
+vendor/bin/pest        -> Tests: 1,698 passed, 84 skipped (5,682 assertions)
+vendor/bin/phpstan     -> [OK] No errors  (level 8)
+vendor/bin/pint --test -> passed
+
+laravel-pandora-slack:
+vendor/bin/pest        -> Tests: 19 passed (43 assertions)
+vendor/bin/phpstan     -> [OK] No errors  (level 8)
+```
+
+**The phase is one refusal.** Slack can prove that user `U024BE7LH` typed those words. It cannot say
+which of your users that is, and that is the only fact every authorization decision here rests on.
+The query that closes the gap — match the Slack profile's email against the host `users` table — is
+an authentication bypass wearing a join, because that address is asserted by whoever administers a
+workspace anyone can create. ADR-0015 rules it out, and a test asserts it: an inbound payload whose
+email, username and display name all match a real host user *exactly* still resolves to nobody.
+
+The conservative-looking middle option was the other thing to rule out. A guest actor with no
+abilities sounds cautious and is not: a session isolates history, so an anonymous one is either
+shared between strangers — T3, exactly — or minted per stranger, giving unauthenticated people
+persistent, budget-consuming conversations on somebody's installation. So an unlinked identity gets
+no run, no session and no conversation. It gets a recorded refusal and one rate-limited instruction.
+
+**Linking needs both halves of the evidence, in order.** A code issued into the channel proves
+control of the channel account; redemption inside an authenticated host session proves control of the
+host account. `LinkCodes::redeem()` takes an `Authorizable` from the guard and has no parameter that
+could name anybody else, which is why the test where an attacker steals a code and redeems it links
+*them* — the correct outcome, and the only one available.
+
+The link epoch is the part that would have been missed by doing nothing. It sits inside the session
+isolation key, so a Slack handle reassigned after somebody leaves starts a new boundary rather than
+inheriting the last holder's transcript. That is a disclosure with no attacker in it, and the kind
+found a year later by somebody scrolling up.
+
+**Extensions were the second half, and the decision was to exclude rather than defer.** No
+marketplace, no remote install, no update check: a UI that can install code is a UI whose
+authorization bug is arbitrary execution, and the whole surface would exist to save a `composer
+require` that already comes with a lockfile, a review and a deploy. The manifest is an
+`extra.pandora` block read straight out of `installed.json`, so the Extensions page describes a
+package it has never booted — and the test that matters declares one whose classes do not exist and
+whose autoload prefix points at nothing, because the extension an operator most needs to look at is
+the broken one.
+
+**The Slack package proved more than its criterion asked.** It was written from outside the
+boundary — its own repository, reaching core only through Composer — and needed no core change at
+all. Channel, ChannelRegistry, ChannelInbox, ChannelDispatcher, the credential resolver and
+ToolRegistry were between them enough to build a working adapter on the first attempt, with 19 tests
+of its own running against real core. That evidence is only available because the package could not
+reach into `src/`; in the same repository the first missing seam would have been filled in the same
+commit and nobody would have learned it was missing.
+
+**One defect found, and it was not in the code under test.** A published `config/pandora.php` left in
+the Testbench skeleton by a Phase 7 `vendor:publish` was shadowing the package config in the suite.
+`mergeConfigFrom()` merges one level deep, so its `features` and `abilities` arrays replaced the
+package's outright — the two new feature flags silently did not exist, both pages answered 404, and
+the cause was three layers from the symptom. Deleted, and written down: a config that shadows and a
+config that overrides look identical until somebody adds a key.
+
+**One run in three failed, and the failure has not been identified.** A full-suite run reported
+`1 failed, 84 skipped, 1697 passed` with the test name lost to a truncated pipe; the two runs either
+side of it, and every targeted run since, are green. That is recorded rather than shrugged off — an
+unreproduced failure is a defect nobody has looked at yet, and calling it a flake is a guess. See
+`open-questions.md`.
+
+**Acceptance status: 32 of 33 criteria verified by automated test.** Criterion 33 is a person driving
+`phase-8-walkthrough.md` against a real Slack workspace, and the check it exists for is one no
+assertion can make: whether the refusal a stranger meets, the first time they message an agent, tells
+them what to do next.
+
+Phases 6 and 7 still owe their walkthroughs, deliberately deferred (Q10) and due before Phase 9 —
+which is the phase that claims T1–T15 are covered, and that claim cannot be made over an undriven
+surface.
+
+**Not in Phase 8, by design:** approval decisions carried by a channel, group conversations with
+several actors in one run, any messaging adapter in core, voice, email as a channel, and an extension
+marketplace in any form.
+
+---
+
 ## 2026-08-08 (evening) — Phase 6B: tools written by strangers
 
 MCP is the first thing Pandora does where the interesting text is written by somebody we have never

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Schema;
+use Pandora\Audit\AuditLog;
 use Pandora\Channels\ChannelAccount;
 use Pandora\Channels\ChannelInbox;
 use Pandora\Channels\Data\InboundOutcome;
@@ -77,4 +78,24 @@ it('cannot register the same workspace twice on one channel', function (): void 
     // return first.
     expect(fn () => $this->makeChannelAccount(['external_id' => 'W-1']))
         ->toThrow(QueryException::class);
+});
+
+it('audits a refusal for an account with no agent bound', function (): void {
+    $user = $this->actingAsUser();
+    app('auth')->logout();
+
+    $account = $this->makeChannelAccount();
+    $account->forceFill(['agent_id' => null])->save();
+
+    $this->makeIdentity($account, 'U-1', $user);
+
+    $this->inbox->receive($this->fakeChannel()->message('U-1', 'hello'));
+
+    // A refusal that is correct, bounded and invisible is the defect Phase 6's
+    // walkthrough found in delegation. Every refusal reaches the audit log with
+    // a reason an operator can act on.
+    $log = AuditLog::query()->where('action', 'channel.message_refused')->firstOrFail();
+
+    expect($log->severity)->toBe('warning')
+        ->and($log->metadata['reason'] ?? null)->toBe('no_agent_bound');
 });

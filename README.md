@@ -34,22 +34,25 @@
 
 ---
 
-> ### ⚠ Pre-release — Phase 5 (memory and context)
+> ### ⚠ Pre-release — Phase 8 (channels and extensions)
 >
 > **What works today:** define an agent, start a conversation, dispatch a queued run, stream it over
 > Reverb, persist an immutable trace, reload without losing anything, cancel it, and inspect it in
 > the control center — with **tools** under five layers of authorization and human approval gates on
 > the risky ones, **multi-provider routing** with failover and budgets, **automations** on four
-> engines, and **scoped memory and context** that works with no vector database installed.
+> engines, **scoped memory and context** that works with no vector database installed,
+> **delegation and MCP** where nothing remote is approved by discovering it, **workspaces** on local
+> or S3-compatible storage, and **messaging channels** where an unlinked identity gets no run, no
+> session and no seat.
 >
-> **What does not exist yet:** multi-agent delegation and MCP (Phase 6), messaging channels and
-> workspaces (Phase 7), release hardening (Phase 8). See [`docs/roadmap.md`](docs/roadmap.md).
+> **What does not exist yet:** release hardening — the full threat-model sweep, performance tests and
+> the example application (Phase 9). See [`docs/roadmap.md`](docs/roadmap.md).
 >
-> **Verified by** 1,175 tests (3,916 assertions) across SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17
-> and pgvector · PHPStan level 8 · Pint. Several phases still carry an outstanding manual host
-> walkthrough — see [`docs/development/`](docs/development/).
+> **Verified by** 1,698 tests across SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector and MinIO
+> · PHPStan level 8 · Pint. Three phases still carry an outstanding manual host walkthrough, two of
+> them deliberately deferred — see [`docs/development/open-questions.md`](docs/development/open-questions.md).
 >
-> Not yet published to Packagist; install from source until Phase 8.
+> Not yet published to Packagist; install from source until Phase 9.
 
 ---
 
@@ -210,7 +213,10 @@ See [`docs/visual-identity.md`](docs/visual-identity.md) and
 **Guides** — [installation](docs/guides/installation.md) ·
 [quick start](docs/guides/quick-start.md) · [agents](docs/guides/agents.md) ·
 [tools](docs/guides/tools.md) · [providers](docs/guides/providers.md) ·
-[automations](docs/guides/automations.md) · [memory](docs/guides/memory.md)
+[automations](docs/guides/automations.md) · [memory](docs/guides/memory.md) ·
+[workspaces](docs/guides/workspaces.md) · [MCP](docs/guides/mcp.md) ·
+[channels](docs/guides/channels.md) ·
+[writing extensions](docs/guides/writing-extensions.md)
 
 **Architecture** — [overview](docs/architecture/overview.md) ·
 [security model](docs/architecture/security-model.md) ·

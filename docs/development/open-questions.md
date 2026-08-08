@@ -225,6 +225,24 @@ Two honest fixes, and this is a decision rather than an obvious bug fix:
 Not Phase 7's, and not scheduled. Recorded here rather than fixed, because either answer changes
 what an operator's `app/Agents` directory means.
 
+## One unexplained suite failure during Phase 8 (2026-08-08) ⏸ **open**
+
+A full-suite run at the end of Phase 8 reported `1 failed, 84 skipped, 1697 passed`. The test name was
+lost — the command piped through `tail -4` and the failure block scrolled past it. The run before it
+and the two runs after it are green, at `1698 passed, 5682 assertions`, and every targeted run of the
+new suites is green.
+
+Recorded rather than dismissed. "It was probably a flake" is a guess, and the cost of being wrong is
+an intermittent defect that surfaces in CI months later against an unrelated change. The likely
+candidates, in order: shared cache state between the rate-limiter tests in `Channels/LinkCodeTest`
+and `UnlinkedIdentityTest`, both of which hit `RateLimiter` and rely on the array cache being fresh
+per test; and time travel in `LinkCodeTest` leaking into a neighbouring test.
+
+**Next time it happens, capture the whole output.** The fix for this entry is one reproduction, not
+more reasoning.
+
+---
+
 ## A published config in the Testbench skeleton was shadowing the package config (2026-08-08) ✅ **fixed**
 
 Found while adding `pandora.features.channels`. The new key was absent at runtime in tests, and the

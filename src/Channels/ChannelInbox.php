@@ -62,11 +62,12 @@ final class ChannelInbox
         $account = $this->account($message);
 
         if ($account === null) {
-            // No enabled account for this workspace. Not audited against a
-            // tenant, because there is no tenant to audit it against -- and
-            // inventing one from the payload is the exact move this module
-            // refuses to make.
-            return InboundResult::refused('No enabled channel account matches this message.');
+            // No account claims this workspace at all. Not audited, because
+            // there is no tenant to audit it against -- and inventing one from
+            // the payload is the exact move this module refuses to make. An
+            // account that EXISTS and is switched off is a different case, and
+            // it is handled below where a tenant is known.
+            return InboundResult::refused('No channel account matches this message.');
         }
 
         $tenant = $account->tenant_id === null ? null : new TenantContext($account->tenant_id);
@@ -77,6 +78,21 @@ final class ChannelInbox
 
     private function handle(ChannelAccount $account, InboundMessage $message): InboundResult
     {
+        if (! $account->enabled) {
+            // Recorded without an identity, deliberately. A switched-off account
+            // must not accumulate rows about people it is not talking to, and
+            // the delivery row is still enough to count how much traffic arrived
+            // while it was off -- which is what an operator wants to know before
+            // switching it back on.
+            $delivery = $this->recordInbound($account, null, $message);
+
+            if ($delivery !== null) {
+                $this->refuse($delivery, 'account_disabled');
+            }
+
+            return InboundResult::refused('This channel account is disabled.');
+        }
+
         $identity = $this->identity($account, $message);
 
         $delivery = $this->recordInbound($account, $identity, $message);
@@ -190,18 +206,6 @@ final class ChannelInbox
 
         $this->refuse($delivery, 'identity_not_linked');
 
-        $this->audit->record(
-            action: 'channel.message_refused',
-            targetType: ChannelIdentity::class,
-            targetId: (string) $identity->getKey(),
-            severity: 'warning',
-            metadata: [
-                'channel' => $account->channel,
-                'account_id' => $account->getKey(),
-                'reason' => 'identity_not_linked',
-            ],
-        );
-
         // Answered once per window. A stranger messaging repeatedly must not be
         // able to turn our instructions into a flood aimed at their own channel,
         // and the refusal itself is already recorded whether or not we speak.
@@ -226,6 +230,11 @@ final class ChannelInbox
      * one deliberate cross-tenant read in the module, and it is a lookup on
      * `(channel, external_id)` -- a pair the remote system controls but that
      * only ever selects a row an operator created.
+     *
+     * Whether the account is USABLE is not decided here. A disabled account and
+     * an unbound one are refusals that belong inside the account's own tenant,
+     * where they can be recorded and audited; refusing them out here would make
+     * them invisible, which is the shape of defect that costs an afternoon.
      */
     private function account(InboundMessage $message): ?ChannelAccount
     {
@@ -239,7 +248,7 @@ final class ChannelInbox
             ->where('external_id', $message->accountExternalId)
             ->first();
 
-        return $account?->isUsable() === true ? $account : null;
+        return $account;
     }
 
     private function identity(ChannelAccount $account, InboundMessage $message): ChannelIdentity
@@ -277,14 +286,14 @@ final class ChannelInbox
      */
     private function recordInbound(
         ChannelAccount $account,
-        ChannelIdentity $identity,
+        ?ChannelIdentity $identity,
         InboundMessage $message,
     ): ?ChannelDelivery {
         try {
             return $this->connection->transaction(fn (): ChannelDelivery => ChannelDelivery::query()->create([
                 'tenant_id' => $account->tenant_id,
                 'account_id' => $account->getKey(),
-                'identity_id' => $identity->getKey(),
+                'identity_id' => $identity?->getKey(),
                 'direction' => DeliveryDirection::Inbound,
                 'external_message_id' => $message->externalMessageId,
                 'status' => DeliveryStatus::Received,
@@ -294,12 +303,37 @@ final class ChannelInbox
         }
     }
 
+    /**
+     * Record a refusal, and say so where an operator will look.
+     *
+     * Both halves matter. The delivery row is the count -- "this person has
+     * been refused eleven times" -- and the audit entry is the explanation. A
+     * refusal that is correct, bounded and invisible is the defect Phase 6's
+     * walkthrough found in delegation, and it costs an afternoon every time.
+     */
     private function refuse(ChannelDelivery $delivery, string $reason): void
     {
         $delivery->forceFill([
             'status' => DeliveryStatus::Refused,
             'error' => $reason,
         ])->save();
+
+        // The link-code path is not a refusal an operator needs to see: it is
+        // the flow working.
+        if ($reason === 'link_code_issued') {
+            return;
+        }
+
+        $this->audit->record(
+            action: 'channel.message_refused',
+            targetType: ChannelIdentity::class,
+            targetId: $delivery->identity_id,
+            severity: 'warning',
+            metadata: [
+                'account_id' => $delivery->account_id,
+                'reason' => $reason,
+            ],
+        );
     }
 
     private function reply(

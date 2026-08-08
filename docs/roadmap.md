@@ -14,9 +14,9 @@
 | 3.5 | Agents page | ✅ 20/20 — host walkthrough driven 2026-08-07; found a missing slug on the Overview tab, fixed, and a stale stub-tab list in the walkthrough itself |
 | 4 | Automation | ✅ 26/26 on all four engines; host walkthrough complete |
 | 5 | Memory and context | ✅ 28/28 incl. a real pgvector CI leg; host walkthrough driven 2026-08-07 — four defects, all fixed, one of them a cross-user memory disclosure on the Memory page |
-| 6 | Multi-agent and MCP | 🔨 13/30 — delegation done, driven against a live model and four defects fixed; MCP not started |
-| 7 | Workspaces, released and on object storage | 🔨 16/21 — storage done on both adapters against real MinIO; the surface remains |
-| 8 | Channels and extensions | ⬜ |
+| 6 | Multi-agent and MCP | 🔨 30/30 verified; walkthrough deliberately deferred to after Phase 8 (Q10) |
+| 7 | Workspaces, released and on object storage | 🔨 24/25 — both adapters green against real MinIO; walkthrough deferred with Phase 6's (Q10) |
+| 8 | Channels and extensions | 🔨 32/33 — the contract, linking, extensions and Slack as a separate package; walkthrough remains |
 | 9 | Hardening and release | ⬜ |
 
 ---
@@ -390,7 +390,12 @@ booted, including one that would fatal if it were (ADR-0016).
 providers, tools and channels through the documented contracts alone, with no core changes — proved
 by `laravel-pandora-slack` living in its own repository, where a missing seam has to be added to core
 in the open rather than filled in the same commit. See `docs/development/phase-8-acceptance.md` —
-**33 criteria**.
+**32 of 33 criteria verified**; what remains is a human driving `phase-8-walkthrough.md` against a
+real Slack workspace.
+
+The reference extension needed no core change at all. It was written from outside the boundary and
+the published contracts were between them enough to build a working adapter on the first attempt,
+with its own suite running against real core — which is the only form that claim can honestly take.
 
 ---
 

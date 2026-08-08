@@ -42,6 +42,7 @@ use Pandora\Console\Commands\AgentRunCommand;
 use Pandora\Console\Commands\AutomationListCommand;
 use Pandora\Console\Commands\AutomationRunCommand;
 use Pandora\Console\Commands\AutomationTickCommand;
+use Pandora\Console\Commands\ChannelListCommand;
 use Pandora\Console\Commands\ExtensionListCommand;
 use Pandora\Console\Commands\FlushCommand;
 use Pandora\Console\Commands\InstallCommand;
@@ -705,6 +706,7 @@ final class PandoraServiceProvider extends ServiceProvider
             McpListCommand::class,
             McpDiscoverCommand::class,
             McpApproveCommand::class,
+            ChannelListCommand::class,
             ExtensionListCommand::class,
             ModelSyncCommand::class,
             ProviderTestCommand::class,

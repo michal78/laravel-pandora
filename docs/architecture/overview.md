@@ -271,7 +271,7 @@ Sixteen groups. Each page is authorized independently (`security-model.md`).
 | Dashboard | status, attention items, health, usage summary |
 | Chat | conversation list, thread, composer, tool cards, approval cards |
 | Conversations | search, filter, tags, archive, fork, usage |
-| Agents | index; detail tabs: Overview · Instructions · Models · Limits & Autonomy · Automations · Runs · Usage · Skills · Memory · Workspace (built, Phases 3.5 to 5) — Tools · Channels · Permissions (each filled by the phase that builds its subsystem) |
+| Agents | index; detail tabs: Overview · Instructions · Models · Limits & Autonomy · Automations · Runs · Usage · Skills · Memory · Workspace · Permissions · Channels (built, Phases 3.5 to 8) — Tools remains a stub, filled by the phase that builds tool grants |
 | Runs | active / waiting / completed / failed / cancelled; run detail timeline; raw trace (admin only) |
 | Tools | registry, schema, risk, policy, executions, success rates, test console |
 | Skills | installed, validation, import/export, editor, warnings |
@@ -280,7 +280,8 @@ Sixteen groups. Each page is authorized independently (`security-model.md`).
 | Approvals | pending / approved / denied / expired, audit history |
 | Memory | search, scope, type, sensitivity, suggested memories awaiting review (built, Phase 5) |
 | Workspaces | listing, containment-checked browsing, quota and recount (built, Phase 5); editor, preview, upload/download and diffs remain Future |
-| Channels | adapters, accounts, identity mapping, routing, delivery tests |
+| Channels | installed adapters, accounts, identities and whether each is linked, recent deliveries, delivery test (built, Phase 8). It can unlink and cannot link: an operator's belief about who owns a remote handle is not evidence (ADR-0015) |
+| Extensions | what Composer installed, what each package declares, what it actually registered, and the difference. Read-only by construction — no install, update or fetch (ADR-0016) |
 | MCP | servers, transport, health, discovered tools, agent access, server settings |
 | Usage | tokens, requests, cost, filters, export |
 | Logs & Audit | audit records with actor/tenant/correlation filters |

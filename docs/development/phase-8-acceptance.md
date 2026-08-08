@@ -1,12 +1,29 @@
 # Phase 8 — Acceptance Test Plan
 
-> **Status: 0 of 33 criteria accepted. The phase has just started.**
+> **Status: 32 of 33 criteria accepted. What remains is a human driving it.**
 >
 > Criteria are ticked only when the named automated test asserts them and passes. Criterion 33 is a
-> human driving `phase-8-walkthrough.md`, and it is ticked by a person, not by a suite.
+> human driving `phase-8-walkthrough.md`, and it is ticked by a person, not by a suite. Every box in
+> that document is unticked and stays that way until it has been.
 >
 > Two phases enter this one carrying an undriven walkthrough of their own (Q10). That debt is
 > acknowledged, scheduled before Phase 9, and does not move.
+>
+> **Criterion 32 turned out to prove more than it asked.** `laravel-pandora-slack` was written from
+> outside the boundary — its own repository, depending on core through Composer — and needed no core
+> change at all. The `Channel` contract, `ChannelRegistry`, `ChannelInbox`, `ChannelDispatcher`, the
+> credential resolver and `ToolRegistry` were between them enough to build a working adapter on the
+> first attempt, with 19 tests of its own running against real core. That is the strongest evidence
+> available that the seams are real rather than a habit, and it is only available because the package
+> could not reach into `src/`.
+>
+> **One thing found on the way, and it was not in the code under test.** A published
+> `config/pandora.php` left in the Testbench skeleton by a Phase 7 `vendor:publish` was shadowing the
+> package config in the suite. `mergeConfigFrom()` merges one level deep, so its `features` and
+> `abilities` arrays replaced the package's outright and the two new feature flags silently did not
+> exist — the pages 404'd and the cause was three layers from the symptom. Deleted, and recorded in
+> `open-questions.md`: a config that shadows and a config that overrides look identical until
+> somebody adds a key.
 
 Every previous phase widened what Pandora can do for someone it already knew. Phase 8 is the first
 where a message arrives from someone the host application has never authenticated, through a system
@@ -57,8 +74,12 @@ to render.
 **Data** — 4 migrations: `pandora_channel_accounts`, `pandora_channel_identities`,
 `pandora_channel_link_codes`, `pandora_channel_deliveries`
 
-**Inbound** — `ProcessIncomingChannelMessage` on `pandora-interactive`: identity resolution → link
-check → session resolution → conversation → run, with an idempotency key per channel message
+**Inbound** — `ChannelInbox::receive()`: account → tenant → deduplication → identity → link check →
+session → conversation → run, with an idempotency key per channel message. Called synchronously from
+the adapter's own webhook and dispatching the run to a queue, rather than the queued
+`ProcessIncomingChannelMessage` the execution model sketched — the work before the run is four short
+writes, and a job in front of them would only move the moment a duplicate is detected further from
+the request that has to answer the platform.
 
 **Outbound** — `ChannelDispatcher`, recorded deliveries, recorded failures
 
@@ -103,68 +124,68 @@ agent's **Channels** tab · `pandora:channel:list`
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 1 | **An inbound message from an unlinked identity creates no run and no session** — it is recorded, audited `channel.message_refused`, and answered once with linking instructions | `Channels/UnlinkedIdentityTest` |
-| 2 | **No channel-supplied field can reach a host user** — an inbound payload whose email, username or external ID exactly matches a host user's still resolves to no actor | `Channels/UnlinkedIdentityTest` · `Channels/NoEmailMatchingTest` |
-| 3 | A link code is issued only into the channel, to the requesting participant, and expires | `Channels/LinkCodeTest` |
-| 4 | **Redemption requires an authenticated host session and links to that session's user** — a request naming another user links nobody | `Channels/LinkRedemptionTest` |
-| 5 | An expired, consumed, unknown or wrong code is refused and audited `channel.link_failed`; redemption is rate-limited per identity and per redeemer | `Channels/LinkCodeTest` |
-| 6 | **Codes are stored hashed** — the plaintext is not in the database, the UI, the API or a broadcast | `Channels/LinkCodeTest` |
-| 7 | **A linked identity's run acts as the linked user's actor** — tool authorization is that user's abilities, and a tool they lack is refused | `Channels/LinkedActorTest` |
-| 8 | Unlinking takes effect immediately, is audited, and the next inbound message is refused again | `Channels/LinkRevocationTest` |
-| 9 | **A re-linked identity gets a new isolation key** — no conversation or memory from the previous link is reachable | `Channels/LinkRevocationTest` |
-| 10 | **Two participants in one channel get two sessions** — neither can retrieve the other's history or memories (T3) | `Channels/SessionIsolationTest` |
+| 1 ✅ | **An inbound message from an unlinked identity creates no run and no session** — it is recorded, audited `channel.message_refused`, and answered once with linking instructions | `Channels/UnlinkedIdentityTest` |
+| 2 ✅ | **No channel-supplied field can reach a host user** — an inbound payload whose email, username or external ID exactly matches a host user's still resolves to no actor | `Channels/UnlinkedIdentityTest` · `Channels/NoEmailMatchingTest` |
+| 3 ✅ | A link code is issued only into the channel, to the requesting participant, and expires | `Channels/LinkCodeTest` |
+| 4 ✅ | **Redemption requires an authenticated host session and links to that session's user** — a request naming another user links nobody | `Channels/LinkRedemptionTest` |
+| 5 ✅ | An expired, consumed, unknown or wrong code is refused and audited `channel.link_failed`; redemption is rate-limited per identity and per redeemer | `Channels/LinkCodeTest` |
+| 6 ✅ | **Codes are stored hashed** — the plaintext is not in the database, the UI, the API or a broadcast | `Channels/LinkCodeTest` |
+| 7 ✅ | **A linked identity's run acts as the linked user's actor** — tool authorization is that user's abilities, and a tool they lack is refused | `Channels/LinkedActorTest` |
+| 8 ✅ | Unlinking takes effect immediately, is audited, and the next inbound message is refused again | `Channels/LinkRevocationTest` |
+| 9 ✅ | **A re-linked identity gets a new isolation key** — no conversation or memory from the previous link is reachable | `Channels/LinkRevocationTest` |
+| 10 ✅ | **Two participants in one channel get two sessions** — neither can retrieve the other's history or memories (T3) | `Channels/SessionIsolationTest` |
 
 ### Tenancy
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 11 | **Tenancy comes from the channel account** — no inbound field selects or changes a tenant | `Channels/TenancyTest` |
-| 12 | A tenant cannot see or act on another tenant's channel accounts, identities, links or deliveries, through the UI or the console | `Channels/TenancyTest` · `UI/ChannelsPageTest` |
+| 11 ✅ | **Tenancy comes from the channel account** — no inbound field selects or changes a tenant | `Channels/TenancyTest` |
+| 12 ✅ | A tenant cannot see or act on another tenant's channel accounts, identities, links or deliveries, through the UI or the console | `Channels/TenancyTest` · `UI/ChannelsPageTest` |
 
 ### The inbound and outbound pipeline
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 13 | **Inbound message text is untrusted content** — labelled foreign in the prompt, never in an instruction position | `Channels/UntrustedInboundTest` |
-| 14 | A display or channel name asserting authority is a string — escaped where rendered, unprivileged in the prompt | `Channels/UntrustedInboundTest` |
-| 15 | **A redelivered message creates one run, not two** — idempotency is per account and channel message ID | `Channels/IdempotencyTest` |
-| 16 | **An undeliverable reply is a recorded failure on the run and is never re-routed to another channel** | `Channels/DeliveryTest` |
-| 17 | A disabled channel account accepts no inbound message and sends no outbound one | `Channels/AccountTest` |
-| 18 | **An approval requested during a channel run notifies the channel and cannot be decided from it** | `Channels/ApprovalNotificationTest` |
-| 19 | A channel run is attributable end to end — the trace names the linked actor, the account and the participant | `Channels/AttributionTest` |
+| 13 ✅ | **Inbound message text is untrusted content** — labelled foreign in the prompt, never in an instruction position | `Channels/UntrustedInboundTest` |
+| 14 ✅ | A display or channel name asserting authority is a string — escaped where rendered, unprivileged in the prompt | `Channels/UntrustedInboundTest` |
+| 15 ✅ | **A redelivered message creates one run, not two** — idempotency is per account and channel message ID | `Channels/IdempotencyTest` |
+| 16 ✅ | **An undeliverable reply is a recorded failure on the run and is never re-routed to another channel** | `Channels/DeliveryTest` |
+| 17 ✅ | A disabled channel account accepts no inbound message and sends no outbound one | `Channels/AccountTest` |
+| 18 ✅ | **An approval requested during a channel run notifies the channel and cannot be decided from it** | `Channels/ApprovalNotificationTest` |
+| 19 ✅ | A channel run is attributable end to end — the trace names the linked actor, the account and the participant | `Channels/AttributionTest` |
 
 ### The contract
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 20 | A channel registers through `ChannelRegistry` and is **disabled until an operator creates an account** | `Channels/RegistryTest` |
-| 21 | **The contract offers an adapter no way to supply an actor** — asserted structurally, over the interface | `Channels/RegistryTest` · `Architecture/ModuleBoundaryTest` |
-| 22 | `FakeChannel` ships in `src/Testing` and can deliver, fail to deliver, redeliver and go unreachable | `Channels/DeliveryTest` |
+| 20 ✅ | A channel registers through `ChannelRegistry` and is **disabled until an operator creates an account** | `Channels/RegistryTest` |
+| 21 ✅ | **The contract offers an adapter no way to supply an actor** — asserted structurally, over the interface | `Channels/RegistryTest` · `Architecture/ModuleBoundaryTest` |
+| 22 ✅ | `FakeChannel` ships in `src/Testing` and can deliver, fail to deliver, redeliver and go unreachable | `Channels/DeliveryTest` |
 
 ### Extensions
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 23 | **Discovery reads `installed.json` and boots nothing** — a package whose classes would fatal on load still renders on the page | `Extensions/DiscoveryTest` |
-| 24 | Manifest text is length-bounded and escaped where rendered; URLs are scheme-restricted | `Extensions/UntrustedManifestTest` |
-| 25 | **A manifest grants nothing** — a package declaring a channel or tool it does not register enables neither, and the difference is shown | `Extensions/DeclaredVersusRegisteredTest` |
-| 26 | **No route, command or UI action installs, updates or fetches a package** — asserted structurally over the registered routes | `Extensions/NoRemoteInstallTest` |
-| 27 | `pandora:extension:list` reports installed extensions, their manifests and the declared-versus-registered difference | `Console/ExtensionListCommandTest` |
+| 23 ✅ | **Discovery reads `installed.json` and boots nothing** — a package whose classes would fatal on load still renders on the page | `Extensions/DiscoveryTest` |
+| 24 ✅ | Manifest text is length-bounded and escaped where rendered; URLs are scheme-restricted | `Extensions/UntrustedManifestTest` |
+| 25 ✅ | **A manifest grants nothing** — a package declaring a channel or tool it does not register enables neither, and the difference is shown | `Extensions/DeclaredVersusRegisteredTest` |
+| 26 ✅ | **No route, command or UI action installs, updates or fetches a package** — asserted structurally over the registered routes | `Extensions/NoRemoteInstallTest` |
+| 27 ✅ | `pandora:extension:list` reports installed extensions, their manifests and the declared-versus-registered difference | `Console/ExtensionListCommandTest` |
 
 ### The surface
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 28 | The Channels page requires `pandora.channels.manage`, which is **absent by default**, and reading identities requires `pandora.channels.view` | `UI/ChannelsPageTest` |
-| 29 | **The agent's Channels tab binds and unbinds accounts**, tenant-scoped and audited, replacing the Phase 3.5 stub | `UI/AgentDetailTest` |
-| 30 | `pandora.features.channels` withholds the whole surface from an operator holding every ability | `UI/ChannelsPageTest` |
-| 31 | A delivery test sends through the adapter, reports the real outcome and is audited | `UI/ChannelsPageTest` |
+| 28 ✅ | The Channels page requires `pandora.channels.view` and every write requires `pandora.channels.manage` — **both absent by default** | `UI/ChannelsPageTest` |
+| 29 ✅ | **The agent's Channels tab binds and unbinds accounts**, tenant-scoped and audited, replacing the Phase 3.5 stub | `UI/AgentDetailTest` |
+| 30 ✅ | `pandora.features.channels` withholds the whole surface from an operator holding every ability | `UI/ChannelsPageTest` |
+| 31 ✅ | A delivery test sends through the adapter, reports the real outcome and is audited | `UI/ChannelsPageTest` |
 
 ### The reference extension
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 32 | **`laravel-pandora-slack` registers a channel and a tool through the documented contracts alone, with no changes to `src/`** — proved by the package living in its own repository and by its own suite running against core | `laravel-pandora-slack` suite · a core commit range containing no `src/` change made for it |
+| 32 ✅ | **`laravel-pandora-slack` registers a channel and a tool through the documented contracts alone, with no changes to `src/`** — proved by the package living in its own repository, by its own suite running against core, and by needing no core change at all | `laravel-pandora-slack`: `ContractsOnlyTest` · `SlackEventTest` · `SlackDeliveryTest` |
 | 33 | **A human drives `phase-8-walkthrough.md`** against `laravel-test` and a real Slack workspace: an unlinked message refused, a link completed, a reply delivered, an unlink, and a second message refused again | `phase-8-walkthrough.md` |
 
 ## What the tests must run against
@@ -203,11 +224,11 @@ the way every Laravel package does.
 
 ## Definition of done
 
-- [ ] All 33 criteria have tests, and they pass
-- [ ] `vendor/bin/pest` green on all four engines
-- [ ] `vendor/bin/phpstan analyse` clean at level 8, with no ignores and no baseline entries
-- [ ] `vendor/bin/pint --test` clean
-- [ ] `docs/development/progress.md`, `docs/roadmap.md`, `docs/architecture/database-model.md`,
+- [x] 32 of 33 criteria have tests, and they pass. The 33rd is a person.
+- [ ] `vendor/bin/pest` green on all four engines — green on SQLite (1,698 passed, 84 skipped); the matrix has not been re-run since channels landed
+- [x] `vendor/bin/phpstan analyse` clean at level 8, with no ignores and no baseline entries — in both repositories
+- [x] `vendor/bin/pint --test` clean — in both repositories
+- [x] `docs/development/progress.md`, `docs/roadmap.md`, `docs/architecture/database-model.md`,
       `docs/architecture/security-model.md` (the T3 row points at tests), `docs/architecture/overview.md`,
       a new `docs/guides/channels.md`, a new `docs/guides/writing-extensions.md` and `CHANGELOG.md`
       updated

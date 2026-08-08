@@ -5,6 +5,62 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## Phase 8 — Channels and extensions (in progress)
+
+### Added
+
+- **A `Channel` contract, and an inbound pipeline that refuses strangers.** A message from a channel
+  identity nobody has linked creates no run, no session, no conversation and no actor. It is
+  recorded, audited at `warning`, and answered once with instructions. There is no guest seat: a
+  session is history, cost and context, so an anonymous one is either shared between strangers (T3)
+  or minted per stranger.
+- **Identity linking with evidence from both sides** (ADR-0015). A short-lived, single-use code is
+  issued *into the channel* — proving control of the channel account — and redeemed *inside an
+  authenticated host session*, proving control of the host account. Codes are hashed at rest and
+  rate-limited per identity and per redeemer. `LinkCodes::redeem()` takes the user from the guard and
+  has no parameter that could name anybody else.
+- **A link epoch inside the session isolation key.** Re-linking is a new boundary, never a
+  restoration: a reassigned Slack handle cannot walk into the previous holder's transcript.
+- **`pandora_channel_accounts`, `_identities`, `_link_codes`, `_deliveries`.** The account fixes the
+  tenant and nothing in an inbound payload can change it. The unique index on
+  `(account, direction, external_message_id)` makes a platform retry produce one run.
+- **An undeliverable reply is a recorded failure, never re-routed.** Visible on the run and on the
+  Channels page, and never sent to another channel or address — "at least it got through" is not a
+  security property.
+- **Approvals are announced to a channel and never resolved from one.** Replying "yes" in Slack does
+  nothing, deliberately: an approval is a human authorizing a specific call with the real arguments
+  in front of them.
+- **`Pandora\Testing\FakeChannel`**, a first-class deliverable rather than a fixture: it delivers,
+  fails, throws, and builds inbound messages including retries of one already sent.
+- **Extension manifests as inert data** (ADR-0016). An `extra.pandora` block, read from Composer's
+  own `installed.json` — no autoloading, no `class_exists`, no service provider — so the control
+  center can describe a package that has never been booted, including one that would fatal if it
+  were. A manifest describes and never grants: declared-but-unregistered simply does not exist, and
+  registered-but-undeclared is shown to a person rather than blocked.
+- **No marketplace, no remote install, no update check.** Excluded rather than deferred, and a
+  structural test fails if a route, a command or a network call ever appears on that surface.
+- **The Channels page, the Extensions page, and the agent's Channels tab** — the last replacing its
+  Phase 3.5 stub. The Channels page can unlink and cannot link: an operator's belief about who owns a
+  remote handle is not evidence, and a control acting on it would make an admin screen an
+  authentication mechanism.
+- **`pandora:channel:list` and `pandora:extension:list`.** Both read; neither has a sibling that
+  writes.
+- **`michal78/laravel-pandora-slack`** — the reference extension, in its own repository, depending on
+  core through Composer. It needed no core change at all, and its own suite runs against real core.
+
+### Changed
+
+- `PendingAgentRun::viaChannel()` puts the channel and the participant into the session isolation
+  key, so two people in one Slack channel are two sessions.
+- The agent detail page gains a live **Channels** tab; the Phase 3.5 stub for it is gone.
+
+### Fixed
+
+- A published `config/pandora.php` left in the Testbench skeleton by a Phase 7 `vendor:publish` was
+  shadowing the package config in the suite. `mergeConfigFrom()` merges one level deep, so its
+  `features` and `abilities` arrays replaced the package's outright.
+
+
 ## Phase 7 — Workspaces on object storage (in progress)
 
 ### Added

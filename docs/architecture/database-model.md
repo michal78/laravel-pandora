@@ -191,9 +191,22 @@ The goal queue. Deliberately inert: nothing leaves `pending` without a human.
 
 ### Integration
 
-**`pandora_channels`** / **`pandora_channel_identities`** — P7
-Identity links a channel-side participant to a host user only through an **explicit** linking record
-with a verification timestamp. Unique `(channel_id, external_id)`.
+**`pandora_channel_accounts`** / **`pandora_channel_identities`** / **`pandora_channel_link_codes`** /
+**`pandora_channel_deliveries`** — P8
+Account: channel key, name, slug, the remote system's workspace id, agent, credential key, enabled.
+It is where tenancy is decided — every row beneath it inherits `tenant_id`, and no inbound field can
+change it. Unique `(channel, external_id)` and `(tenant, slug)`.
+Identity: what the channel said (external id, display name, payload) plus **`linked_user_id`**, which
+is the only path from a participant to a host user and is null until a human completes the linking
+flow (ADR-0015). `link_epoch` increments on every link and participates in the session isolation key,
+so a re-linked handle is a new boundary rather than an inherited one. Unique
+`(account_id, external_id)`.
+Link code: hashed, short-lived, single-use, with who redeemed it. The plaintext exists in one message
+in a channel and nowhere else.
+Delivery: direction, external message id, status, error, run. The unique index on
+`(account, direction, external_message_id)` is the inbound idempotency guard — a platform retry
+produces one run — and outbound it is what makes an undeliverable reply a visible state rather than a
+silence.
 
 **`pandora_mcp_servers`** / **`pandora_mcp_tools`** — P6
 Server: transport, endpoint, credential, enabled, health, last discovery.
