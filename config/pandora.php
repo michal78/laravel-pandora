@@ -700,10 +700,24 @@ return [
         | nothing -- an allowlist that falls open when unconfigured is not an
         | allowlist. Paths themselves live on the agent, which is edited in a
         | browser, so they are treated as untrusted all the way down.
+        |
+        | A root may also name an object store, written `disk:<name>/<prefix>`
+        | -- `disk:spaces/handbooks`. Roots authorise their own kind only: a
+        | filesystem root never vouches for a bucket key, and a bucket prefix
+        | never vouches for a file on disk.
         */
         'files' => [
             'roots' => [],
             'max_bytes' => 65536,
+
+            /*
+             * How long a context file's BODY may be reused, given its ETag has
+             * not changed. This is not a staleness window: the store is asked
+             * on every read whether the object moved, and a changed one is
+             * re-fetched immediately. It bounds how long the bytes are kept,
+             * not how current they are.
+             */
+            'cache_ttl_seconds' => 86400,
         ],
 
         /*

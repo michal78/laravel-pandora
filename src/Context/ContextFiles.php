@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pandora\Context;
 
+use Illuminate\Contracts\Cache\Repository as Cache;
 use Pandora\Exceptions\ContextFileDenied;
 
 /**
@@ -24,6 +25,14 @@ use Pandora\Exceptions\ContextFileDenied;
  * The prefix comparison includes a trailing separator on purpose. Without it
  * a root of `/srv/agent` accepts `/srv/agent-secrets`, which is a real bug
  * with a boring name.
+ *
+ * A root or a path may also name an object store, written `disk:<name>/<key>`
+ * (ADR-0013). Those are normalised lexically rather than resolved, because an
+ * object store has no symlinks to follow and no second key for the same bytes
+ * -- see `ObjectContextPath`. The allowlist works identically either way: a
+ * path is permitted when it sits under a configured root OF ITS OWN KIND, so a
+ * filesystem root never authorises a key and a bucket prefix never authorises
+ * a file.
  */
 final class ContextFiles
 {
@@ -36,6 +45,7 @@ final class ContextFiles
     public function __construct(
         private readonly array $roots,
         int $maxBytes = 65536,
+        private readonly ?ObjectContextReader $objects = null,
     ) {
         // A configured zero or a negative -- a plausible typo in a published
         // config file -- would otherwise reach fread() and throw mid-run,
@@ -51,7 +61,10 @@ final class ContextFiles
         /** @var int $maxBytes */
         $maxBytes = config('pandora.context.files.max_bytes', 65536);
 
-        return new self($roots, $maxBytes);
+        /** @var int $cacheTtl */
+        $cacheTtl = config('pandora.context.files.cache_ttl_seconds', 86400);
+
+        return new self($roots, $maxBytes, new ObjectContextReader(app(Cache::class), $cacheTtl));
     }
 
     /**
@@ -68,6 +81,10 @@ final class ContextFiles
             throw ContextFileDenied::noRootsConfigured($path);
         }
 
+        if (ObjectContextPath::looksLikeOne($path)) {
+            return $this->resolveObject($path);
+        }
+
         $real = realpath($path);
 
         if ($real === false || ! is_file($real)) {
@@ -78,6 +95,11 @@ final class ContextFiles
         }
 
         foreach ($this->roots as $root) {
+            if (ObjectContextPath::looksLikeOne($root)) {
+                // A bucket prefix never authorises a file on disk.
+                continue;
+            }
+
             $realRoot = realpath($root);
 
             if ($realRoot === false) {
@@ -99,6 +121,10 @@ final class ContextFiles
     {
         $real = $this->resolve($path);
 
+        if (ObjectContextPath::looksLikeOne($real)) {
+            return $this->objectReader()->read(ObjectContextPath::parse($real), $this->maxBytes);
+        }
+
         $handle = fopen($real, 'rb');
 
         if ($handle === false) {
@@ -115,6 +141,38 @@ final class ContextFiles
         }
 
         return $contents === false ? '' : $contents;
+    }
+
+    /**
+     * A `disk:` path, checked against the `disk:` roots and nothing else.
+     *
+     * Returned in its canonical form -- normalised key, same disk -- so that
+     * `readAll()` keys the trace by what was actually read rather than by
+     * whatever spelling the configuration used.
+     *
+     * @throws ContextFileDenied
+     */
+    private function resolveObject(string $path): string
+    {
+        $wanted = ObjectContextPath::parse($path);
+
+        foreach ($this->roots as $root) {
+            if (! ObjectContextPath::looksLikeOne($root)) {
+                // A filesystem root never authorises a key.
+                continue;
+            }
+
+            if ($wanted->isUnder(ObjectContextPath::parse($root))) {
+                return 'disk:'.$wanted->disk.'/'.$wanted->key;
+            }
+        }
+
+        throw ContextFileDenied::outsideRoots($path);
+    }
+
+    private function objectReader(): ObjectContextReader
+    {
+        return $this->objects ?? new ObjectContextReader(app(Cache::class));
     }
 
     /**
