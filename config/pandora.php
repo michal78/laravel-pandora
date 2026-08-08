@@ -717,6 +717,18 @@ return [
         // Declared here rather than left to `upload_max_filesize`, because the
         // PHP limit is a deployment accident and this is a policy.
         'max_upload_bytes' => 26214400, // 25 MB
+
+        // How much of a file `read_file` may put in front of the model at
+        // once. A workspace is allowed to hold a file larger than the model's
+        // context and larger than the worker's memory; the read is bounded and
+        // the truncation is reported, because a model given a silently cut-off
+        // file reasons confidently about the half it got.
+        'max_read_bytes' => 65536, // 64 KB
+
+        // The most `write_file` may write in one call. Not a memory bound -- a
+        // model cannot emit enough to matter -- but a bound on how much of a
+        // workspace's remaining quota one confused call can consume.
+        'max_write_bytes' => 1048576, // 1 MB
     ],
 
     /*

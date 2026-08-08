@@ -90,6 +90,9 @@ final class AgentDetail extends Component
 
     public string $autonomyLevel = '';
 
+    /** The workspace this agent may use, by id. Empty means none, which is the default. */
+    public string $workspaceId = '';
+
     /**
      * Tabs that exist as headings before the work that fills them.
      *
@@ -367,6 +370,7 @@ final class AgentDetail extends Component
             'memories' => $this->tab === 'memory' ? $this->memoriesFor($agent) : collect(),
             'skills' => $this->tab === 'skills' ? $this->skillsFor($agent) : collect(),
             'workspace' => $this->tab === 'workspace' ? $this->workspaceFor($agent) : null,
+            'workspaces' => $this->tab === 'workspace' ? $this->selectableWorkspaces() : collect(),
             'canManageMemory' => PandoraGate::allows('memory.manage'),
             'pendingTabs' => self::pendingTabs(),
         ])->layout('pandora::layouts.app', ['title' => $agent->name]);
@@ -400,6 +404,23 @@ final class AgentDetail extends Component
     private function skillsFor(Agent $agent): mixed
     {
         return $agent->skills()->orderBy('name')->get();
+    }
+
+    /**
+     * The workspaces this operator may attach, which is the tenant's own.
+     *
+     * Disabled ones are offered too, and named as disabled: an operator
+     * turning a workspace off and finding it gone from every agent page has
+     * lost the ability to see which agents were pointed at it.
+     *
+     * @return Collection<int, Workspace>
+     */
+    private function selectableWorkspaces(): Collection
+    {
+        /** @var Collection<int, Workspace> $workspaces */
+        $workspaces = Workspace::query()->orderBy('name')->get();
+
+        return $workspaces;
     }
 
     private function workspaceFor(Agent $agent): ?Workspace
@@ -486,6 +507,72 @@ final class AgentDetail extends Component
         $this->costBudget = $agent->cost_budget_minor === null ? '' : (string) $agent->cost_budget_minor;
         $this->currency = $agent->currency;
         $this->autonomyLevel = $agent->autonomy_level->value;
+        $this->workspaceId = (string) ($agent->workspace_id ?? '');
+    }
+
+    /**
+     * Attach a workspace to this agent, or detach the one it has.
+     *
+     * Its own action rather than a field on `save()`, because it is not an
+     * attribute a definition class can manage and because what it grants is
+     * different in kind: every other field on this page tunes how the agent
+     * behaves, and this one decides whether it can touch files at all.
+     *
+     * An agent holds at most one. That is the schema, and it is also what lets
+     * the file tools take no workspace argument -- there is nothing for a
+     * sentence in a document to select, because there is no selection.
+     */
+    public function attachWorkspace(AuditLogger $audit): void
+    {
+        PandoraGate::authorize('agents.manage');
+
+        // The flag withholds the surface from everybody, and a forged call is
+        // exactly the request that never rendered the tab.
+        if (Feature::disabled('workspaces')) {
+            abort(404);
+        }
+
+        $agent = $this->agent();
+
+        if ($agent === null) {
+            abort(404);
+        }
+
+        $workspace = null;
+
+        if ($this->workspaceId !== '') {
+            // Tenant-scoped, so an id belonging to another tenant is not found
+            // rather than attached. This is the one place a workspace id
+            // arrives from a request at all.
+            $workspace = Workspace::query()->find($this->workspaceId);
+
+            if ($workspace === null) {
+                $this->error = 'That workspace does not exist.';
+                $this->workspaceId = (string) ($agent->workspace_id ?? '');
+
+                return;
+            }
+        }
+
+        $previous = $agent->workspace_id;
+
+        $agent->forceFill(['workspace_id' => $workspace?->getKey()])->save();
+
+        $audit->record(
+            action: $workspace === null ? 'agent.workspace_detached' : 'agent.workspace_attached',
+            targetType: 'agent',
+            targetId: $agent->id,
+            metadata: [
+                'agent' => $agent->slug,
+                'workspace' => $workspace?->slug,
+                'previous_workspace_id' => $previous,
+            ],
+        );
+
+        $this->error = null;
+        $this->saved = $workspace === null
+            ? 'Workspace detached. This agent can reach no files at all.'
+            : 'Workspace attached: '.$workspace->name.'.';
     }
 
     /**

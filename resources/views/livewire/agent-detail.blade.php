@@ -625,7 +625,41 @@
                     This agent has no workspace, so it can reach no files at all. That is the
                     default, and it is the right one for an agent nobody has thought about yet.
                 </p>
-            @else
+            @endif
+
+            @if ($canManage)
+                {{--
+                    An agent holds at most one workspace. That is what lets the
+                    file tools take no workspace argument -- there is nothing
+                    for a sentence in a document the agent is reading to
+                    select, because there is no selection.
+                --}}
+                <form wire:submit="attachWorkspace" class="pd-stack">
+                    <div class="pd-field">
+                        <label class="pd-label" for="pd-agent-workspace">Attached workspace</label>
+                        <select id="pd-agent-workspace" class="pd-select" wire:model="workspaceId">
+                            <option value="">None — this agent can reach no files</option>
+                            @foreach ($workspaces as $option)
+                                <option value="{{ $option->getKey() }}">
+                                    {{ $option->name }} ({{ $option->disk }}:{{ $option->root_path }}){{ $option->enabled ? '' : ' — disabled' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="pd-help">
+                            Attaching a workspace does not grant the file tools. The agent also needs
+                            <span class="pd-mono">read_file</span>, <span class="pd-mono">write_file</span>
+                            or <span class="pd-mono">list_files</span> in its tool allowlist, and each
+                            is refused above the autonomy it needs.
+                        </p>
+                    </div>
+
+                    <div class="pd-row">
+                        <button type="submit" class="pd-btn pd-btn-primary">Save workspace</button>
+                    </div>
+                </form>
+            @endif
+
+            @if ($workspace !== null)
                 <dl class="pd-details">
                     <dt>Name</dt>
                     <dd>{{ $workspace->name }}</dd>

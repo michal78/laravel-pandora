@@ -685,3 +685,140 @@ it('says so when an agent has no skills', function (): void {
         ->call('selectTab', 'skills')
         ->assertSee('adds to what this agent knows how to do, and grants it nothing');
 });
+
+/**
+ * Phase 7, criterion 24 — attaching a workspace to an agent.
+ *
+ * Until this existed, `agents.workspace_id` was writable only from code: the
+ * Workspace tab displayed a workspace and offered no way to choose one. It is
+ * its own action rather than a field on `save()`, because every other field on
+ * that page tunes how the agent behaves and this one decides whether it can
+ * touch files at all.
+ */
+function workspaceFor(string $slug = 'scratch'): Workspace
+{
+    /** @var Workspace $workspace */
+    $workspace = Workspace::query()->create([
+        'name' => ucfirst($slug),
+        'slug' => $slug,
+        'disk' => 'local',
+        'root_path' => sys_get_temp_dir(),
+    ]);
+
+    return $workspace;
+}
+
+it('attaches a workspace to an agent', function (): void {
+    config()->set('pandora.features.workspaces', true);
+
+    $agent = AgentFactory::database();
+    $workspace = workspaceFor();
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'workspace')
+        ->set('workspaceId', (string) $workspace->getKey())
+        ->call('attachWorkspace')
+        ->assertSee('Workspace attached');
+
+    expect($agent->refresh()->workspace_id)->toBe($workspace->getKey());
+
+    /** @var AuditLog $entry */
+    $entry = AuditLog::query()->where('action', 'agent.workspace_attached')->firstOrFail();
+
+    expect($entry->metadata['workspace'] ?? null)->toBe('scratch');
+});
+
+it('detaches a workspace, leaving the agent able to reach no files', function (): void {
+    config()->set('pandora.features.workspaces', true);
+
+    $agent = AgentFactory::database();
+    $agent->update(['workspace_id' => workspaceFor()->getKey()]);
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'workspace')
+        ->set('workspaceId', '')
+        ->call('attachWorkspace')
+        ->assertSee('can reach no files at all');
+
+    expect($agent->refresh()->workspace_id)->toBeNull()
+        ->and(AuditLog::query()->where('action', 'agent.workspace_detached')->count())->toBe(1);
+});
+
+it('refuses a workspace id that does not exist', function (): void {
+    config()->set('pandora.features.workspaces', true);
+
+    $agent = AgentFactory::database();
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'workspace')
+        ->set('workspaceId', '01JCZZZZZZZZZZZZZZZZZZZZZZ')
+        ->call('attachWorkspace')
+        ->assertSee('does not exist');
+
+    expect($agent->refresh()->workspace_id)->toBeNull();
+});
+
+it('does not attach another tenant\'s workspace', function (): void {
+    config()->set('pandora.features.workspaces', true);
+
+    $foreign = inTenant('acme', fn (): Workspace => workspaceFor('acme-only'));
+
+    inTenant('globex', function () use ($foreign): void {
+        $agent = AgentFactory::database();
+
+        $this->actingAsUser();
+
+        // Not found rather than forbidden: the id is the only thing the
+        // request carries, and confirming it exists is the leak.
+        Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+            ->set('workspaceId', (string) $foreign->getKey())
+            ->call('attachWorkspace')
+            ->assertSee('does not exist');
+
+        expect($agent->refresh()->workspace_id)->toBeNull();
+    });
+});
+
+it('refuses to attach a workspace without agents.manage', function (): void {
+    config()->set('pandora.features.workspaces', true);
+
+    Gate::define('pandora.agents.manage', static fn (): bool => false);
+
+    $agent = AgentFactory::database();
+    $workspace = workspaceFor();
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->set('workspaceId', (string) $workspace->getKey())
+        ->call('attachWorkspace')
+        ->assertForbidden();
+
+    expect($agent->refresh()->workspace_id)->toBeNull();
+});
+
+it('refuses a forged attach while the workspaces feature is off', function (): void {
+    config()->set('pandora.features.workspaces', false);
+
+    // Every ability, and the flag still withholds it: the tab that would have
+    // honoured the flag is exactly what a forged Livewire call skips.
+    Gate::before(static fn (): bool => true);
+
+    $agent = AgentFactory::database();
+    $workspace = workspaceFor();
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->set('workspaceId', (string) $workspace->getKey())
+        ->call('attachWorkspace')
+        ->assertNotFound();
+
+    expect($agent->refresh()->workspace_id)->toBeNull();
+});
