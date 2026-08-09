@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Pandora\Channels;
 
 use Pandora\Channels\Data\OutboundMessage;
+use Pandora\Messages\Enums\MessageRole;
+use Pandora\Messages\Message;
 use Pandora\Runs\Enums\RunState;
 use Pandora\Runs\Enums\TriggerType;
 use Pandora\Runs\Events\RunStateChanged;
@@ -94,8 +96,55 @@ final class ChannelReplier
             RunState::WaitingForApproval => 'I need approval before I can continue. '
                 .'Someone with permission has to review it in the control center.',
 
+            // The agent asked something. Unlike an approval -- which a channel
+            // may only announce -- a question IS the channel's to carry, and
+            // the next inbound message resumes the run holding it.
+            RunState::WaitingForUser => $this->questionFor($run),
+
             default => null,
         };
+    }
+
+    /**
+     * The question a parked run is waiting on.
+     *
+     * `MessageWriter::question()` records it as an assistant message on the run
+     * and marks it `awaiting_answer`; the run's own `output` stays empty,
+     * because the run has not produced an answer and may never.
+     */
+    private function questionFor(Run $run): ?string
+    {
+        if ($run->conversation_id === null) {
+            return null;
+        }
+
+        /** @var Message|null $message */
+        $message = Message::query()
+            ->where('conversation_id', $run->conversation_id)
+            ->where('run_id', $run->getKey())
+            ->where('role', MessageRole::Assistant->value)
+            ->latest('created_at')
+            ->latest('id')
+            ->first();
+
+        if ($message === null) {
+            return null;
+        }
+
+        $metadata = $message->metadata ?? [];
+
+        if (($metadata['awaiting_answer'] ?? false) !== true) {
+            return null;
+        }
+
+        $question = trim((string) $message->content);
+
+        // A parked run with nothing to ask would leave the person waiting on a
+        // question that was never put to them, which is the defect this arm
+        // exists to close rather than a case to reproduce quietly.
+        return $question === ''
+            ? 'I need something from you before I can continue, but I could not say what.'
+            : $question;
     }
 
     /**

@@ -2,7 +2,7 @@
 
 > Status: **partially driven, 2026-08-09**, against `laravel-test` and a real
 > Slack workspace (`T0BNV8RM7MZ`). Sections 1–4, 6 and 8 driven; 5 and 7 not.
-> Fourteen findings, four fixed during the run. Criterion 33 stays open.
+> Fifteen findings, five fixed during the run. Criterion 33 stays open.
 >
 > - **Sections 1–4 driven.** Install, register, refuse a stranger, link, and
 >   answer as the linked user. Findings 1–7 came from these.
@@ -501,7 +501,7 @@ where each half was tested and the seam between them was not. Here the seam is
 not a data path but a *definition*: `MemoryWriter` and `Redactor` hold different
 opinions about what a secret is, and the run consulted both.
 
-### 13. An agent's question to a channel is never asked, and parks the run forever
+### 13. An agent's question to a channel is never asked — **fixed**
 
 **Reported by the driver as "the agent did not answer my first message."** It
 had answered. Nobody could see it.
@@ -563,19 +563,40 @@ asking for clarification is the *correct* thing for a model to do when it does
 not know something, so the better the agent behaves, the more often the channel
 goes quiet.
 
-**Recommended fix.** Both halves, together — either alone makes things worse.
-Deliver the question (`WaitingForUser => $run->output`, the same shape as
-`Completed`), and have `ChannelInbox` route an inbound message to
-`Pandora::reply()` when the identity's conversation holds a run in that state.
-Delivering without resuming asks a question that no answer can reach; resuming
-without delivering answers a question nobody heard.
+**It was already the stated intent.** `ChannelReplier`'s own class docblock:
+*"A pause -- waiting for an approval **or for the user** -- is also announced."*
+Half of that sentence was true.
 
-**Could the suite have caught it?** Yes, and the missing test is nameable: drive
-a channel run whose tool parks it at `waiting_for_user`, and assert the channel
-was told. Nothing did, because every channel test uses a tool that returns and a
-run that completes. The `default => null` is where it hid — **a match over an
-enum with a default arm silently absorbs the states nobody thought about**, and
-this one absorbed a state the codebase documents in three other files.
+**Fixed, both halves together** — either alone makes things worse. Delivering
+without resuming asks a question no answer can reach; resuming without
+delivering answers a question nobody heard.
+
+- `ChannelReplier` gained a `WaitingForUser` arm. It cannot use `$run->output`
+  the way `Completed` does — a parked run's output is empty, because it has
+  produced no answer and may never — so it reads the question from the
+  assistant message `MessageWriter::question()` marked `awaiting_answer`.
+- `ChannelInbox` checks for a run in `waiting_for_user` on the identity's
+  conversation and routes the message to `Pandora::reply()` instead of starting
+  a new run, recording the delivery against the resumed run and marking the
+  audit row `resumed_run`.
+
+The approval boundary is untouched and now has a test saying so: a message
+arriving during a `waiting_for_approval` pause still starts a new run, because
+that decision is not the channel's to carry (ADR-0015).
+
+**Could the suite have caught it?** Yes, and the missing test was nameable
+before it was written: drive a channel run whose tool parks it at
+`waiting_for_user`, and assert the channel was told. Nothing did — and the
+reason turned out to be sharper than "nobody thought of it". **
+`ToolResult::awaitingUser()` had no test and no fixture anywhere in the suite**,
+so the state existed in the state machine, in the executor, in the resume job
+and in the web chat, and was never once driven end to end. Writing finding 13's
+test meant writing the first `AskUserTool` in the codebase.
+
+The `default => null` is where it hid. **A match over an enum with a default arm
+silently absorbs the states nobody thought about**, and this one absorbed a
+state the codebase documents in four other files, including the docblock of the
+class doing the absorbing.
 
 ### 14. A broken extension takes the whole host down, Extensions page included
 
@@ -654,6 +675,50 @@ missing class. With debug off — the setting section 8 implicitly assumes, sinc
 it is asking what an *operator* sees — the same failure is a blank 500 across
 the whole application with nothing to indicate that an extension is involved at
 all, let alone which one.
+
+### 15. Criterion 18's test configures its approval with a key that does nothing
+
+**Found while writing the regression test for finding 13**, by copying the setup
+from the test next door and having it not work.
+
+`ApprovalNotificationTest` — the test behind criterion 18, *"a channel can say an
+approval is waiting"* — configures its agent like this:
+
+```php
+'approval_policy' => ['require' => ['refund_order']],
+```
+
+`RiskBasedToolPolicy` reads four keys: `deny`, `require_approval`,
+`require_confirmation`, `auto_approve`. **There is no `require`.** The line is
+inert. The test passes because `RefundOrderTool` is `RiskLevel::High`, and a
+high-risk tool pauses for a human at the gatekeeper's floor whatever any policy
+says — the class docblock states exactly that: *"a `high` risk tool still pauses
+for a human, because that floor is the gatekeeper's."*
+
+So the right thing happens, for a reason the test does not name and does not
+test. Copying that setup onto a `Low` risk tool produces no approval at all,
+which is how it surfaced.
+
+**What is actually unverified.** That an agent's `approval_policy` can raise the
+bar for a tool whose risk would not otherwise pause it — the only case where the
+policy does any work. Everything criterion 18 demonstrates would still pass with
+`RiskBasedToolPolicy` deleted.
+
+**Fixed here only where it was in the way**: the new `QuestionTest` uses
+`require_approval` on a `Low` risk tool, so its approval genuinely comes from
+the policy. `ApprovalNotificationTest` is left alone deliberately — correcting
+its key changes what criterion 18 asserts, and that belongs in a change that
+looks at the whole policy surface rather than in a walkthrough.
+
+**Could the suite have caught it?** Not as written, and this is the third time
+this phase has produced the same shape. Finding 8 had a test asserting the
+defect it was named to prevent; finding 10 had thirteen tests that never clicked
+Edit without clicking Inspect first; this one has a config key nobody typo-checks
+because a silent no-op and a working feature look identical when the outcome is
+right anyway. **A policy that reads unknown keys without complaint cannot be
+tested into correctness** — `RiskBasedToolPolicy::lists()` should reject a key
+it does not recognise, and then this would have been a fatal test error the day
+it was written.
 
 ### What worked, and should not be quietly lost
 

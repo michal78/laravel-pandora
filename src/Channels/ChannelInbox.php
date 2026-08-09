@@ -23,7 +23,9 @@ use Pandora\Core\Tenancy\TenantContext;
 use Pandora\Core\Tenancy\TenantManager;
 use Pandora\Exceptions\ChannelLinkDenied;
 use Pandora\Pandora;
+use Pandora\Runs\Enums\RunState;
 use Pandora\Runs\Enums\TriggerType;
+use Pandora\Runs\Run;
 
 /**
  * Where a message from a stranger meets the rest of Pandora, or does not.
@@ -129,6 +131,41 @@ final class ChannelInbox
         }
 
         $conversation = $this->conversation($account, $identity, $agent, $actor->name);
+
+        // A run that asked something is owed an answer, not a competitor. The
+        // web chat has always done this; a channel that did not left the parked
+        // run holding a question forever while every later message started a
+        // fresh run beside it.
+        $waiting = $this->waitingRun($conversation);
+
+        if ($waiting !== null) {
+            $run = $this->actors->with(
+                $actor,
+                fn (): Run => $this->pandora->reply($waiting, $message->text),
+            );
+
+            $delivery->forceFill([
+                'identity_id' => $identity->getKey(),
+                'run_id' => $run->getKey(),
+                'status' => DeliveryStatus::Received,
+            ])->save();
+
+            $this->audit->record(
+                action: 'channel.message_received',
+                targetType: ChannelAccount::class,
+                targetId: (string) $account->getKey(),
+                runId: (string) $run->getKey(),
+                metadata: [
+                    'channel' => $account->channel,
+                    'identity_id' => $identity->getKey(),
+                    // Distinguishes an answer from a new request in the audit
+                    // trail, where they otherwise look identical.
+                    'resumed_run' => true,
+                ],
+            );
+
+            return InboundResult::accepted($identity, $run);
+        }
 
         $run = $this->actors->with($actor, fn () => $this->pandora
             ->agent($agent)
@@ -383,6 +420,25 @@ final class ChannelInbox
         $identity->forceFill(['conversation_id' => $conversation->getKey()])->save();
 
         return $conversation;
+    }
+
+    /**
+     * The run on this conversation that is waiting to be answered, if any.
+     *
+     * Only `waiting_for_user` qualifies. A run waiting for an approval is not
+     * the participant's to unblock -- ADR-0015 keeps that decision in the
+     * control center -- so a message arriving during one starts a new run, as
+     * it always has.
+     */
+    private function waitingRun(Conversation $conversation): ?Run
+    {
+        /** @var Run|null $run */
+        $run = $conversation->runs()
+            ->where('state', RunState::WaitingForUser->value)
+            ->latest('created_at')
+            ->first();
+
+        return $run;
     }
 
     private function idempotencyKey(ChannelAccount $account, InboundMessage $message): string
