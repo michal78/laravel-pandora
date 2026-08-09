@@ -467,6 +467,24 @@ A third option — refusing new messages while a run awaits approval — was
 rejected: it makes the person outside the boundary absorb the cost of an
 internal invariant, which is the failure mode this phase exists to prevent.
 
+**Verified live, on the poisoned data itself.** Conversation
+`01kzkw57ev4rffm4ya0wrwsy3p` — the one holding the 18:24:07 transcript above and
+four consecutive failed runs — was pointed back at the Slack identity and asked
+*"What is my bicycle called?"*. Because the conversation participates in the
+session isolation key, repointing it restored the same session and its entire
+history, corruption included. The run completed. The reply read *"You mentioned
+it was 'Lars'"* — message 11, from before the break — so the whole transcript
+was loaded, repaired on the way out, and accepted by the provider. Nothing in
+the database was rewritten and no relink was needed.
+
+```
+18:24:06  failed     ← the four
+18:24:08  failed
+18:24:21  failed
+18:25:13  failed
+19:07:34  completed  ← same conversation, same session, after the fix
+```
+
 **Note what this does not do.** It repairs the transcript on the way *out*, so
 an already-poisoned conversation starts working again on its next message and
 no data is rewritten. It does not stop the interleaving from happening, and it
