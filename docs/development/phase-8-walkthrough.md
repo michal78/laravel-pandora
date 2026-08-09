@@ -639,7 +639,7 @@ its question delivered, which is not the claim worth defending.
 document really trades in. Asked something it could not know, the agent's
 `recall` came back empty, `ask_user` parked the run — and the delivery rows show
 an outbound message on the *parked* run (`18:22:03`, run `yn2vy9`), where before
-the fix there was no outbound row at all. The next inbound message an minute
+the fix there was no outbound row at all. The next inbound message a minute
 later is recorded against **the same run**, not a new one.
 
 **One consequence worth knowing.** While a question is pending, the next message
