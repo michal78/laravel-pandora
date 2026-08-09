@@ -97,6 +97,10 @@ final class ChannelsIndex extends Component
             return;
         }
 
+        // Editing selects, because the form only renders beside the selected
+        // account. Without this the button appears to do nothing at all unless
+        // the row happened to be inspected first.
+        $this->selected = $account->slug;
         $this->form = $account->slug;
         $this->formChannel = $account->channel;
         $this->formName = $account->name;

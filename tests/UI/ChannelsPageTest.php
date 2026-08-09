@@ -201,3 +201,14 @@ it('cannot unlink another tenant identity', function (): void {
     expect(ChannelIdentity::acrossAllTenants()->findOrFail($identity->getKey())->linked_user_id)
         ->not->toBeNull();
 });
+
+it('opens the edit form from the list without inspecting first', function (): void {
+    // The form renders beside the SELECTED account, so editing has to select
+    // too. It did not, and the Edit button did nothing at all for anyone who
+    // had not already clicked Inspect on that row -- which is nobody's first
+    // move, and was found by a human clicking it rather than by any test here.
+    Livewire::test(ChannelsIndex::class)
+        ->call('startEditing', $this->account->slug)
+        ->assertSet('selected', $this->account->slug)
+        ->assertSee('Edit Acme Slack');
+});

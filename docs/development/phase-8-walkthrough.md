@@ -363,6 +363,16 @@ request. A second run reading the same conversation fails differently and for a
 related reason: it sees an assistant `tool_calls` whose result does not exist
 yet at all.
 
+**It does not heal. This is the part that makes it urgent.** Driving section 6
+an hour later, on the same Slack session, every run still failed with the same
+error — four consecutive runs on conversation `…bz90s6`, which by then held
+seven assistant messages carrying `tool_calls`. Once a conversation acquires
+one unanswered tool call it is finished: every future message in it dies at the
+provider, forever. The participant sees *"Something went wrong"* every time,
+with no event marking the moment their session stopped working and no way back
+from inside the channel. A durable, silent, unrecoverable break in the one
+place we cannot see.
+
 **Why it matters.** Step 7 instructs the driver to reply "yes", so the
 walkthrough found this by following its own script — but "yes" is incidental.
 *Any* message sent while a run awaits approval corrupts the transcript, and a
@@ -383,6 +393,35 @@ internal invariant, which is the failure mode this phase exists to prevent.
 This is core run semantics and wants its own change with tests for both the
 paused-run and second-run cases. **Step 7 is blocked on it and is recorded
 undriven, not passed.**
+
+### 10. The Edit button on the Channels list did nothing — **fixed**
+
+Reported by the driver in three words, after every automated test of that page
+passed. The edit form renders `@if ($account !== null && $form === $account->slug)`,
+and `$account` is the *selected* account — set by **Inspect**. `startEditing()`
+set `$form` and never `$selected`, so unless the row had already been inspected,
+clicking Edit changed nothing on screen. Nobody's first move is to inspect a row
+before editing it.
+
+Fixed by selecting the row being edited, with a test that fails against the old
+code. Thirteen tests covered that page — listing, registering, refusing,
+unlinking, escaping a hostile display name, tenancy — and not one clicked Edit
+without clicking Inspect first. **Tests exercise the paths their author was
+thinking about; a person clicking buttons exercises the ones they were not.**
+
+### 11. There is no "thinking" signal in the channel
+
+Requested by the driver, and it belongs with findings 1, 2 and 9 rather than in
+a feature list: this phase keeps producing silence that a person cannot
+distinguish from being ignored. A run takes seconds, and Slack shows nothing
+until the answer lands — the same nothing a disabled account shows, the same
+nothing a bounced refusal shows, the same nothing a corrupted conversation
+shows forever.
+
+Slack has a typing indicator, and the `Channel` contract has no way to ask for
+one. That is the gap: an optional capability a channel may implement and the
+core may signal on run start, so an adapter that has one uses it and one that
+does not degrades to today's behaviour.
 
 ### What worked, and should not be quietly lost
 
