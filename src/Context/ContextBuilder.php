@@ -82,6 +82,12 @@ final class ContextBuilder
             ];
         }
 
+        // Last, and across every section rather than within one: a transcript
+        // is only valid as a whole, and this is the last point at which it is
+        // still ours. See TranscriptNormaliser for what a stored conversation
+        // does that no provider accepts.
+        $messages = $this->container->make(TranscriptNormaliser::class)->normalise($messages);
+
         return new BuiltContext(
             messages: $messages,
             included: $included,

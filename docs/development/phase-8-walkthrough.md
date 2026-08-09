@@ -2,7 +2,7 @@
 
 > Status: **partially driven, 2026-08-09**, against `laravel-test` and a real
 > Slack workspace (`T0BNV8RM7MZ`). Sections 1–4, 6 and 8 driven; 5 and 7 not.
-> Fifteen findings, five fixed during the run. Criterion 33 stays open.
+> Fifteen findings, six fixed during the run. Criterion 33 stays open.
 >
 > - **Sections 1–4 driven.** Install, register, refuse a stranger, link, and
 >   answer as the linked user. Findings 1–7 came from these.
@@ -358,7 +358,7 @@ was written to prevent, and then defend it.** Nothing else noticed because no
 host had ever configured a job, event or notification for an agent to call, so
 these four tools had never been called with arguments in anger.
 
-### 9. A message sent during an approval corrupts the run — **not fixed**
+### 9. A message arriving mid-tool-call corrupts the conversation forever — **fixed**
 
 **What happened.** After approving `send_notification` in the control center,
 the run failed:
@@ -435,20 +435,43 @@ Two details sharpen the fix:
   person generate the input that destroys their own session, permanently, in
   under a second.
 
-**Recommended fix, deliberately not applied here.** Normalise the transcript
-where it is assembled for the provider: group each assistant's `tool_calls`
-with its own results and push interleaved user messages after, *and*
-synthesise a placeholder `tool` message for any call with no result yet.
-Reordering alone cannot repair a message that does not exist. One place,
-provider-agnostic, no change to what anyone is allowed to do.
+**The fix.** `Pandora\Context\TranscriptNormaliser`, applied in
+`ContextBuilder::build()` after every section has contributed — the last point
+at which the transcript is still ours, and one place for every provider. It
+walks the assembled messages and emits each assistant turn followed immediately
+by one `tool` message per call it made:
+
+- **Out of order.** The result is moved up to its request; whatever was
+  interleaved is emitted after the group, in its original relative order.
+  Nothing is dropped and nothing is invented. This alone would have saved both
+  poisoned conversations.
+- **Not there at all.** A call with no result — a run still parked on an
+  approval — gets a synthesised placeholder saying so, because reordering
+  cannot repair a message that was never written. The wording is truthful
+  rather than an error: a model told the tool *failed* apologises for something
+  that has not happened.
+
+The two halves have their own tests in `tests/Feature/ToolContextReplayTest.php`,
+because they repair different failures. The interleaving test is the captured
+18:24:07 transcript verbatim.
+
+`RecentMessagesProvider` lost its `dropOrphanedToolMessages()`, which was the
+same problem solved partially and in the wrong place: it handled the recency
+window cutting a loop in half, but not a conversation storing things in the
+order they happened, and it answered an unanswered call by *stripping the
+assistant's tool calls* — valid, but it threw away the record of what the agent
+had asked for. Two of its tests were replaced rather than kept; the behaviour
+they pinned was deliberately changed.
 
 A third option — refusing new messages while a run awaits approval — was
 rejected: it makes the person outside the boundary absorb the cost of an
 internal invariant, which is the failure mode this phase exists to prevent.
 
-This is core run semantics and wants its own change with tests for both the
-paused-run and second-run cases. **Step 7 is blocked on it and is recorded
-undriven, not passed.**
+**Note what this does not do.** It repairs the transcript on the way *out*, so
+an already-poisoned conversation starts working again on its next message and
+no data is rewritten. It does not stop the interleaving from happening, and it
+does not make finding 11 any less urgent — the missing typing indicator is
+still what makes a person type into that window.
 
 ### 10. The Edit button on the Channels list did nothing — **fixed**
 

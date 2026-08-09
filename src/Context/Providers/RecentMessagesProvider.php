@@ -11,7 +11,6 @@ use Pandora\Messages\Enums\MessageRole;
 use Pandora\Messages\Enums\StreamingState;
 use Pandora\Messages\Message;
 use Pandora\Providers\Data\ChatMessage;
-use Pandora\Providers\Data\ToolCall;
 
 /**
  * Recent conversation history, scoped to the run's SESSION.
@@ -69,76 +68,14 @@ final class RecentMessagesProvider implements ContextProvider
             ))
             ->all());
 
-        $chatMessages = $this->dropOrphanedToolMessages($chatMessages);
-
         if ($chatMessages === []) {
             return null;
         }
 
+        // Deliberately NOT repaired here. A recency window can cut a tool loop
+        // in half, and a stored conversation can interleave a message between
+        // a request and its answer -- both invalid, both fixed once for every
+        // provider in TranscriptNormaliser, on the way out.
         return ContextSection::of($this->key(), $chatMessages);
-    }
-
-    /**
-     * Keep tool requests and tool results together.
-     *
-     * A recency window can cut a tool loop in half, and every provider rejects
-     * the halves: a result whose request is missing, or a request whose
-     * results are. Dropping the orphans costs a little history and keeps the
-     * request valid, which is the right trade -- the alternative is a run that
-     * fails for a reason no operator can see.
-     *
-     * @param list<ChatMessage> $messages
-     * @return list<ChatMessage>
-     */
-    private function dropOrphanedToolMessages(array $messages): array
-    {
-        $requested = [];
-
-        foreach ($messages as $message) {
-            foreach ($message->toolCalls as $call) {
-                $requested[$call->id] = true;
-            }
-        }
-
-        $withRequests = array_values(array_filter(
-            $messages,
-            static fn (ChatMessage $m): bool => $m->role !== MessageRole::Tool
-                || ($m->toolCallId !== null && isset($requested[$m->toolCallId])),
-        ));
-
-        $answered = [];
-
-        foreach ($withRequests as $message) {
-            if ($message->role === MessageRole::Tool && $message->toolCallId !== null) {
-                $answered[$message->toolCallId] = true;
-            }
-        }
-
-        $kept = [];
-
-        foreach ($withRequests as $message) {
-            if (! $message->requestsTools()) {
-                $kept[] = $message;
-
-                continue;
-            }
-
-            $unanswered = array_filter(
-                $message->toolCalls,
-                static fn (ToolCall $call): bool => ! isset($answered[$call->id]),
-            );
-
-            if ($unanswered === []) {
-                $kept[] = $message;
-
-                continue;
-            }
-
-            if ($message->content !== '') {
-                $kept[] = ChatMessage::assistant($message->content);
-            }
-        }
-
-        return $kept;
     }
 }
