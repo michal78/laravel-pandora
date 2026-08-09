@@ -1,17 +1,24 @@
 # Phase 8 — Host Walkthrough
 
 > Status: **partially driven, 2026-08-09**, against `laravel-test` and a real
-> Slack workspace (`T0BNV8RM7MZ`). Sections 1–4 driven; 5 and 7 not; 6 and 8
-> pending. Nine findings, three fixed during the run. Criterion 33 stays open.
+> Slack workspace (`T0BNV8RM7MZ`). Sections 1–4 and 6 driven; 5 and 7 not; 8
+> pending. Thirteen findings, four fixed during the run. Criterion 33 stays
+> open.
 >
 > - **Sections 1–4 driven.** Install, register, refuse a stranger, link, and
 >   answer as the linked user. Findings 1–7 came from these.
 > - **Section 5 not driven — no second Slack account was available.** Two
->   people on one channel account is therefore **unproven**, in either
->   direction. It is the claim a single-account walkthrough cannot make.
-> - **Section 6 and 8 pending.**
+>   people on one channel account **at the same time** is therefore unproven,
+>   in either direction. It is the claim a single-account walkthrough cannot
+>   make. Section 6's relink covers the same boundary *sequentially* and it
+>   held; that is weaker evidence, not a substitute.
+> - **Section 6 driven.** Revocation, unlink, refusal, and relink to a
+>   different host user. The isolation claim held on both layers. Findings 12
+>   and 13 came from this, and finding 5 was re-confirmed live.
+> - **Section 8 pending.**
 > - **Section 7 blocked** by finding 9, which is a core defect rather than a
->   channel one.
+>   channel one. Its first bullet — the channel is told an approval is waiting
+>   — was observed working incidentally while setting up section 6.
 >
 > What the boundary got right, it got right from the first message. Every
 > defect below is on the path *out* — what a person is told, and whether it
@@ -274,6 +281,19 @@ The other half is not configuration at all: `instructions()` — the *first*
 message any stranger sees — contains no URL even when `redeem_url` is set.
 Setting the key cannot fix it.
 
+**Confirmed live while driving section 6**, under the best conditions the
+finding will ever get. `pandora.channels.linking.redeem_url` resolved to a real
+absolute URL (`https://…/pandora/channels/link`), the account was enabled, the
+identity had just been unlinked by an operator, and the refusal delivered
+first time. The message was still:
+
+> This account is not linked to a user yet, so I cannot act on it. Send "link"
+> and I will give you a code to enter while signed in.
+
+`ChannelInbox.php:403` is a two-line string literal with no destination in it
+and no access to the configured URL. Signed in *where* remains unanswerable
+from inside Slack even on an installation that has done everything right.
+
 **Fix.** Default `redeem_url` to `route('pandora.channels.link')` rather than
 null: the package knows its own route, and an absolute URL is strictly better
 than a generic noun. Then thread that URL through `instructions()` too, so the
@@ -423,6 +443,138 @@ one. That is the gap: an optional capability a channel may implement and the
 core may signal on run start, so an adapter that has one uses it and one that
 does not degrades to today's behaviour.
 
+### 12. The memory guard refused the secret; the approval card kept it
+
+**Found by accident**, which is the only way this one was ever going to be
+found. Setting up section 6 wanted a private fact for the agent to later not
+remember, and the fact chosen was a passphrase. Three things then happened in a
+single run, and they do not agree with each other:
+
+1. `request_approval` fired at `critical` risk and the channel was told an
+   approval was waiting — correct, and the first half of section 7 working.
+2. The memory tool **refused to store it**: *"That was not stored: it looks
+   like a credential or another secret, and those are never kept in memory."*
+   Exactly right.
+3. The approval record created seconds earlier persisted the secret in the
+   clear:
+
+```
+sanitized_arguments = {"detail": "... their walkthrough passphrase, which is
+'copper-lantern-84' ...", "summary": "I propose to remember a sensitive
+passphrase for the user."}
+```
+
+**Cause.** `ToolCallCoordinator.php:350` builds `sanitized_arguments` with
+`Redactor::redact()`, which decides by **key name** — `password`, `token`, and
+so on. `request_approval` takes two free-text fields, `summary` and `detail`,
+and a model explaining *why* it needs approval to store a secret will naturally
+put the secret in the explanation. Neither key is sensitive, so the value passed
+through verbatim.
+
+`Redactor` already has the other half. `redactText()` exists for exactly this —
+its own docblock calls it *"a belt-and-braces pass for values we could not catch
+by key"* — and it is wired into `MemoryWriter`, `ContextBuilder`,
+`RunStateMachine`, `RunFailer`, `DelegationCompleter` and `ExecuteToolCall`. It
+is not wired into the one payload whose column name promises it has been
+sanitized, and which is rendered on a card for an operator to read.
+
+**Why it matters more than one leaked string.** `Approval.php:27` states the
+contract in a comment: *"The card shows `summary` and `sanitized_arguments` —
+never the raw ones."* The name and the comment both assert a guarantee the code
+does not provide, so every future reader is entitled to believe secrets cannot
+reach that column. And the leak is concentrated where it is worst: approvals are
+the records most likely to be long-lived, exported, and read by someone other
+than the person whose secret it is.
+
+**Not fixed here.** Running `redactText()` over string values inside `redact()`
+is one line and the wrong instinct to act on mid-walkthrough: it changes every
+redacted payload in the system at once. It wants its own change, with a test
+that puts a credential in a free-text argument and asserts it does not survive
+into `sanitized_arguments`.
+
+**Could the suite have caught it?** Only by asking a question nobody had asked:
+whether two components that both classify secrets agree. The memory guard has
+tests, the redactor has tests, and both pass — the same shape as finding 1,
+where each half was tested and the seam between them was not. Here the seam is
+not a data path but a *definition*: `MemoryWriter` and `Redactor` hold different
+opinions about what a secret is, and the run consulted both.
+
+### 13. An agent's question to a channel is never asked, and parks the run forever
+
+**Reported by the driver as "the agent did not answer my first message."** It
+had answered. Nobody could see it.
+
+**What happened.** Freshly linked as the second host user, the first message was
+*"What is my desk plant called?"*. Slack showed nothing. The transcript shows
+the run reached a reply:
+
+```
+user       "What is my desk plant called?"
+assistant  (tool_calls)
+tool       "Nothing remembered about that."
+assistant  (tool_calls)
+tool       "What is the name of your desk plant?"
+assistant  "What is the name of your desk plant?"     ← never delivered
+```
+
+The run (`…hsaytw`) is not failed and not errored. It is `waiting_for_user`,
+with no `finished_at`, holding a question for somebody who was never told it was
+asked. The driver, meeting silence, typed something else — which started a
+*second* run, and that one completed and delivered normally. The first is still
+parked.
+
+**Cause, part one — the question is not sent.** `ChannelReplier::textFor()`
+matches `Completed`, `Failed`, `TimedOut`, `Cancelled` and `WaitingForApproval`,
+then `default => null`, and a null text returns before any delivery is built.
+`WaitingForUser` falls into the default. This is deliberate machinery, not an
+accident of an unreachable state: `RunStateMachine.php:39` comments *"
+WaitingForUser is reachable because a tool may ASK something"*, `ToolResult`
+documents the park, and `ResumeRunWithUserReply` exists to end it. Every piece
+is built except the one that tells the person.
+
+**Cause, part two — the reply cannot resume it.** `Pandora::reply()` is the way
+back into a parked run, and its only caller is the web chat. `ChannelInbox`
+never checks for a waiting run, so a channel message always starts a new one.
+The parked run stays the conversation's active run and never reaches a terminal
+state.
+
+**The web UI already solved exactly this, and said why.**
+`UI/Livewire/Chat.php:225`:
+
+> A run that asked something is owed an answer, not a competitor. Left to start
+> a fresh run, the parked one is never resumed and so never reaches a terminal
+> state -- it stays the conversation's active run, and the header goes on
+> reporting "Waiting for you" over the top of a conversation that has since
+> moved on.
+
+The hazard was understood, written down, and fixed on the surface where a
+person can at least *see* the question they are failing to answer. On the
+surface where they cannot see it, neither half is handled.
+
+**Why it matters.** This is the phase's recurring failure in its purest form.
+A disabled account is silent (finding 2), a bounced refusal is silent (finding
+1), a corrupted conversation is silent (finding 9) — and now an agent that
+politely asks a clarifying question is silent too. Four unrelated causes, one
+indistinguishable symptom, and no way for the person outside the boundary to
+tell them apart. It also makes an ordinary, well-behaved agent the trigger:
+asking for clarification is the *correct* thing for a model to do when it does
+not know something, so the better the agent behaves, the more often the channel
+goes quiet.
+
+**Recommended fix.** Both halves, together — either alone makes things worse.
+Deliver the question (`WaitingForUser => $run->output`, the same shape as
+`Completed`), and have `ChannelInbox` route an inbound message to
+`Pandora::reply()` when the identity's conversation holds a run in that state.
+Delivering without resuming asks a question that no answer can reach; resuming
+without delivering answers a question nobody heard.
+
+**Could the suite have caught it?** Yes, and the missing test is nameable: drive
+a channel run whose tool parks it at `waiting_for_user`, and assert the channel
+was told. Nothing did, because every channel test uses a tool that returns and a
+run that completes. The `default => null` is where it hid — **a match over an
+enum with a default arm silently absorbs the states nobody thought about**, and
+this one absorbed a state the codebase documents in three other files.
+
 ### What worked, and should not be quietly lost
 
 - The link page states the boundary to the person it applies to, in their
@@ -432,6 +584,22 @@ does not degrades to today's behaviour.
 - The inbound refusal path was correct from the first message and stayed
   correct through every defect above it: no identity, no run, no session for a
   stranger, and a durable row for each refusal.
+- **A relink is a new boundary, and it held on both layers at once.** Section
+  6's last bullet was driven with a fact the agent demonstrably knew: linked as
+  user 1, *"What is my desk plant called?"* answered *"Bartholomew"* — from a
+  conversation transcript **and** a `scope=user`, `scope_id=App\Models\User#1`
+  memory item. Unlinking cleared `linked_user_*`, `linked_at` **and
+  `conversation_id`**, so the next person could not inherit the transcript;
+  relinking to a different host user incremented `link_epoch` 2 → 3. Asked the
+  same question as user 3, the agent did not know — and the memory item's
+  `retrieval_count` was still `0` with `last_retrieved_at` null, so it was
+  never fetched and silently declined. The boundary was enforced, not merely
+  observed to hold.
+- **The memory guard refuses credentials on content, not on configuration.**
+  Asked to remember a passphrase, it stored nothing: *"That was not stored: it
+  looks like a credential or another secret, and those are never kept in
+  memory."* That it was right while the approval record beside it was wrong
+  (finding 12) is what makes it worth naming.
 - After linking, the run carried `trigger_type: channel` and
   `actor_type: App\Models\User` — the host user, not the agent and not a system
   actor — with the inbound and outbound deliveries both bound to that run.
