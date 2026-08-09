@@ -1,9 +1,8 @@
 # Phase 8 — Host Walkthrough
 
 > Status: **partially driven, 2026-08-09**, against `laravel-test` and a real
-> Slack workspace (`T0BNV8RM7MZ`). Sections 1–4 and 6 driven; 5 and 7 not; 8
-> pending. Thirteen findings, four fixed during the run. Criterion 33 stays
-> open.
+> Slack workspace (`T0BNV8RM7MZ`). Sections 1–4, 6 and 8 driven; 5 and 7 not.
+> Fourteen findings, four fixed during the run. Criterion 33 stays open.
 >
 > - **Sections 1–4 driven.** Install, register, refuse a stranger, link, and
 >   answer as the linked user. Findings 1–7 came from these.
@@ -15,7 +14,10 @@
 > - **Section 6 driven.** Revocation, unlink, refusal, and relink to a
 >   different host user. The isolation claim held on both layers. Findings 12
 >   and 13 came from this, and finding 5 was re-confirmed live.
-> - **Section 8 pending.**
+> - **Section 8 driven, and its central claim failed.** A deliberately broken
+>   extension takes the entire application down, so the page built to show you
+>   a broken extension is the page you cannot reach. Finding 14. Its third
+>   bullet — no install control — passes cleanly.
 > - **Section 7 blocked** by finding 9, which is a core defect rather than a
 >   channel one. Its first bullet — the channel is told an approval is waiting
 >   — was observed working incidentally while setting up section 6.
@@ -575,8 +577,92 @@ run that completes. The `default => null` is where it hid — **a match over an
 enum with a default arm silently absorbs the states nobody thought about**, and
 this one absorbed a state the codebase documents in three other files.
 
+### 14. A broken extension takes the whole host down, Extensions page included
+
+**Expected**, and written into section 8 as a checklist item: break the
+extension deliberately, and *"the Extensions page still renders, still names the
+package, and shows the declared-versus-registered difference."*
+
+**What happened.** `Pandora\Slack\SlackChannel` was renamed so the class its
+service provider references no longer exists — the first of the two breaks
+section 8 suggests. Every route in the application returned **HTTP 500**,
+`/pandora/extensions` among them:
+
+```
+Illuminate\Contracts\Container\BindingResolutionException
+Target class [Pandora\Slack\SlackChannel] does not exist.
+  at Illuminate\Foundation\Application::boot()
+```
+
+`php artisan pandora:extension:list` — the command section 1 uses to name an
+extension and what it declares — dies with the same error. **Both surfaces built
+to tell an operator that an extension is broken are destroyed by an extension
+being broken**, and the failure is total rather than confined: the Runs page,
+the Channels page and the agent itself go with it.
+
+**Cause.** `ChannelRegistry::register()` resolves eagerly. It accepts a class
+string, immediately calls `$this->resolve($channel)`, and needs a live instance
+because the key it files the adapter under comes from `$instance->key()`. That
+resolution happens inside the extension's `boot()`, and a Laravel provider that
+throws during boot takes the framework with it. Nothing about this is Slack's
+fault — any extension registering a channel has the same shape, and so does
+`ToolRegistry::register()` on the next line.
+
+**Why the checklist item was right to expect better — the page says so itself.**
+`ExtensionsIndex.php:23`:
+
+> Nothing is booted to render this. The list comes from Composer's own
+> `installed.json`, so an extension that would fatal on load still appears with
+> its name and its declared capabilities — **which is the case an operator most
+> needs the page for.**
+
+The same promise is repeated to the operator in
+`extensions-index.blade.php:9`. And every clause of it is *true about the page*:
+`ExtensionDiscovery` reads `installed.json`, instantiates nothing, and would
+have rendered the row correctly. The conclusion is false anyway, because the
+fatal happens in `Application::boot()` — before routing, before the component,
+before anything the page controls. **The reasoning is locally correct and
+globally wrong**, which is why it survived review and a suite: nobody was
+mistaken about the mechanism, they were mistaken about where the failure lands.
+
+Declared-versus-registered is only meaningful when something declared has
+*failed* to register — exactly the state that cannot be rendered. The page
+reports the difference in every case except the one it was built for.
+
+**Recommended fix, deliberately not applied here.** Make registration lazy: file
+the class string under a key known without instantiating (an interface constant,
+or an explicit key argument), and resolve on first use. A missing or broken
+adapter then fails when a message is actually routed to it — where there is a
+delivery row to record it against and an operator to read it — instead of at
+boot, where it can only take everything with it. The Extensions page would then
+render precisely the difference section 8 asks for.
+
+This is not fully solvable from inside Pandora: an extension provider can throw
+for reasons core never touches. But core currently *requires* every channel and
+tool registration to instantiate at boot, so it converts the most ordinary
+extension defect there is into a total outage. It should stop doing the part it
+controls.
+
+**Could the suite have caught it?** Only by testing an installation that is
+broken, which no suite does — a package whose classes are missing does not
+survive `composer dump-autoload`, so the scenario cannot exist in a green
+checkout. The check is architectural rather than behavioural, and belongs where
+`ChannelRegistry::register()` is documented.
+
+**Note on debug mode.** This was observed with `APP_DEBUG=true`, which names the
+missing class. With debug off — the setting section 8 implicitly assumes, since
+it is asking what an *operator* sees — the same failure is a blank 500 across
+the whole application with nothing to indicate that an extension is involved at
+all, let alone which one.
+
 ### What worked, and should not be quietly lost
 
+- **Section 8's third bullet passes without qualification.** There is no
+  install, update, upgrade or version-check control on the Extensions page, and
+  the exclusion is argued rather than merely absent: *"a UI that can install
+  code is a UI whose authorization bug is arbitrary execution"* (ADR-0016).
+  Verified in the component and the view. The one thing section 8 asked the
+  page not to do, it does not do.
 - The link page states the boundary to the person it applies to, in their
   terms: *"The code proves you hold that channel account; being signed in here
   proves you hold this one. Linking is the claim that those are the same
