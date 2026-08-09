@@ -586,17 +586,20 @@ that decision is not the channel's to carry (ADR-0015).
 
 **Could the suite have caught it?** Yes, and the missing test was nameable
 before it was written: drive a channel run whose tool parks it at
-`waiting_for_user`, and assert the channel was told. Nothing did — and the
-reason turned out to be sharper than "nobody thought of it". **
-`ToolResult::awaitingUser()` had no test and no fixture anywhere in the suite**,
-so the state existed in the state machine, in the executor, in the resume job
-and in the web chat, and was never once driven end to end. Writing finding 13's
-test meant writing the first `AskUserTool` in the codebase.
+`waiting_for_user`, and assert the channel was told.
 
-The `default => null` is where it hid. **A match over an enum with a default arm
-silently absorbs the states nobody thought about**, and this one absorbed a
-state the codebase documents in four other files, including the docblock of the
-class doing the absorbing.
+The state was not neglected. `ask_user` is a built-in tool with its own feature
+test, `ChatTest` covers the web chat parking on it, and `AgentDetailTest` names
+it in a tool policy. **Every surface tested it except the channel**, which is
+finding 1's lesson again in a different place: both halves were covered and the
+seam between them was not. The `default => null` is where it hid — **a match
+over an enum with a default arm silently absorbs the states nobody thought
+about**, and this one absorbed a state the codebase documents in four other
+files, including the docblock of the class doing the absorbing.
+
+The new `QuestionTest` deliberately drives the shipped `AskUserTool` rather than
+a fixture. A fixture here would have proved that *some* tool parking a run gets
+its question delivered, which is not the claim worth defending.
 
 ### 14. A broken extension takes the whole host down, Extensions page included
 

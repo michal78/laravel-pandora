@@ -6,8 +6,8 @@ use Pandora\Channels\ChannelInbox;
 use Pandora\Providers\Data\ToolCall;
 use Pandora\Runs\Enums\RunState;
 use Pandora\Runs\Run;
-use Pandora\Tests\Fixtures\Tools\AskUserTool;
 use Pandora\Tests\Support\MakesChannels;
+use Pandora\Tools\BuiltIn\AskUserTool;
 use Pandora\Tools\ToolRegistry;
 
 /**
