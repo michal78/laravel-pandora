@@ -401,6 +401,40 @@ walkthrough found this by following its own script — but "yes" is incidental.
 channel is exactly where somebody will keep typing at a silent bot. Two people
 on one channel account would trigger it without either doing anything odd.
 
+**The approval is incidental too. Observed again, later the same day, with no
+approval anywhere near it.** On a conversation four link-epochs old and one
+minute into its life:
+
+```
+18:24:07  assistant  tool_calls  call_5Qoy…
+18:24:08  user       "Hello?"                  ← one second later
+18:24:10  tool       result for call_5Qoy…
+```
+
+An ordinary `recall` call, a **one-second** window, and the driver typing
+"Hello?" because nothing appeared to be happening. Four consecutive runs then
+died on that conversation, exactly as before.
+
+This widens the finding substantially. The hazard is not "a message during an
+approval pause", which is rare and involves a human decision somewhere. It is
+**a message arriving between an assistant's `tool_calls` and its results**,
+which is every tool call the agent ever makes — a window measured in the seconds
+a tool takes to run, occurring on the completely ordinary path. An approval
+merely widens it from seconds to minutes.
+
+Two details sharpen the fix:
+
+- **The tool result existed.** `call_5Qoy…` was answered at 18:24:10 and the
+  provider still refused, because the answer was not *adjacent* to the request.
+  Reordering alone would have saved this conversation; the placeholder
+  synthesis is for the paused case only. The two halves of the recommended fix
+  address genuinely different failures.
+- **Finding 11 caused it.** The driver typed "Hello?" because a channel that is
+  working and a channel that is broken look identical while a run is in
+  flight. The missing typing indicator is not cosmetic — it is what makes a
+  person generate the input that destroys their own session, permanently, in
+  under a second.
+
 **Recommended fix, deliberately not applied here.** Normalise the transcript
 where it is assembled for the provider: group each assistant's `tool_calls`
 with its own results and push interleaved user messages after, *and*
@@ -600,6 +634,22 @@ files, including the docblock of the class doing the absorbing.
 The new `QuestionTest` deliberately drives the shipped `AskUserTool` rather than
 a fixture. A fixture here would have proved that *some* tool parking a run gets
 its question delivered, which is not the claim worth defending.
+
+**Verified live in Slack afterwards**, which is the only verification this
+document really trades in. Asked something it could not know, the agent's
+`recall` came back empty, `ask_user` parked the run — and the delivery rows show
+an outbound message on the *parked* run (`18:22:03`, run `yn2vy9`), where before
+the fix there was no outbound row at all. The next inbound message an minute
+later is recorded against **the same run**, not a new one.
+
+**One consequence worth knowing.** While a question is pending, the next message
+is an answer, so it is consumed as one. The driver happened to type `link` at
+that moment and the agent dutifully recorded a bicycle called "link". This is
+the intended behaviour rather than a defect — an already-linked identity has no
+`link` command, so that text was always destined for the agent — but it does
+mean a pending question takes precedence over anything else a person might be
+trying to say. Worth remembering if channel-level commands are ever added for
+linked participants.
 
 ### 14. A broken extension takes the whole host down, Extensions page included
 
