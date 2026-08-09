@@ -72,7 +72,15 @@ final class RuleSchemaGenerator
         'decimal' => 'number',
         'boolean' => 'boolean',
         'bool' => 'boolean',
-        'array' => 'array',
+        // Laravel's two array rules mean different shapes, and JSON schema has
+        // different words for them. `array` accepts a keyed map -- which is
+        // what every tool taking named arguments wants -- while `list` demands
+        // sequential integer keys. Mapping both to `array` told the model to
+        // send `["hello"]` where the tool required `{"message": "hello"}`, and
+        // the tool then refused a field called `0`: a compliant model could
+        // not call `send_notification`, `dispatch_job`, `emit_event` or
+        // `query_records` at all.
+        'array' => 'object',
         'list' => 'array',
     ];
 
@@ -343,6 +351,13 @@ final class RuleSchemaGenerator
      */
     private function resolveType(string $toolName, string $path, array $rules, array $children): ?string
     {
+        // Wildcard children settle the question before the rules do: `array`
+        // maps to an object, but `field.*` says the keys are positional, and
+        // that is a list whatever the rule line called it.
+        if (isset($children['*'])) {
+            return 'array';
+        }
+
         foreach ($rules as [$name]) {
             if (isset(self::TYPES[$name])) {
                 return self::TYPES[$name];
@@ -442,6 +457,9 @@ final class RuleSchemaGenerator
         $key = match ($type) {
             'integer', 'number' => $edge === 'min' ? 'minimum' : 'maximum',
             'array' => $edge === 'min' ? 'minItems' : 'maxItems',
+            // Laravel counts a map's keys for the same rule that counts a
+            // list's elements, and JSON schema spells that differently.
+            'object' => $edge === 'min' ? 'minProperties' : 'maxProperties',
             default => $edge === 'min' ? 'minLength' : 'maxLength',
         };
 
@@ -461,6 +479,7 @@ final class RuleSchemaGenerator
         return match ($type) {
             'integer', 'number' => [...$schema, 'const' => $this->number($value)],
             'array' => [...$schema, 'minItems' => (int) $value, 'maxItems' => (int) $value],
+            'object' => [...$schema, 'minProperties' => (int) $value, 'maxProperties' => (int) $value],
             default => [...$schema, 'minLength' => (int) $value, 'maxLength' => (int) $value],
         };
     }

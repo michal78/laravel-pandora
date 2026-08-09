@@ -55,7 +55,8 @@ it('maps each scalar type rule', function (string $rule, string $expected): void
     ['integer', 'integer'],
     ['numeric', 'number'],
     ['boolean', 'boolean'],
-    ['array', 'array'],
+    ['array', 'object'],
+    ['list', 'array'],
 ]);
 
 it('interprets min and max according to the declared type', function (
@@ -67,7 +68,8 @@ it('interprets min and max according to the declared type', function (
     ['string|min:2|max:8', ['minLength' => 2, 'maxLength' => 8]],
     ['integer|min:2|max:8', ['minimum' => 2, 'maximum' => 8]],
     ['numeric|min:1.5', ['minimum' => 1.5]],
-    ['array|min:1|max:3', ['minItems' => 1, 'maxItems' => 3]],
+    ['list|min:1|max:3', ['minItems' => 1, 'maxItems' => 3]],
+    ['array|min:1|max:3', ['minProperties' => 1, 'maxProperties' => 3]],
     ['string|between:2,8', ['minLength' => 2, 'maxLength' => 8]],
     ['integer|size:4', ['const' => 4]],
     ['string|size:4', ['minLength' => 4, 'maxLength' => 4]],
@@ -147,8 +149,13 @@ it('builds nested object schemas from dotted rules', function (): void {
         'customer.age' => 'integer|min:0',
     ]);
 
-    expect($generated['properties']['customer']['items']['properties']['email']['format'])->toBe('email')
-        ->and($generated['properties']['customer']['items']['required'])->toBe(['email'])
+    // `array` with named children is an object with those properties, not a
+    // list of them. This test asserted `items` while its own name said object,
+    // which is how a model came to be told to send a positional list into a
+    // tool that required named arguments.
+    expect($generated['properties']['customer']['type'])->toBe('object')
+        ->and($generated['properties']['customer']['properties']['email']['format'])->toBe('email')
+        ->and($generated['properties']['customer']['required'])->toBe(['email'])
         ->and($generated['required'])->toBe(['customer']);
 });
 
