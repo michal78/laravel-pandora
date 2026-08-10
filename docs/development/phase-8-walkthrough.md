@@ -1,8 +1,9 @@
 # Phase 8 — Host Walkthrough
 
-> Status: **partially driven, 2026-08-09**, against `laravel-test` and a real
-> Slack workspace (`T0BNV8RM7MZ`). Sections 1–4, 6 and 8 driven; 5 and 7 not.
-> Fifteen findings, six fixed during the run. Criterion 33 stays open.
+> Status: **partially driven, 2026-08-09 and 2026-08-10**, against
+> `laravel-test` and a real Slack workspace (`T0BNV8RM7MZ`). Sections 1–4 and
+> 6–8 driven; only 5 remains. Sixteen findings, seven fixed during the run.
+> Criterion 33 stays open on section 5 alone.
 >
 > - **Sections 1–4 driven.** Install, register, refuse a stranger, link, and
 >   answer as the linked user. Findings 1–7 came from these.
@@ -18,9 +19,11 @@
 >   extension takes the entire application down, so the page built to show you
 >   a broken extension is the page you cannot reach. Finding 14. Its third
 >   bullet — no install control — passes cleanly.
-> - **Section 7 blocked** by finding 9, which is a core defect rather than a
->   channel one. Its first bullet — the channel is told an approval is waiting
->   — was observed working incidentally while setting up section 6.
+> - **Section 7 driven 2026-08-10**, once finding 9 was fixed and the
+>   environment rebuilt. All three bullets pass: the channel is told an
+>   approval is waiting, replying "yes" does not approve it, and approving in
+>   the control center resumes the run and delivers the answer. The refusal to
+>   approve from a channel is correct; what it does *instead* is finding 16.
 >
 > What the boundary got right, it got right from the first message. Every
 > defect below is on the path *out* — what a person is told, and whether it
@@ -133,11 +136,13 @@ The same landmines as Phases 6 and 7, plus one new one:
 
 ## 7. Approvals
 
-- [ ] Give the agent a tool your approval policy gates, and ask for it from
+*Driven 2026-08-10. All three bullets pass; finding 16 came from the second.*
+
+- [x] Give the agent a tool your approval policy gates, and ask for it from
       Slack.
-- [ ] The channel is told an approval is waiting. **There is no way to approve
+- [x] The channel is told an approval is waiting. **There is no way to approve
       it from Slack**, including by replying "yes".
-- [ ] Approve it in the control center. The run resumes and the answer arrives
+- [x] Approve it in the control center. The run resumes and the answer arrives
       in the channel.
 
 ## 8. The Extensions page, honestly
@@ -814,6 +819,53 @@ tested into correctness** — `RiskBasedToolPolicy::lists()` should reject a key
 it does not recognise, and then this would have been a fatal test error the day
 it was written.
 
+### 16. Replying "yes" to an approval queues a second approval
+
+**Found driving section 7, 2026-08-10**, and it is the second bullet's finding
+rather than a failure of it. The bullet asks that there be no way to approve
+from Slack. There is not. What there is instead is worse than nothing.
+
+The agent parks on a `send_notification` approval and the channel is told:
+
+> I need approval before I can continue. Someone with permission has to review
+> it in the control center.
+
+Reply "yes" — the only thing that sentence invites a person to do — and the
+reply is treated as a new message on the conversation. It starts a **second
+run**, which reaches the same gated tool and queues **its own approval**:
+
+```
+appr 01kznwpyhddxxa19qvf3858cmv | send_notification | run 01kznwpts6rkrhb279eb3pgznb | 13:10:08
+appr 01kznwr67qfxtsm1wa4z7amkcz | request_approval  | run 01kznwr2fk7dhenpgnyaj6da4j | 13:10:49
+```
+
+Both runs then sit in `waiting_for_approval`, and **each announces itself in the
+channel** — which is where the two identical approval messages in the first
+attempt came from. Approving the first resumes only the first. The run born of
+"yes" stays parked until `expires_after_minutes` (1440 by default) times it out,
+a day later, having never been anything a person asked for.
+
+**Why this is not just finding 11 again.** Finding 11 is the absence of a
+thinking signal, and it makes people type into silence. This one is narrower and
+worse: the message that *causes* the reply is the system's own, the reply it
+invites is the one word a human would choose, and the cost is a duplicate
+approval plus a permanently parked run rather than a wasted round trip. A person
+following the instruction exactly gets punished for it.
+
+**Recommended fix, and the shape of it.** A conversation with a run already in
+`waiting_for_approval` should not start another run from a channel message. The
+choice is between queueing the message until the parked run resolves and
+refusing it with a sentence that says what is actually true — that the approval
+is waiting elsewhere and this channel cannot grant it. The second is cheaper and
+more honest, and it is the only one that stops the run count from growing every
+time somebody says "yes". Either way the notice should stop implying that a
+reply does something: *"I cannot be approved from here"* is the missing half of
+a message that currently only says where the approval lives.
+
+This is the same shape as finding 5. Both messages are correct about the rule
+and silent about the consequence, and in both cases the person who follows the
+text is the person who ends up worse off.
+
 ### What worked, and should not be quietly lost
 
 - **Section 8's third bullet passes without qualification.** There is no
@@ -822,6 +874,17 @@ it was written.
   code is a UI whose authorization bug is arbitrary execution"* (ADR-0016).
   Verified in the component and the view. The one thing section 8 asked the
   page not to do, it does not do.
+- **The approval loop closes across the channel boundary.** Section 7 driven
+  end to end: a `send_notification` call parked run
+  `01kznwpts6rkrhb279eb3pgznb` on a pending approval within four seconds, the
+  channel was told, granting it in the control center produced
+  `ResumeApprovedRun → ExecuteToolCall → ContinueAgentRun`, and the answer
+  reached Slack — *"I've sent the notification about section 7 being driven."*
+  The pause survives a process boundary, a queue and a human, which is the
+  claim that could not be made from the suite alone. It parked on the
+  gatekeeper's own risk floor (`RiskLevel::High`), not on the agent's
+  `approval_policy` — so finding 15's gap stays open, and this does not close
+  it.
 - The link page states the boundary to the person it applies to, in their
   terms: *"The code proves you hold that channel account; being signed in here
   proves you hold this one. Linking is the claim that those are the same

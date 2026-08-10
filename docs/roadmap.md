@@ -16,7 +16,7 @@
 | 5 | Memory and context | ✅ 28/28 incl. a real pgvector CI leg; host walkthrough driven 2026-08-07 — four defects, all fixed, one of them a cross-user memory disclosure on the Memory page |
 | 6 | Multi-agent and MCP | 🔨 30/30 verified; walkthrough deliberately deferred to after Phase 8 (Q10) |
 | 7 | Workspaces, released and on object storage | 🔨 24/25 — both adapters green against real MinIO; walkthrough deferred with Phase 6's (Q10) |
-| 8 | Channels and extensions | 🔨 32/33 — the contract, linking, extensions and Slack as a separate package; walkthrough remains |
+| 8 | Channels and extensions | 🔨 32/33 — walkthrough sections 1–4 and 6–8 driven; only section 5 (two people, one channel account, simultaneously) remains, blocked on a second Slack account. 16 findings |
 | 9 | Hardening and release | ⬜ |
 
 ---
@@ -390,8 +390,10 @@ booted, including one that would fatal if it were (ADR-0016).
 providers, tools and channels through the documented contracts alone, with no core changes — proved
 by `laravel-pandora-slack` living in its own repository, where a missing seam has to be added to core
 in the open rather than filled in the same commit. See `docs/development/phase-8-acceptance.md` —
-**32 of 33 criteria verified**; what remains is a human driving `phase-8-walkthrough.md` against a
-real Slack workspace.
+**32 of 33 criteria verified**. Criterion 33 — a human driving `phase-8-walkthrough.md` against a
+real Slack workspace — is driven for sections 1–4 and 6–8, and has produced 16 findings. Only
+section 5 remains: two people on one channel account **at the same time**, which needs a second
+Slack account and is the one claim a single-account walkthrough cannot make.
 
 The reference extension needed no core change at all. It was written from outside the boundary and
 the published contracts were between them enough to build a working adapter on the first attempt,
