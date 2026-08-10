@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
+use Pandora\Audit\AuditLog;
 use Pandora\UI\Livewire\WorkspacesIndex;
 use Pandora\Workspaces\Workspace;
 
@@ -86,6 +87,30 @@ it('browses inside the workspace', function (): void {
         ->assertSee('reports/q1.txt');
 });
 
+it('offers Open for a directory and Download for a file, never the other way round', function (): void {
+    // The Phase 7 walkthrough clicked Open on a 12-byte text file. The page
+    // browsed into it as though it were a prefix, listed nothing, and
+    // rendered "Empty." -- a file with bytes in it reading as an empty
+    // folder, on the page whose own comment says nothing invents an empty
+    // folder on the object store.
+    $component = Livewire::test(WorkspacesIndex::class)->call('select', 'scratch');
+
+    $component->assertSeeHtml("wire:click=\"browse('reports')\"")
+        ->assertDontSeeHtml("wire:click=\"browse('notes.txt')\"")
+        ->assertSeeHtml('path=notes.txt');
+});
+
+it('does not strand the browser inside a file', function (): void {
+    $component = Livewire::test(WorkspacesIndex::class)
+        ->call('select', 'scratch')
+        ->call('browse', 'notes.txt');
+
+    // Even reached directly, a file is not a place the listing pretends to be.
+    expect($component->get('path'))->toBe('notes.txt');
+
+    $component->assertDontSeeHtml("wire:click=\"browse('notes.txt')\"");
+});
+
 it('goes back up without ever producing a traversal', function (): void {
     $component = Livewire::test(WorkspacesIndex::class)
         ->call('select', 'scratch')
@@ -133,6 +158,20 @@ it('recounts usage from the filesystem', function (): void {
 
     // 'workspace notes' (15) + 'quarterly' (9)
     expect($this->workspace->refresh()->used_bytes)->toBe(24);
+});
+
+it('records a recount, because it moves the line a write is refused at', function (): void {
+    $this->workspace->update(['used_bytes' => 9999]);
+
+    Livewire::test(WorkspacesIndex::class)
+        ->call('select', 'scratch')
+        ->call('recount');
+
+    $entry = AuditLog::query()->where('action', 'workspace.recounted')->firstOrFail();
+
+    expect($entry->metadata['used_bytes_before'])->toBe(9999)
+        ->and($entry->metadata['used_bytes_after'])->toBe(24)
+        ->and($this->workspace->refresh()->used_bytes)->toBe(24);
 });
 
 it('refuses a forged recount from a user without the ability', function (): void {

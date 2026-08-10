@@ -253,22 +253,32 @@
                     in with its own idea of when a workspace is full.
                 --}}
                 <div class="pd-card-body" style="border-top: 1px solid var(--pd-border)">
-                    <form wire:submit="uploadFile" class="pd-row">
-                        <div class="pd-field" style="flex: 1">
-                            <label class="pd-label" for="pd-ws-upload">
-                                Upload into <span class="pd-mono">/{{ $path }}</span>
-                            </label>
-                            <input id="pd-ws-upload" type="file" class="pd-input" wire:model="file">
-                            @error('file') <p class="pd-error">{{ $message }}</p> @enderror
-                            <p class="pd-help">
-                                Up to {{ number_format($maxUploadBytes / 1048576, 0) }} MB, and subject
-                                to the workspace's quota and allowed types exactly as an agent's write
-                                is. The filename is reduced to a bare name.
-                            </p>
+                    {{--
+                        The control and its button share a row; the label sits
+                        above and the help below. Stretching the field to the
+                        full card and centring the button against label, error
+                        and help together left the two looking unrelated.
+                    --}}
+                    <form wire:submit="uploadFile" class="pd-field">
+                        <label class="pd-label" for="pd-ws-upload">
+                            Upload into <span class="pd-mono">/{{ $path }}</span>
+                        </label>
+
+                        <div class="pd-row">
+                            <input id="pd-ws-upload" type="file" class="pd-input"
+                                   style="max-width: 360px" wire:model="file">
+
+                            <button type="submit" class="pd-btn pd-btn-primary"
+                                    wire:loading.attr="disabled" wire:target="file,uploadFile">Upload</button>
                         </div>
 
-                        <button type="submit" class="pd-btn pd-btn-primary"
-                                wire:loading.attr="disabled" wire:target="file,uploadFile">Upload</button>
+                        @error('file') <p class="pd-error">{{ $message }}</p> @enderror
+
+                        <p class="pd-help">
+                            Up to {{ number_format($maxUploadBytes / 1048576, 0) }} MB, and subject
+                            to the workspace's quota and allowed types exactly as an agent's write
+                            is. The filename is reduced to a bare name.
+                        </p>
                     </form>
                 </div>
             @endif
@@ -298,24 +308,25 @@
                             <tr>
                                 <td class="pd-mono">{{ $entry }}</td>
                                 <td class="pd-actions">
-                                    <button type="button" class="pd-btn"
-                                            wire:click="browse('{{ $entry }}')">Open</button>
-
                                     {{--
-                                        Offered for everything the store listed, because
-                                        whether a listing entry is a file is a question for
-                                        the store rather than for the page: object storage
+                                        Which of these an entry gets is answered by the
+                                        store, not guessed from the name: object storage
                                         has no directories, so the same name can be a
-                                        prefix on one disk and a file on another. A
-                                        directory answers 404 and nothing is guessed here.
+                                        prefix on one disk and a file on another.
 
-                                        Streamed through the app rather than presigned. A
-                                        signed URL is a bearer token for one object until
-                                        it expires, and the audit trail records that a link
-                                        was made, not that the file left.
+                                        Download is streamed through the app rather than
+                                        presigned. A signed URL is a bearer token for one
+                                        object until it expires, and the audit trail would
+                                        record that a link was made, not that the file
+                                        left.
                                     --}}
-                                    <a class="pd-btn"
-                                       href="{{ route('pandora.workspaces.download', ['workspace' => $workspace->slug, 'path' => $entry]) }}">Download</a>
+                                    @if ($isFile[$entry] ?? false)
+                                        <a class="pd-btn"
+                                           href="{{ route('pandora.workspaces.download', ['workspace' => $workspace->slug, 'path' => $entry]) }}">Download</a>
+                                    @else
+                                        <button type="button" class="pd-btn"
+                                                wire:click="browse('{{ $entry }}')">Open</button>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

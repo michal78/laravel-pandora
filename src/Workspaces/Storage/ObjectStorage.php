@@ -56,7 +56,11 @@ final readonly class ObjectStorage implements WorkspaceStorage
     {
         $key = $this->locate($relative);
 
-        return $this->guard(fn (): bool => $this->disk->exists($key));
+        // `exists()` is Flysystem's `has()` -- true for a prefix as well as an
+        // object -- and the contract here says false for a prefix. The local
+        // adapter has always answered `is_file()`, so the two disagreed about
+        // the same question until a walkthrough clicked Download on a folder.
+        return $this->guard(fn (): bool => $this->disk->fileExists($key));
     }
 
     public function read(string $relative): string

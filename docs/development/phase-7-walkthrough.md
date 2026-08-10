@@ -1,10 +1,12 @@
 # Phase 7 — Host Walkthrough
 
-> Status: **the agent half is driven, 2026-08-10, against real MinIO.** Every
-> box under *Driving it with an agent* passes except the first, and it found two
-> defects — `read_file` cannot read a binary file without taking the run down,
-> and `observe_only` does not constrain an interactive run. The browser half is
-> still unticked, so criterion 21 in `phase-7-acceptance.md` stays open.
+> Status: **driven 2026-08-10 against real MinIO — both halves.** Criterion 21
+> is met. Seven defects: two from the agent half, five from the browser half,
+> and all but one fixed here.
+>
+> The one left open is Defect 2, because it is a design question rather than a
+> patch. Only *Tenancy, if the host has it* is unticked — `laravel-test` has no
+> tenancy configured, so driving it would have proved nothing.
 >
 > The storage half of the phase (criteria 1–16) is verified against MinIO by
 > the suite, and the surface half (17–20, 22) is covered by
@@ -75,25 +77,25 @@ landmines as Phase 6:
 
 ## Creating a workspace, which is the part Phase 5 would not ship
 
-- [ ] `/pandora/workspaces` lists workspaces and offers **New workspace**.
-- [ ] The form has a **Root** select, a name, a description, a quota and a MIME
+- [x] `/pandora/workspaces` lists workspaces and offers **New workspace**.
+- [x] The form has a **Root** select, a name, a description, a quota and a MIME
       list. **There is no path field.** Confirm this by looking, and then
       confirm it the other way: there is no public property on
       `WorkspacesIndex` that a forged Livewire request could put a path into.
-- [ ] Create one on the **object storage** root. The page reports where it
+- [x] Create one on the **object storage** root. The page reports where it
       landed: `<disk>:<base>/<tenant>/<slug>`.
-- [ ] Nothing was created in the bucket, and that is correct — object storage
+- [x] Nothing was created in the bucket, and that is correct — object storage
       has no directories, so a prefix with no objects under it is already as
       real as it gets.
-- [ ] Create one on the **local** root. This time the directory *is* created,
+- [x] Create one on the **local** root. This time the directory *is* created,
       because `realpath()` of a directory nobody made is `false` and every
       containment check starts there.
-- [ ] Create a second workspace with the same name. Refused, rather than two
+- [x] Create a second workspace with the same name. Refused, rather than two
       workspaces sharing a prefix.
-- [ ] Attach a workspace to an agent from its **Workspace** tab: pick one from
+- [x] Attach a workspace to an agent from its **Workspace** tab: pick one from
       the select, save, and the tab shows it. Detaching says plainly that the
       agent can now reach no files at all.
-- [ ] **Attaching is not granting.** The agent also needs `read_file`,
+- [x] **Attaching is not granting.** The agent also needs `read_file`,
       `write_file` or `list_files` in its tool allowlist. An agent with a
       workspace and no file tools reaches nothing, and an agent with the tools
       and no workspace is told so in words.
@@ -145,46 +147,46 @@ first, which found Defect 1.*
 
 ## Putting files in, which is the part that does work today
 
-- [ ] **Upload a file** from the page, into the workspace you are browsing. It
+- [x] **Upload a file** from the page, into the workspace you are browsing. It
       lands where the breadcrumb says.
-- [ ] The upload obeys the rules an agent's write would, because it is the same
+- [x] The upload obeys the rules an agent's write would, because it is the same
       write path: with a MIME allowlist set, a file whose bytes disagree with
       its extension is refused; over quota is refused before it lands.
-- [ ] **Usage.** `used_bytes` moves with an upload. Put an object in the prefix
+- [x] **Usage.** `used_bytes` moves with an upload. Put an object in the prefix
       out of band (`mc cp`, or the MinIO console) and it does *not* — press
       **Recount** and it does. The counter is authoritative for enforcement and
       the store is authoritative for truth; this is the button that reconciles
       them.
-- [ ] Set an allowed MIME list of `text/plain`, then upload an object by hand
+- [x] Set an allowed MIME list of `text/plain`, then upload an object by hand
       whose `Content-Type` says `text/plain` and whose bytes are a PNG. Still
       refused, because the metadata is never consulted.
 
 ## Browsing and downloading
 
-- [ ] Descending into a folder works, and **Up** goes back without ever putting
+- [x] Descending into a folder works, and **Up** goes back without ever putting
       `..` into a path.
-- [ ] The directories shown are ones the store reported. Nothing invents an
+- [x] The directories shown are ones the store reported. Nothing invents an
       empty folder on the object store, and there is no create-folder button.
-- [ ] **Download** a file. It streams through the application: the URL is
+- [x] **Download** a file. It streams through the application: the URL is
       `/pandora/workspaces/<slug>/download?path=…` on your own host, and there
       is no signed bucket URL anywhere in the page source or the redirect chain.
-- [ ] The audit log has a `workspace.file_downloaded` entry naming the path and
+- [x] The audit log has a `workspace.file_downloaded` entry naming the path and
       the byte count. This is the entire reason a presigned URL was refused.
-- [ ] Download a file of a few hundred megabytes. It arrives, and the worker's
+- [x] Download a file of a few hundred megabytes. It arrives, and the worker's
       memory does not go with it.
-- [ ] On a local workspace, `ln -s /etc/passwd <root>/innocent.txt`. It does not
+- [x] On a local workspace, `ln -s /etc/passwd <root>/innocent.txt`. It does not
       appear in the listing, and downloading it by name 404s.
 
 ## Editing, and removing
 
-- [ ] **Edit** a workspace. Name, description, quota and MIME list are fields.
+- [x] **Edit** a workspace. Name, description, quota and MIME list are fields.
       The disk and root are shown and are not editable — files already written
       are named by that path, and on object storage moving it is a copy of every
       object and a delete of every original with no transaction around the pair.
-- [ ] **Remove** a workspace that an agent is attached to. The agent is
+- [x] **Remove** a workspace that an agent is attached to. The agent is
       detached, and its Workspace tab says plainly that an agent without one can
       reach no files at all.
-- [ ] **The files are still in the bucket.** The page said so when it removed
+- [x] **The files are still in the bucket.** The page said so when it removed
       the row, and the audit entry records `files_removed: false`. Deleting them
       is N calls with no transaction; a partial failure leaves a half-emptied
       prefix under a row claiming it is gone.
@@ -199,13 +201,13 @@ first, which found Defect 1.*
 
 ## The off state
 
-- [ ] Set `PANDORA_FEATURE_WORKSPACES=false`. `/pandora/workspaces` says the
+- [x] Set `PANDORA_FEATURE_WORKSPACES=false`. `/pandora/workspaces` says the
       feature is not here yet and names no workspace, **for an operator holding
       every ability** — a flag is not a permission.
-- [ ] With the flag off, the download URL 404s, and so does every forged Livewire
+- [x] With the flag off, the download URL 404s, and so does every forged Livewire
       action. The page is where a flag gets honoured, and a forged call is
       exactly the request that never renders one.
-- [ ] Turn it back on.
+- [x] Turn it back on.
 
 ## What this found
 
@@ -276,11 +278,96 @@ exactly what Phase 3.5 documented. Drive agent-configuration checks on an agent
 with no definition class, or the walkthrough tests the sync instead of the
 feature.
 
-## Still to drive
+### The browser half, driven 2026-08-10
 
-The whole browser half: creating on both roots, the duplicate-name refusal,
-attach and detach from the agent's Workspace tab, upload, usage and **Recount**,
-the MIME check against bytes rather than metadata, browsing and **Up**,
-streamed download plus its `workspace.file_downloaded` audit entry, the symlink
-case on a local workspace, edit, remove-leaves-the-files, tenancy, and the off
-state. Criterion 21 stays open until those are driven.
+**What held, and it is most of the phase.** Creating on the object root made no
+objects and creating on the local root made a real directory — the asymmetry the
+document predicted, and both `workspace.created` entries record which. A
+duplicate name was refused. The MIME allowlist refused a PNG renamed to `.txt`,
+so the bytes are read rather than the extension or the declared type. Download
+streams through the application — the URL is `/pandora/workspaces/<slug>/download`
+on the host, with no signed bucket URL in the page or the redirect chain — and it
+wrote `workspace.file_downloaded` naming the path and the byte count, which is
+the entire argument for refusing a presigned URL. Removing a workspace left every
+object where it was and said so, in the page and in an audit entry carrying
+`files_removed: false` and `agents_detached: 1`. With the flag off, the page
+withheld itself from an operator holding every ability, and a download URL
+answered 404.
+
+**Defect 3 — `isFile()` said a directory was a file, on object storage only.**
+Found by clicking. A folder in the listing offered **Download** instead of
+**Open**. `ObjectStorage::isFile()` called `$disk->exists()`, which is
+Flysystem's `has()` and answers true for a prefix; `LocalStorage::isFile()` has
+always called `is_file()`. The contract between them says, in as many words,
+*"False for a directory, a prefix, or nothing at all."* Two adapters, one
+contract, opposite answers.
+
+It reaches further than the button that exposed it: `read()`, `stream()`,
+`delete()` and `size()` each guard with the same check, so on object storage a
+prefix passed the "is this a file?" gate everywhere. Now `fileExists()`.
+
+**`StorageContractTest` exists precisely to catch this** — one suite, both
+adapters, deliberately built so a divergence cannot hide. It asserted
+`isFile('absent.txt')` is false and never `isFile('a-directory')`, which is the
+single case where the two implementations differ. Worse, its object leg
+**skips** unless `PANDORA_TEST_S3_ENDPOINT` is set, so even the right assertion
+would have been silently skipped on a developer machine. The new test was run
+against real MinIO both ways round: it fails on the old code and passes on the
+new, because a regression test that passes either way records a belief rather
+than a fact.
+
+**Defect 4 — "Open" on a file browsed into it and reported "Empty."**
+The listing offered Open for every entry. Clicking it on a 12-byte text file set
+the browse path to the file, listed nothing under it, and rendered the
+empty-listing state — a file with bytes in it presented as an empty folder, on
+the page whose own comment says nothing invents an empty folder on the object
+store. Open is now offered for directories and Download for files, decided by
+asking the store rather than by guessing from the name. `list()` was left
+returning plain strings deliberately: changing its shape would also change what
+the agent's `list_files` tool returns to the model.
+
+**Defect 5 — the Workspace tab did not look like the rest of the product.**
+Three unrelated causes in one panel. The details block was a `<dl>` carrying
+`pd-details`, a class that styles a `<details>` disclosure, so it matched
+nothing and rendered as raw browser indentation. Detach and Browse files used
+`pd-btn-ghost`, which is transparent in both border and background and reads as
+a word rather than a control. And the card's children had no `pd-stack`, so
+nothing had vertical rhythm. The upload form had the same shape of problem: a
+`pd-row` centring the button against a field tall with label, error and help,
+and a `flex: 1` stretching the input across the whole card.
+
+**Defect 6 — detaching was possible and unfindable.** The select's first option
+has always been *"None — this agent can reach no files"*, and choosing it plus
+Save detaches correctly with the right sentence. The driver reported detaching
+as impossible, which is the finding: nobody looks for a removal action inside
+the dropdown they used to attach. There is a **Detach** button now, on the same
+path and the same audit entry.
+
+There was a passing test for detaching. It set `workspaceId` to `''` in code and
+called the method — it never touched anything a person could click. That is the
+third time this session the same shape has appeared, after Phase 8's Edit button
+behind thirteen tests and Phase 6's cancellation button.
+
+**Defect 7 — `recount()` was the one mutation nobody audited.** Created,
+updated, deleted, uploaded and downloaded all record. Recount rewrites
+`used_bytes`, which is the number the quota is enforced against, so pressing it
+moves the line a write is refused at — silently. Now `workspace.recounted`, with
+the byte count before and after, because a drift worth reconciling is worth
+being able to ask about afterwards.
+
+**The pattern across all five browser defects.** Not one was reachable by the
+suite as written, and three were purely visual — a class that styles a different
+element, a button variant that renders as text, a container with no spacing. The
+tests assert what the DOM *says*, never what it *looks like*, so appearance
+defects are structurally invisible to them. That is not a gap to be closed with
+more tests of the same kind. It is the argument for the walkthrough.
+
+## Not driven
+
+*Tenancy, if the host has it.* `laravel-test` runs with a null tenant, so both
+boxes would have passed without exercising anything. The tenant-prefix claim is
+covered by `Workspaces/TenantPrefixTest` and the page's own
+`does not show another tenant's workspace` / `does not act on another tenant's
+workspace when handed its slug`. Driving it for real needs a host with two
+tenants, and that is worth doing before release rather than pretending it was
+done here.

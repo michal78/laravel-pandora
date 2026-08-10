@@ -706,6 +706,21 @@ final class AgentDetail extends Component
      * the file tools take no workspace argument -- there is nothing for a
      * sentence in a document to select, because there is no selection.
      */
+    /**
+     * Detach, as a control rather than as an option inside a select.
+     *
+     * The "None" option has always been there and always worked; nobody looks
+     * for a removal action inside the dropdown they used to attach, so a
+     * walkthrough driver reported detaching as impossible. Same path, same
+     * audit entry, same sentence -- just reachable.
+     */
+    public function detachWorkspace(AuditLogger $audit): void
+    {
+        $this->workspaceId = '';
+
+        $this->attachWorkspace($audit);
+    }
+
     public function attachWorkspace(AuditLogger $audit): void
     {
         PandoraGate::authorize('agents.manage');

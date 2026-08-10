@@ -316,7 +316,7 @@ final class WorkspacesIndex extends Component
             : '';
     }
 
-    public function recount(): void
+    public function recount(AuditLogger $audit): void
     {
         $this->guard();
 
@@ -326,12 +326,32 @@ final class WorkspacesIndex extends Component
             return;
         }
 
+        $before = $workspace->used_bytes;
+
         try {
             $bytes = $this->files($workspace)->reconcile();
             $this->notice = 'Recounted: '.number_format($bytes).' bytes.';
         } catch (WorkspaceDenied $e) {
             $this->error = $e->userMessage();
+
+            return;
         }
+
+        // Audited like every other mutation on this page. `used_bytes` is what
+        // the quota is enforced against, so a recount moves the line a write
+        // is refused at -- and both numbers are recorded, because a drift
+        // worth reconciling is worth being able to ask about afterwards.
+        $audit->record(
+            action: 'workspace.recounted',
+            targetType: 'workspace',
+            targetId: $workspace->getKey(),
+            metadata: [
+                'slug' => $workspace->slug,
+                'disk' => $workspace->disk,
+                'used_bytes_before' => $before,
+                'used_bytes_after' => $bytes,
+            ],
+        );
     }
 
     /**
@@ -409,11 +429,26 @@ final class WorkspacesIndex extends Component
 
         $workspace = $this->workspace();
         $entries = [];
+        $isFile = [];
         $unreachable = false;
 
         if ($workspace !== null) {
             try {
-                $entries = $this->files($workspace)->list($this->path);
+                $files = $this->files($workspace);
+                $entries = $files->list($this->path);
+
+                // Which entries are files, asked of the store rather than
+                // guessed from the name. Without this the page offered "Open"
+                // on a file, browsed into it as though it were a prefix, found
+                // nothing, and rendered the empty-listing state -- so a file
+                // with bytes in it read as an empty folder.
+                //
+                // Entries are already relative to the workspace root, not to
+                // the path being browsed, so they are passed through as they
+                // came.
+                foreach ($entries as $entry) {
+                    $isFile[$entry] = $files->isFile($entry);
+                }
             } catch (WorkspaceDenied) {
                 // A root that has moved or been unmounted. Reported on the
                 // page rather than thrown, because an operator arriving to
@@ -427,6 +462,7 @@ final class WorkspacesIndex extends Component
             'workspaces' => $this->workspaces(),
             'workspace' => $workspace,
             'entries' => $entries,
+            'isFile' => $isFile,
             'unreachable' => $unreachable,
             'canManage' => PandoraGate::allows('workspaces.access'),
             'roots' => $this->roots()->all(),

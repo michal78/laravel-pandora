@@ -685,6 +685,7 @@
     {{-- -------------------------------------------------------- workspace --}}
     @if ($tab === 'workspace' && ! isset($pendingTabs['workspace']))
         <x-pandora::card title="Workspace">
+          <div class="pd-stack">
             @if ($workspace === null)
                 <p class="pd-muted">
                     This agent has no workspace, so it can reach no files at all. That is the
@@ -713,52 +714,79 @@
                         <p class="pd-help">
                             Attaching a workspace does not grant the file tools. The agent also needs
                             <span class="pd-mono">read_file</span>, <span class="pd-mono">write_file</span>
-                            or <span class="pd-mono">list_files</span> in its tool allowlist, and each
-                            is refused above the autonomy it needs.
+                            or <span class="pd-mono">list_files</span> in its tool allowlist. The
+                            autonomy level clamps <strong>unattended</strong> runs — automations and
+                            schedules; a run a person is driving is bounded by the tool allowlist and
+                            approvals instead.
                         </p>
                     </div>
 
                     <div class="pd-row">
                         <button type="submit" class="pd-btn pd-btn-primary">Save workspace</button>
+                        @if ($workspace !== null)
+                            {{-- Bordered, not ghost: a ghost button here is
+                                 transparent on both counts and reads as a word. --}}
+                            <button type="button" class="pd-btn"
+                                    wire:click="detachWorkspace">Detach</button>
+                        @endif
                     </div>
                 </form>
             @endif
 
             @if ($workspace !== null)
-                <dl class="pd-details">
-                    <dt>Name</dt>
-                    <dd>{{ $workspace->name }}</dd>
+                {{--
+                    The stat grid every other detail surface uses. This was a
+                    `dl.pd-details`, and `.pd-details` styles a <details>
+                    disclosure -- so the class matched nothing and the tab
+                    rendered as raw browser <dt>/<dd> indentation next to
+                    pages that did not.
+                --}}
+                <div>
+                <h3 class="pd-section-title">Details</h3>
+                <div class="pd-grid pd-grid-stats">
+                    <div>
+                        <div class="pd-stat-label">Name</div>
+                        <div>{{ $workspace->name }}</div>
+                    </div>
+                    <div>
+                        <div class="pd-stat-label">Disk</div>
+                        <div class="pd-mono">{{ $workspace->disk }}</div>
+                    </div>
+                    <div>
+                        <div class="pd-stat-label">Root</div>
+                        <div class="pd-mono">{{ $workspace->root_path }}</div>
+                    </div>
+                    <div>
+                        <div class="pd-stat-label">Used</div>
+                        <div>
+                            {{ number_format($workspace->used_bytes) }} bytes
+                            @if ($workspace->hasQuota())
+                                of {{ number_format((int) $workspace->quota_bytes) }}
+                            @else
+                                <span class="pd-muted">(no quota)</span>
+                            @endif
+                        </div>
+                    </div>
+                    <div>
+                        <div class="pd-stat-label">Allowed types</div>
+                        <div>
+                            @if (($workspace->allowed_mime_types ?? []) === [])
+                                <span class="pd-muted">any</span>
+                            @else
+                                {{ implode(', ', $workspace->allowed_mime_types) }}
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                </div>
 
-                    <dt>Disk</dt>
-                    <dd class="pd-mono">{{ $workspace->disk }}</dd>
-
-                    <dt>Root</dt>
-                    <dd class="pd-mono">{{ $workspace->root_path }}</dd>
-
-                    <dt>Used</dt>
-                    <dd>
-                        {{ number_format($workspace->used_bytes) }} bytes
-                        @if ($workspace->hasQuota())
-                            of {{ number_format((int) $workspace->quota_bytes) }}
-                        @else
-                            (no quota)
-                        @endif
-                    </dd>
-
-                    <dt>Allowed types</dt>
-                    <dd>
-                        @if (($workspace->allowed_mime_types ?? []) === [])
-                            <span class="pd-muted">any</span>
-                        @else
-                            {{ implode(', ', $workspace->allowed_mime_types) }}
-                        @endif
-                    </dd>
-                </dl>
-
-                <a class="pd-btn pd-btn-ghost"
-                   href="{{ route('pandora.workspaces', ['workspace' => $workspace->slug]) }}"
-                   wire:navigate>Browse files</a>
+                <div class="pd-row">
+                    <a class="pd-btn"
+                       href="{{ route('pandora.workspaces', ['workspace' => $workspace->slug]) }}"
+                       wire:navigate>Browse files</a>
+                </div>
             @endif
+          </div>
         </x-pandora::card>
     @endif
 

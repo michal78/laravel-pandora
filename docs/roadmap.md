@@ -15,7 +15,7 @@
 | 4 | Automation | ✅ 26/26 on all four engines; host walkthrough complete |
 | 5 | Memory and context | ✅ 28/28 incl. a real pgvector CI leg; host walkthrough driven 2026-08-07 — four defects, all fixed, one of them a cross-user memory disclosure on the Memory page |
 | 6 | Multi-agent and MCP | 🔨 30/30 verified; delegation walkthrough fully driven (2026-08-08 headless, 2026-08-10 browser) — 9 findings, 4 fixed. The MCP half is still undriven and needs a real MCP server |
-| 7 | Workspaces, released and on object storage | 🔨 24/25 — both adapters green against real MinIO; walkthrough agent half driven 2026-08-10 (2 defects), browser half still open |
+| 7 | Workspaces, released and on object storage | ✅ 25/25 — walkthrough driven end to end 2026-08-10 against real MinIO; 7 defects, 6 fixed. Tenancy section needs a two-tenant host |
 | 8 | Channels and extensions | 🔨 32/33 — walkthrough sections 1–4 and 6–8 driven; only section 5 (two people, one channel account, simultaneously) remains, blocked on a second Slack account. 16 findings |
 | 9 | Hardening and release | ⬜ |
 
@@ -362,9 +362,10 @@ An agent reaches its workspace through `list_files`, `read_file` and `write_file
 takes a workspace argument: the workspace comes from the agent, which holds at most one, so a
 sentence in a document it is reading has nowhere to select from.
 
-See `docs/development/phase-7-acceptance.md` — **24 of 25 criteria accepted**; what remains is a
-human driving `phase-7-walkthrough.md` against a real bucket, **deliberately deferred to after
-Phase 8** and paid before Phase 9.
+See `docs/development/phase-7-acceptance.md` — **25 of 25 criteria accepted**. Criterion 21 was
+driven on 2026-08-10 against real MinIO, paying the deferral to after Phase 8. It found seven
+defects, six fixed in the same pass; the seventh is a design question carried to Phase 9. The
+walkthrough's tenancy section needs a two-tenant host and is named as undriven rather than ticked.
 
 ---
 

@@ -1,13 +1,19 @@
 # Phase 7 — Acceptance Test Plan
 
-> **Status: 24 of 25 criteria accepted. What remains is a human driving it — deliberately deferred
-> to after Phase 8 (decided 2026-08-08).**
+> **Status: 25 of 25 criteria accepted.** Criterion 21 was driven on 2026-08-10 against
+> `laravel-test` and real MinIO — the deferral to after Phase 8 (decided 2026-08-08) is paid.
 >
-> Criterion 21 does not become smaller by being postponed, and nothing else in this document is
-> re-graded on the strength of the deferral. It is written down because Phase 6 is carrying an
-> undriven walkthrough too, and two open phases make it materially harder to attribute a defect to
-> the change that caused it. The debt is knowingly taken; it is paid before Phase 9, which is the
-> phase that claims the threat model is covered.
+> It did not become smaller by being postponed. Driving it found seven defects, six fixed in the
+> same pass: `read_file` taking a run down on any binary file, `ObjectStorage::isFile()` calling a
+> prefix a file in violation of its own contract, "Open" browsing into a file and reporting it
+> empty, three separate reasons the Workspace tab did not look like the product it is part of, a
+> detach that worked and could not be found, and the one mutation on the workspaces page that
+> wrote no audit entry. The seventh — an agent's `observe_only` not constraining an interactive
+> run — is left open deliberately, as a design question for Phase 9 rather than a patch.
+>
+> The tenancy section of the walkthrough is not driven: `laravel-test` runs with a null tenant, so
+> both boxes would have passed without exercising anything. It needs a two-tenant host, and that is
+> named here rather than quietly ticked.
 >
 > This phase was originally six criteria: turn on a feature that was already built. ADR-0013 moved
 > workspaces and context files onto S3-compatible object storage, which reopens the one thing the

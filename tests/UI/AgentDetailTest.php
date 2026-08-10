@@ -752,6 +752,44 @@ it('detaches a workspace, leaving the agent able to reach no files', function ()
         ->and(AuditLog::query()->where('action', 'agent.workspace_detached')->count())->toBe(1);
 });
 
+it('detaches from the Detach control, without being handed an empty id', function (): void {
+    // The test above proves the path works when the id is already blank.
+    // A person never blanks it -- they look for a control. The Phase 7
+    // walkthrough reported detaching as impossible because the only way in
+    // was the "None" option inside the select used to attach.
+    config()->set('pandora.features.workspaces', true);
+
+    $agent = AgentFactory::database();
+    $agent->update(['workspace_id' => workspaceFor()->getKey()]);
+
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'workspace')
+        ->call('detachWorkspace')
+        ->assertSee('can reach no files at all');
+
+    expect($agent->refresh()->workspace_id)->toBeNull()
+        ->and(AuditLog::query()->where('action', 'agent.workspace_detached')->count())->toBe(1);
+});
+
+it('offers the Detach control only while something is attached', function (): void {
+    config()->set('pandora.features.workspaces', true);
+
+    $agent = AgentFactory::database();
+    $this->actingAsUser();
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'workspace')
+        ->assertDontSeeHtml('wire:click="detachWorkspace"');
+
+    $agent->update(['workspace_id' => workspaceFor()->getKey()]);
+
+    Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
+        ->call('selectTab', 'workspace')
+        ->assertSeeHtml('wire:click="detachWorkspace"');
+});
+
 it('refuses a workspace id that does not exist', function (): void {
     config()->set('pandora.features.workspaces', true);
 

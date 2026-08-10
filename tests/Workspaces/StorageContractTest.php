@@ -68,6 +68,24 @@ it('says a missing file is not a file, rather than failing', function (string $k
     expect($storage->isFile('absent.txt'))->toBeFalse();
 })->with('adapters');
 
+it('says a directory is not a file, on both stores', function (string $kind): void {
+    // The contract says "false for a directory, a prefix, or nothing at all",
+    // and the two adapters disagreed about it: the local one asked `is_file()`
+    // and the object one asked `exists()`, which is Flysystem's `has()` and
+    // answers true for a prefix. Nothing noticed until the Phase 7 walkthrough
+    // found a folder offering Download.
+    [$workspace, $storage] = $this->makeWorkspaceOn($kind);
+
+    if ($kind === 'local') {
+        mkdir($workspace->root_path.'/reports', 0777, true);
+    }
+
+    $storage->write('reports/q1.txt', 'first quarter');
+
+    expect($storage->isFile('reports'))->toBeFalse()
+        ->and($storage->isFile('reports/q1.txt'))->toBeTrue();
+})->with('adapters');
+
 it('refuses to read something that is not there', function (string $kind): void {
     [, $storage] = $this->makeWorkspaceOn($kind);
 
