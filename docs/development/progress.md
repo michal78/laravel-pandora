@@ -5,6 +5,62 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-10 — Four walkthroughs in one session, and how they were driven
+
+Phase 7 closed (25/25). Phase 1 closed (20/20). Phase 8 section 7 driven, leaving only section 5.
+Phase 6's delegation half fully driven, leaving only MCP. Q10 is half paid.
+
+```
+vendor/bin/pest        -> Tests: 1,795 passed, 8 skipped (5,849 assertions)
+                          run with PANDORA_TEST_S3_ENDPOINT set, so the object-storage
+                          legs ran against real MinIO rather than skipping
+vendor/bin/phpstan     -> [OK] No errors (level 8)
+vendor/bin/pint --test -> passed
+```
+
+**Findings: 17 across four walkthroughs, 12 fixed.** The two worth naming here.
+`ObjectStorage::isFile()` answered true for a prefix — `$disk->exists()` is Flysystem's `has()` —
+while `LocalStorage` had always answered `is_file()`, and `read`, `stream`, `delete` and `size` all
+guard with that check. And a delegation that produces no usable result puts the model in a retry
+loop the duplicate guard cannot release it from, because the refusal tells it to use a result that
+does not exist; four runs died that way.
+
+### The format, which worked and is worth repeating
+
+Two people, one environment, split by what each can actually see.
+
+**The agent drives everything with an observable outcome.** Runs dispatched through
+`AgentRunner::forUser()->inConversation()`, then read back from `tool_executions`, `runs`,
+`pandora_audit_log` and the store itself. Quota, truncation, traversal, injection, a stopped MinIO —
+all of it is checkable without a browser, and checking the database rather than the reply is what
+makes the answer evidence instead of a claim.
+
+**The human drives the browser, and only the browser.** Every visual defect this session — a `<dl>`
+carrying a class that styles a `<details>`, buttons in a variant that renders as text, a container
+with no spacing, a folder offering Download — was invisible to 1,795 passing tests, because the
+suite asserts what the DOM says and never what it looks like. No amount of the same kind of test
+closes that.
+
+**What made it work in practice:**
+
+- **Instructions to the human as a numbered list, in small groups**, with the group's purpose stated.
+  Free prose gets skimmed; a list gets done. Mark them so they cannot be missed in a wall of output.
+- **State the baseline before the human acts** — row counts, byte counts, ids — so "did that do
+  anything?" is answerable afterwards rather than argued about.
+- **The human reports what they saw, not what it means.** "It says Download on the button" is worth
+  more than a diagnosis, and twice this session the reported cause was wrong while the observation
+  was exactly right.
+- **Verify the human's finding before fixing it.** Detaching was reported as impossible and was
+  merely unfindable; a file reported as showing "Empty" really did have twelve bytes in it. Both
+  were real findings, and neither was the finding as first described.
+- **Fix in the same pass, with a test that goes through the control.** Three separate defects this
+  session sat behind tests that exercised the method and never the button.
+- **When a fix fights the design, stop.** Stamping the agent's autonomy level onto every run looked
+  like a security fix, broke five tests encoding a documented decision, and would have stopped
+  nearly every agent writing anything from chat. Reverted, and recorded as a design question.
+
+---
+
 ## 2026-08-08 (late) — Phase 8: a stranger types something
 
 Every phase before this one served somebody the host application had already authenticated. A
