@@ -5,7 +5,9 @@
 > the audit page, cancellation as a button, the links clicked rather than
 > rendered — are **not** driven yet and are marked as such below.
 >
-> The MCP half of Phase 6 has no code, so it has no checks here.
+> The MCP half is **not driven at all** — see `## MCP — not driven` below. It
+> needs a real MCP server you control, so it is the one section here with a
+> setup cost beyond the host application.
 
 Every walkthrough so far has found something the suite could not. This one found
 the most expensive kind yet: a delegation that was refused *correctly*, bounded

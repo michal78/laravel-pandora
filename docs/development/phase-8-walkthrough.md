@@ -525,6 +525,19 @@ one. That is the gap: an optional capability a channel may implement and the
 core may signal on run start, so an adapter that has one uses it and one that
 does not degrades to today's behaviour.
 
+**The control center already does this, which settles what kind of gap it is.**
+Driving the Phase 1 walkthrough's two remaining checks on 2026-08-10, the web
+chat header showed activity while the agent was thinking. So the product knows
+the run is in progress and knows how to say so — it says it on one surface and
+not the other. This is not a missing capability but a missing *signal across
+the channel boundary*, which is a smaller fix and a worse omission: the person
+in Slack is the one who cannot see the run detail page, and they are the one
+who gets no indication at all.
+
+Section 7 then charged a price for it. The empty pause before an approval
+notice is what prompted a driver — who had written this finding — to type into
+the silence, starting a competing run. See finding 16.
+
 ### 12. The memory guard refused the secret; the approval card kept it
 
 **Found by accident**, which is the only way this one was ever going to be

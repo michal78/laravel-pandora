@@ -1,9 +1,10 @@
 # Phase 1 — Host Walkthrough
 
-> Status: **driven 2026-08-07 — 18 of 20 checks pass; 2 added afterwards and not
-> yet driven.** The two additions came from a defect the Phase 2 walkthrough
-> found in this phase's own chat page; they are fixed and covered by regression
-> tests, but not yet confirmed in a browser. All 22
+> Status: **complete — 20 of 20 checks pass.** Driven 2026-08-07, and the two
+> checks added afterwards driven 2026-08-10. The two additions came from a
+> defect the Phase 2 walkthrough found in this phase's own chat page; they were
+> fixed and covered by regression tests, and are now confirmed in a browser
+> too. All 22
 > acceptance criteria in `phase-1-acceptance.md` were already verified by
 > automated test. The console half of this walkthrough was performed on
 > 2026-08-05 and is recorded in Q9 — it found three defects. The browser half
@@ -36,12 +37,20 @@ otherwise. A queue worker must be running or nothing here completes.
       22. Streaming over Reverb is a Phase 9 item.)*
 - [x] A second message in the same conversation carries the first exchange as
       context — the agent can refer back to it.
-- [ ] The agent named above the thread is **the one the conversation was started
+- [x] The agent named above the thread is **the one the conversation was started
       with**, and it is stated rather than offered as a dropdown.
-- [ ] After a reload, the same agent is still named, and the next message is
+      *(Driven 2026-08-10. The picker is a dropdown **before** the first
+      message — which is correct, that is the choice being made — and becomes
+      plain text once the conversation exists. The check is about a
+      conversation that has one, and it holds.)*
+- [x] After a reload, the same agent is still named, and the next message is
       answered by it — check `runs.agent_id`, not the badge.
       *(Added 2026-08-07. Both fail against the code this walkthrough was
-      originally driven on — see the Phase 2 defect.)*
+      originally driven on — see the Phase 2 defect. Driven 2026-08-10 against
+      `delta`: runs `01kznx5s5pkqp8r1g0q11s2wqg` and, after a reload,
+      `01kznx81y8n7w5pb605wg4b618` — same conversation, both
+      `agent_id=01kzdwgca5mcx9wcwdhzkxbaxb`, confirmed in the database rather
+      than from the badge.)*
 
 ## A reload mid-run
 

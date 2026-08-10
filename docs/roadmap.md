@@ -8,7 +8,7 @@
 | Phase | Title | Status |
 |---|---|---|
 | 0 | Discovery and architecture | ✅ |
-| 1 | Kernel vertical slice | 🔨 22/22 criteria; walkthrough driven 2026-08-07 and found an agent-binding defect in the chat page — fixed, 2 checks await re-driving |
+| 1 | Kernel vertical slice | ✅ 22/22 criteria; walkthrough driven 2026-08-07 and found an agent-binding defect in the chat page — fixed, and the 2 added checks re-driven 2026-08-10 (20/20) |
 | 2 | Tools and approvals | ✅ 36/36 — host walkthrough driven 2026-08-07; found four defects, three fixed and one carried as a contract change |
 | 3 | Providers and routing | ✅ 41/41 — database matrix now genuinely green on MySQL, MariaDB and PostgreSQL |
 | 3.5 | Agents page | ✅ 20/20 — host walkthrough driven 2026-08-07; found a missing slug on the Overview tab, fixed, and a stale stub-tab list in the walkthrough itself |
