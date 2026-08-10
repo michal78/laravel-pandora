@@ -1,9 +1,11 @@
 # Phase 6 — Host Walkthrough
 
-> Status: **the delegation half driven 2026-08-08, headlessly, and it found
-> four defects.** All four are fixed and covered. The remaining browser checks —
-> the audit page, cancellation as a button, the links clicked rather than
-> rendered — are **not** driven yet and are marked as such below.
+> Status: **the delegation half is driven.** 2026-08-08 headlessly, finding four
+> defects, all fixed and covered; the remaining browser checks driven
+> 2026-08-10, finding five more (5–9). Depth, cycle, cancellation and the audit
+> actions all pass. Two of the new findings are structural rather than
+> cosmetic: there is no audit page at all (6), and a failed delegation puts the
+> parent into a retry loop that ends the run (7).
 >
 > The MCP half is **not driven at all** — see `## MCP — not driven` below. It
 > needs a real MCP server you control, so it is the one section here with a
@@ -107,16 +109,23 @@ Driven headlessly through `AgentRunner::forUser()` with a live model.
 - [x] The refusal reaches an operator: the tool execution row carries an
       `error_message`, and the run detail renders it. *(This is the check that
       failed. See Defect 2.)*
-- [ ] Delegating past `max_depth` denies the tool and names the limit.
-      *(Not driven live — covered by `Delegation/DepthTest`.)*
-- [ ] Delegating to an agent already in the ancestry is refused outright.
-      *(Not driven live — covered by `Delegation/CycleTest`.)*
-- [ ] Cancelling a parent cancels its children; cancelling a child leaves the
-      parent alone. *(Not driven live — covered by
-      `Delegation/CancellationTest`. Worth driving in a browser: cancellation is
-      a button, and the button is the part nobody tests.)*
-- [ ] The audit log shows `delegation.denied`, `delegation.depth_exceeded` and
-      `delegation.cycle_refused`, all at `warning`. *(Not driven — browser.)*
+- [x] Delegating past `max_depth` denies the tool and names the limit.
+      *(Driven live 2026-08-10 on a three-level chain against `max_depth = 2`:
+      "Delegation is limited to 2 levels and this run is already at level 2. Do
+      the remaining work yourself, or report what you cannot do." The run
+      **completed** — refused, reported, carried on.)*
+- [x] Delegating to an agent already in the ancestry is refused outright.
+      *(Driven live 2026-08-10: "The agent [coordinator] is already running
+      higher up in this chain of work. Delegating back to it would loop." The
+      child still completed.)*
+- [x] Cancelling a parent cancels its children; cancelling a child leaves the
+      parent alone. *(Driven in a browser 2026-08-10, and it needed the button
+      built first — see Finding 5. Both halves hold, and the second half has a
+      consequence the check does not describe: Finding 7.)*
+- [x] The audit log shows `delegation.denied`, `delegation.depth_exceeded` and
+      `delegation.cycle_refused`, all at `warning`. *(All three confirmed at
+      `warning` in `pandora_audit_log` 2026-08-10. **Not confirmed on a page,
+      because there is no audit page** — Finding 6.)*
 
 ## What this walkthrough found
 
@@ -156,12 +165,101 @@ different facts. Covered by `UI/DelegationTraceTest`.
 stale code, and a published config shadowing the package's own. Both are in
 *Before you start* now.
 
+### The browser half, driven 2026-08-10
+
+**What held.** The two refusals are the best-written messages in the product.
+Both name the limit, both tell the model what to do instead, both land in the
+audit log at `warning` with the refusal reason in metadata, and in both cases
+**the run completes** rather than failing — refused, reported, carried on.
+Cancelling a parent cancels its children, and it cascades further than one
+level: cancelling the middle run of a three-deep chain took its own child with
+it. `delegation.completed` turned out to be sound too — it means *the delegation
+concluded*, carries the child's terminal state in metadata, and rises to
+`warning` when the child did not succeed.
+
+**Finding 5 — cancellation was a button that only existed on one page. Fixed.**
+The check asks for cancellation to be driven in a browser, and the runs list —
+the page an operator actually watches — had no Cancel control, no agent name,
+truncated run ids at 12 characters, and no polling, so a live run's state only
+changed if you reloaded. The check could not be driven as written. `RunsIndex`
+now carries the whole run id, the agent, a per-row Cancel on the same
+`RunCanceller` path as the detail page, and `wire:poll` while any run on the
+page is non-terminal — stopping once none is, because a list of finished runs
+that re-queries every 2.5 seconds is load with no question behind it. Covered by
+`UI/RunsIndexActionsTest`, which *clicks* — the Phase 8 walkthrough's finding 10
+was an Edit button that did nothing behind thirteen tests that only rendered the
+page, and this check was flagged in this very document as "a button, and the
+button is the part nobody tests".
+
+**Finding 6 — the audit log is written everywhere and readable nowhere.**
+Eight Livewire components inject `AuditLogger` and write to it. Not one reads
+`AuditLog` back, there is no route, no page and no nav entry. The check above
+was marked "(Not driven — browser)" as though a browser could drive it; it never
+could. Everything the audit log records — every delegation refusal, every
+approval decision, every channel identity change — is reachable only by opening
+the database. For a table whose purpose is to be read after something has gone
+wrong by the person who was not there when it did, that is the whole feature
+missing, not a page missing. Phase 9's threat work should treat it as such.
+
+**Finding 7 — a dead-end tool result becomes a retry storm that kills the run.**
+Seen four times on 2026-08-10, from three different causes: a child that failed
+on a provider error, a delegation refused as a cycle, and a child cancelled from
+the browser. The shape is identical every time. The delegation produces no
+usable result, the model reissues the identical call, and the duplicate-call
+guard refuses it with:
+
+> This exact call was already made in this run. Use the result you already have,
+> or call with different arguments.
+
+**There is no result to use.** The first call failed. So the model retries,
+is refused again, and loops — six times in one run, eleven in another — until
+`pandora.budget_exceeded` or the deadline ends it. The parent then dies as
+`failed` or `timed_out` having never reported the thing it actually knew, which
+was that its delegate could not do the work.
+
+Each piece is defensible alone. The duplicate guard is right that the call was
+repeated; the refusal is right that it was refused. Together they form a trap
+with no exit, and the message is the reason: it asserts a result exists. It
+should distinguish a repeated call that *succeeded* — where "use what you have"
+is sound advice — from one that failed, where the only useful instruction is to
+stop retrying and report. This is the same lesson as Defect 1: the guard always
+worked, and what was missing was the model being able to act on what it said.
+
+**Finding 8 — cancelling a child leaves the parent stranded, not informed.**
+The check says cancelling a child leaves the parent alone, and it does: the
+parent stayed `waiting_for_tool` and was not cancelled. But it is never told
+*why* its delegate stopped. It re-delegated, spawning a second child; that one
+failed; then Finding 7's loop took over and the parent ended `timed_out` several
+minutes later. An operator who cancels a child in order to stop some work
+watches a new one start, and the run they intervened in dies of a timeout rather
+than reporting "the work I delegated was cancelled". Cancellation of a child
+should close the parent's open tool call with that sentence.
+
+**Finding 9 — no OpenAI reasoning model can be used with tools.** Found
+incidentally: a delegated child configured with a reasoning model failed with
+*"Function tools with reasoning_effort are not supported for … in
+/v1/chat/completions. To use function tools, use /v1/responses."*
+`OpenAiCompatibleProvider` posts to `/chat/completions` and nothing else, so
+this is not a property of that one agent — every reasoning model is unusable
+with any tool, on any agent, and the failure arrives from the provider rather
+than from a check of ours. Not a Phase 6 defect; recorded here because this is
+where it surfaced, and it belongs to Phase 9's provider work.
+
+**Worth noting about failures generally:** all three runs in the first chain
+carried an empty `error` on the `runs` row while `pandora_audit_log` held the
+error code and class. The same gap was seen during Phase 8 on 2026-08-09. An
+operator reading the runs table sees a failed run and no reason.
+
 ## Not in this walkthrough
 
 The MCP half — servers, discovery, schema hashing, approval, the Pandora MCP
-server and the agent's Permissions tab. None of it is built. Criteria 14–30 of
-`phase-6-acceptance.md` remain open, and this document grows a second half when
-they close.
+server and the agent's Permissions tab.
+
+*Corrected 2026-08-10: this section used to say "none of it is built" and that
+criteria 14–30 remained open. Both were true when it was written and neither is
+true now — all 30 criteria are verified, `src/Mcp/` holds discovery, schema
+hashing, approval and a health probe, and `/pandora/mcp` is a real page. What is
+still missing is the driving, which is what `## MCP — not driven` below is for.*
 
 ## MCP — not driven
 

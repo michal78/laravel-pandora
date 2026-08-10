@@ -14,7 +14,7 @@
 | 3.5 | Agents page | ✅ 20/20 — host walkthrough driven 2026-08-07; found a missing slug on the Overview tab, fixed, and a stale stub-tab list in the walkthrough itself |
 | 4 | Automation | ✅ 26/26 on all four engines; host walkthrough complete |
 | 5 | Memory and context | ✅ 28/28 incl. a real pgvector CI leg; host walkthrough driven 2026-08-07 — four defects, all fixed, one of them a cross-user memory disclosure on the Memory page |
-| 6 | Multi-agent and MCP | 🔨 30/30 verified; walkthrough deliberately deferred to after Phase 8 (Q10) |
+| 6 | Multi-agent and MCP | 🔨 30/30 verified; delegation walkthrough fully driven (2026-08-08 headless, 2026-08-10 browser) — 9 findings, 4 fixed. The MCP half is still undriven and needs a real MCP server |
 | 7 | Workspaces, released and on object storage | 🔨 24/25 — both adapters green against real MinIO; walkthrough deferred with Phase 6's (Q10) |
 | 8 | Channels and extensions | 🔨 32/33 — walkthrough sections 1–4 and 6–8 driven; only section 5 (two people, one channel account, simultaneously) remains, blocked on a second Slack account. 16 findings |
 | 9 | Hardening and release | ⬜ |
