@@ -9,8 +9,10 @@ use Pandora\Mcp\McpTool;
 use Pandora\Mcp\McpToolApproval;
 use Pandora\Mcp\RemoteTool;
 use Pandora\Mcp\Transport\HttpTransport;
+use Pandora\Providers\Data\ToolCall;
 use Pandora\Testing\FakeMcpServer;
 use Pandora\Tests\Support\MakesTools;
+use Pandora\Tools\ToolGatekeeper;
 use Pandora\Tools\ToolInput;
 
 /**
@@ -79,6 +81,32 @@ it('sends the remote name, not the namespaced one', function (): void {
     ]);
 });
 
+it('carries the arguments the MODEL sent, not only ones we declared', function (): void {
+    // The path every real call takes and no test took: a model forms a call
+    // against the schema the SERVER advertised, so its arguments are top-level
+    // `invoice_id`, not a key called `arguments`. Validation keeps only what
+    // `rules()` declared, so building the input by hand -- as the tests above
+    // do -- skips the only step that can lose them.
+    //
+    // Losing them is silent. The tool succeeds, the run completes, the server
+    // is asked for nothing in particular and answers about nothing in
+    // particular.
+    $decision = app(ToolGatekeeper::class)->evaluate(
+        new ToolCall(id: 'c1', name: 'ledger-lookup_invoice', arguments: ['invoice_id' => 'INV-42']),
+        $this->context,
+    );
+
+    expect($decision->isAllowed())->toBeTrue();
+
+    $this->remote->handle($decision->input, $this->context);
+
+    expect($this->fake->calls)->toContain([
+        'method' => 'tools/call',
+        'name' => 'lookup_invoice',
+        'arguments' => ['invoice_id' => 'INV-42'],
+    ]);
+});
+
 it('fails as a tool error when the server hangs', function (): void {
     $this->fake->hangs();
 
@@ -124,7 +152,7 @@ it('tells the model less than it tells the operator', function (): void {
     /** @var AuditLog $entry */
     $entry = AuditLog::query()->where('action', 'mcp.call_failed')->firstOrFail();
 
-    expect($entry->metadata['tool'] ?? null)->toBe('ledger.lookup_invoice')
+    expect($entry->metadata['tool'] ?? null)->toBe('ledger-lookup_invoice')
         ->and($entry->metadata['server'] ?? null)->toBe('ledger');
 });
 

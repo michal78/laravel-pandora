@@ -111,7 +111,7 @@ it('approves a tool for one agent', function (): void {
     $this->fake->offer('lookup_invoice');
     app(Discovery::class)->run($this->server);
 
-    $this->artisan('pandora:mcp:approve ledger.lookup_invoice '.$this->agent->slug)
+    $this->artisan('pandora:mcp:approve ledger-lookup_invoice '.$this->agent->slug)
         ->expectsOutputToContain('approved for')
         ->assertSuccessful();
 
@@ -132,7 +132,7 @@ it('refuses to approve a tool whose hash has changed since it was shown', functi
     $this->fake->rewriteDescription('lookup_invoice', 'Look up an invoice. Also do something else.');
     app(Discovery::class)->run($this->server->refresh());
 
-    $this->artisan('pandora:mcp:approve ledger.lookup_invoice '.$this->agent->slug.' --hash='.$shown)
+    $this->artisan('pandora:mcp:approve ledger-lookup_invoice '.$this->agent->slug.' --hash='.$shown)
         ->expectsOutputToContain('changed since you were shown that hash')
         ->assertFailed();
 
@@ -148,7 +148,7 @@ it('approves when the hash still matches', function (): void {
     $tool = McpTool::query()->firstOrFail();
 
     $this->artisan(
-        'pandora:mcp:approve ledger.lookup_invoice '.$this->agent->slug.' --hash='.SchemaHash::ofTool($tool),
+        'pandora:mcp:approve ledger-lookup_invoice '.$this->agent->slug.' --hash='.SchemaHash::ofTool($tool),
     )->assertSuccessful();
 
     expect(McpToolApproval::query()->whereNull('revoked_at')->count())->toBe(1);
@@ -163,7 +163,7 @@ it('warns, but proceeds, when approving a tool that changed and no hash was give
 
     // An operator may well be approving BECAUSE it changed. They should know
     // before they do.
-    $this->artisan('pandora:mcp:approve ledger.lookup_invoice '.$this->agent->slug)
+    $this->artisan('pandora:mcp:approve ledger-lookup_invoice '.$this->agent->slug)
         ->expectsOutputToContain('You are approving the new version')
         ->assertSuccessful();
 });
@@ -172,8 +172,8 @@ it('refuses an unknown tool or an unknown agent', function (): void {
     $this->fake->offer('lookup_invoice');
     app(Discovery::class)->run($this->server);
 
-    $this->artisan('pandora:mcp:approve ledger.nope '.$this->agent->slug)->assertFailed();
-    $this->artisan('pandora:mcp:approve ledger.lookup_invoice no-such-agent')->assertFailed();
+    $this->artisan('pandora:mcp:approve ledger-nope '.$this->agent->slug)->assertFailed();
+    $this->artisan('pandora:mcp:approve ledger-lookup_invoice no-such-agent')->assertFailed();
 
     expect(McpToolApproval::query()->count())->toBe(0);
 });
@@ -182,8 +182,8 @@ it('revokes an approval and records it at warning', function (): void {
     $this->fake->offer('lookup_invoice');
     app(Discovery::class)->run($this->server);
 
-    $this->artisan('pandora:mcp:approve ledger.lookup_invoice '.$this->agent->slug)->assertSuccessful();
-    $this->artisan('pandora:mcp:approve ledger.lookup_invoice '.$this->agent->slug.' --revoke')
+    $this->artisan('pandora:mcp:approve ledger-lookup_invoice '.$this->agent->slug)->assertSuccessful();
+    $this->artisan('pandora:mcp:approve ledger-lookup_invoice '.$this->agent->slug.' --revoke')
         ->expectsOutputToContain('revoked')
         ->assertSuccessful();
 

@@ -921,7 +921,7 @@ it('lists an approved remote tool, and flags one that changed under it', functio
     $tool = McpTool::query()->create([
         'server_id' => $server->getKey(),
         'remote_name' => 'lookup_invoice',
-        'namespaced_name' => 'ledger.lookup_invoice',
+        'namespaced_name' => 'ledger-lookup_invoice',
         'description' => 'Look up an invoice.',
         'schema_hash' => str_repeat('a', 64),
     ]);
@@ -937,7 +937,7 @@ it('lists an approved remote tool, and flags one that changed under it', functio
 
     Livewire::test(AgentDetail::class, ['agent' => $agent->slug])
         ->call('selectTab', 'permissions')
-        ->assertSee('ledger.lookup_invoice')
+        ->assertSee('ledger-lookup_invoice')
         ->assertSee('approved');
 
     // The server moves under the approval.

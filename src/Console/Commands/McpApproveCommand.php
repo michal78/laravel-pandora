@@ -27,7 +27,7 @@ use Pandora\Mcp\SchemaHash;
 final class McpApproveCommand extends Command
 {
     protected $signature = 'pandora:mcp:approve
-                            {tool : The namespaced tool name, e.g. ledger.lookup_invoice}
+                            {tool : The namespaced tool name, e.g. ledger-lookup_invoice}
                             {agent : The agent slug}
                             {--hash= : The schema hash you were shown; refuses if it has moved}
                             {--revoke : Take the approval away instead}';

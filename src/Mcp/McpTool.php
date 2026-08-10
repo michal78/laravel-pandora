@@ -35,6 +35,7 @@ use Pandora\Support\Concerns\PandoraModel;
  * @property string $schema_hash
  * @property CarbonInterface|null $schema_changed_at
  * @property string|null $previous_schema_hash
+ * @property string|null $previous_description
  * @property bool $available
  * @property array<string, mixed>|null $metadata
  * @property CarbonInterface|null $created_at
@@ -56,6 +57,7 @@ final class McpTool extends Model
     protected $fillable = [
         'tenant_id', 'server_id', 'remote_name', 'namespaced_name', 'description',
         'input_schema', 'schema_hash', 'schema_changed_at', 'previous_schema_hash',
+        'previous_description',
         'available', 'metadata',
     ];
 

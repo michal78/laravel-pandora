@@ -106,30 +106,84 @@
                                         <div class="pd-muted">withdrawn by the server</div>
                                     @endunless
                                     @if ($tool->schema_changed_at !== null)
-                                        <div class="pd-notice pd-notice-warning">
-                                            Changed {{ $tool->schema_changed_at->diffForHumans() }}.
-                                            Approvals were cleared.
-                                        </div>
+                                        {{-- A tag here, the explanation next to the thing that
+                                             changed. A full-width notice in this column pushed the
+                                             row apart and still did not say what moved. --}}
+                                        <span class="pd-badge pd-badge-warning">Changed</span>
                                     @endif
                                 </td>
                                 <td>
-                                    {{-- Escaped, bounded, and never an instruction. --}}
-                                    <span class="pd-muted">{{ $tool->boundedDescription() }}</span>
+                                    @if ($tool->schema_changed_at !== null)
+                                        <div class="pd-notice pd-notice-warning">
+                                            Changed {{ $tool->schema_changed_at->diffForHumans() }} by the
+                                            server. Approvals were cleared and it stays unapproved until
+                                            somebody approves <span class="pd-strong">this</span> version.
+                                            @if ($tool->previous_description !== null)
+                                                Its description changed:
+                                            @else
+                                                Its description is unchanged, so what moved is a parameter.
+                                            @endif
+                                        </div>
+                                    @endif
+
+                                    @if ($tool->previous_description !== null)
+                                        {{-- Both halves escaped. This is third-party text and the
+                                             old copy is no more trustworthy than the new one. --}}
+                                        <div class="pd-mono pd-diff-from">{{ $tool->previous_description }}</div>
+                                        <div class="pd-mono pd-diff-to">{{ $tool->boundedDescription() }}</div>
+                                    @else
+                                        {{-- Escaped, bounded, and never an instruction. --}}
+                                        <span class="pd-muted">{{ $tool->boundedDescription() }}</span>
+                                    @endif
                                 </td>
-                                <td class="pd-actions">
+                                <td class="pd-grants">
                                     @php($live = $approvals[$tool->getKey()] ?? [])
+                                    @php($chosen = $approveFor[$tool->getKey()] ?? '')
 
                                     @if ($live === [])
-                                        <span class="pd-muted">nobody</span>
+                                        <div class="pd-muted">nobody</div>
                                     @else
-                                        @foreach ($live as $approval)
-                                            <span class="pd-mono">{{ $approval->agent_id }}</span>
-                                            @if ($canManage)
-                                                <button type="button" class="pd-btn pd-btn-danger"
-                                                        wire:click="revoke('{{ $tool->getKey() }}', '{{ $approval->agent_id }}')"
-                                                >Revoke</button>
+                                        {{-- One grant per line. A run-on list of names and
+                                             buttons reads as a row of controls; this reads as
+                                             what it is, a list of who may call somebody else's
+                                             tool. --}}
+                                        <ul class="pd-grant-list">
+                                            @foreach ($live as $approval)
+                                                <li class="pd-grant">
+                                                    <span class="pd-mono">{{ $agentNames[$approval->agent_id] ?? $approval->agent_id }}</span>
+                                                    @if ($canManage)
+                                                        <button type="button" class="pd-btn pd-btn-sm pd-btn-danger pd-btn-ghost"
+                                                                wire:click="revoke('{{ $tool->getKey() }}', '{{ $approval->agent_id }}')"
+                                                        >Revoke</button>
+                                                    @endif
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+
+                                    @if ($canManage)
+                                        {{-- The page showed the diff; this is where a decision
+                                             about it is made. Approval names one agent, because
+                                             "approve this tool" is not a thing that can be said,
+                                             and the button waits until one is named rather than
+                                             offering an action that cannot be completed. --}}
+                                        <div class="pd-grant-add">
+                                            <label class="pd-visually-hidden" for="approve-{{ $tool->getKey() }}">
+                                                Approve {{ $tool->namespaced_name }} for an agent
+                                            </label>
+                                            <select id="approve-{{ $tool->getKey() }}" class="pd-select pd-select-sm"
+                                                    wire:model.live="approveFor.{{ $tool->getKey() }}">
+                                                <option value="">Approve for…</option>
+                                                @foreach ($agents as $agent)
+                                                    <option value="{{ $agent->id }}">{{ $agent->slug }}</option>
+                                                @endforeach
+                                            </select>
+                                            @if ($chosen !== '')
+                                                <button type="button" class="pd-btn pd-btn-sm pd-btn-success"
+                                                        wire:click="approve('{{ $tool->getKey() }}')"
+                                                >Approve</button>
                                             @endif
-                                        @endforeach
+                                        </div>
                                     @endif
                                 </td>
                             </tr>

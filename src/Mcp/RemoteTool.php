@@ -67,13 +67,26 @@ final class RemoteTool extends Tool
      *
      * Deriving Laravel rules from a remote JSON Schema would mean trusting
      * that schema to describe what is safe, and it is the same untrusted text
-     * as everything else the server said. The bound that matters is applied
-     * here instead: a flat array, size-capped, no nesting deep enough to be a
-     * denial of service on the way out.
+     * as everything else the server said.
+     *
+     * Which is exactly why validation must not strip what it did not declare
+     * here. The model formed its call against the server's schema, so its keys
+     * are top-level and undeclared by construction; keeping only `arguments`
+     * sends the far end an empty object and the call succeeds having asked
+     * nothing. See `carriesUndeclaredArguments()` below.
      */
     public function rules(): array
     {
         return ['arguments' => 'nullable|array'];
+    }
+
+    /**
+     * The one tool in the system for which this is true, and it is true
+     * because the arguments were never ours to declare.
+     */
+    protected function carriesUndeclaredArguments(): bool
+    {
+        return true;
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pandora\UI\Livewire;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Livewire\Component;
 use Pandora\Providers\Catalog\CatalogModel;
 use Pandora\Providers\Catalog\ModelCatalog;
@@ -56,22 +57,48 @@ final class ProvidersIndex extends Component
 
         $connections = [];
 
+        $staleAfterDays = $catalog->staleAfterDays();
+
         foreach ($providers->configuredKeys() as $key) {
             /** @var array<string, mixed> $configured */
             $configured = (array) config("pandora.providers.connections.{$key}", []);
+
+            /** @var Collection<int, CatalogModel> $connectionModels */
+            $connectionModels = $models->get($key, collect());
+
+            $hasCredential = $credentials->resolve($key) !== null;
+            $status = $health->status($key);
 
             $connections[] = [
                 'key' => $key,
                 'adapter' => is_string($configured['adapter'] ?? null) ? $configured['adapter'] : 'unknown',
                 'base_url' => is_string($configured['base_url'] ?? null) ? $configured['base_url'] : null,
                 'is_default' => $key === $providers->default(),
-                'health' => $health->status($key),
-                'models' => $models->get($key, collect()),
+                'health' => $status,
+                'models' => $connectionModels,
                 'credentials' => $stored->get($key, collect()),
                 // Whether a credential exists at all, which is the question
                 // anybody debugging a broken provider is actually asking. The
                 // value itself is never read.
-                'has_credential' => $credentials->resolve($key) !== null,
+                'has_credential' => $hasCredential,
+
+                // Whether this connection stays shut when the page collapses
+                // it. A closed row is a claim that nothing here needs you, and
+                // the claim has to be true -- so a provider that is not
+                // answering, holds no credential, or is charging against
+                // prices nobody has confirmed opens itself and says which.
+                'attention' => array_values(array_filter([
+                    // `unknown` is not `broken`. A provider nobody has probed
+                    // yet is the normal state of a fresh installation, and
+                    // treating it as a problem would open every row on day one
+                    // — which is the whole feature, undone. The summary badge
+                    // still says Unknown.
+                    in_array($status->status, ['degraded', 'unhealthy'], true) ? 'not answering' : null,
+                    $hasCredential ? null : 'no credential',
+                    $canManage && $connectionModels->contains(
+                        static fn (CatalogModel $model): bool => $model->pricingIsStale($staleAfterDays),
+                    ) ? 'stale pricing' : null,
+                ])),
             ];
         }
 
@@ -79,7 +106,7 @@ final class ProvidersIndex extends Component
             'connections' => $connections,
             'canManage' => $canManage,
             'staleModels' => $canManage ? $catalog->withStalePricing() : collect(),
-            'staleAfterDays' => $catalog->staleAfterDays(),
+            'staleAfterDays' => $staleAfterDays,
         ])->layout('pandora::layouts.app', ['title' => 'Providers']);
     }
 

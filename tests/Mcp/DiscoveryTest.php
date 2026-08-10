@@ -49,7 +49,7 @@ it('writes a row for every tool the server offers', function (): void {
     /** @var McpTool $tool */
     $tool = McpTool::query()->where('remote_name', 'lookup_invoice')->firstOrFail();
 
-    expect($tool->namespaced_name)->toBe('ledger.lookup_invoice')
+    expect($tool->namespaced_name)->toBe('ledger-lookup_invoice')
         ->and($tool->description)->toBe('Look up an invoice by number.')
         ->and($tool->schema_hash)->toHaveLength(64);
 });
@@ -80,7 +80,7 @@ it('namespaces from the server row rather than from the response', function (): 
     ($this->discover)();
 
     expect(McpTool::query()->pluck('namespaced_name')->all())
-        ->each->toStartWith('ledger.');
+        ->each->toStartWith('ledger-');
 });
 
 it('skips a tool whose name cannot be published, rather than renaming it', function (string $name): void {
@@ -96,7 +96,7 @@ it('skips a tool whose name cannot be published, rather than renaming it', funct
         ->and(McpTool::query()->pluck('remote_name')->all())->toBe(['good_tool']);
 })->with([
     '../../etc/passwd',
-    'ledger.lookup_invoice',
+    'ledger-lookup_invoice',
     'has space',
     'has/slash',
     '',

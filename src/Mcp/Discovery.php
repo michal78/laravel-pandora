@@ -170,7 +170,8 @@ final readonly class Discovery
         string $namespacedName,
     ): void {
         $previous = $tool->schema_hash;
-        $descriptionChanged = $tool->description !== $description;
+        $previousDescription = $tool->description;
+        $descriptionChanged = $previousDescription !== $description;
 
         $tool->update([
             'namespaced_name' => $namespacedName,
@@ -178,6 +179,11 @@ final readonly class Discovery
             'input_schema' => $inputSchema,
             'schema_hash' => $hash,
             'previous_schema_hash' => $previous,
+            // Kept only when it actually moved, so the page can show a
+            // before and after rather than the same sentence twice. An
+            // operator asked to re-approve is being asked to read a diff, and
+            // "it changed" is not one.
+            'previous_description' => $descriptionChanged ? $previousDescription : null,
             'schema_changed_at' => now(),
             'available' => true,
         ]);

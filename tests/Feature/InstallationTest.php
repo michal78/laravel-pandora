@@ -44,6 +44,27 @@ function forgetPublishedPandoraMigrations(): void
     }
 }
 
+/**
+ * `pandora:install` publishes the CONFIG as well as the migrations, into the
+ * Testbench skeleton this suite boots from — and a published config shadows
+ * the package's own, because `mergeConfigFrom()` merges one level deep and its
+ * top-level arrays replace ours outright.
+ *
+ * Nothing fails when that happens. The next run of the suite simply exercises
+ * a snapshot of whatever the config looked like when it was published, so a
+ * key added to the package silently does not exist and a default changed in
+ * the package is silently not the one under test. It has been found and
+ * deleted by hand four times, twice while it was actively hiding a defect, and
+ * the cause was never chased because nothing pointed at this file.
+ *
+ * This is the guard. It runs after every test here, because this is the only
+ * file that installs.
+ */
+afterEach(function (): void {
+    File::delete(config_path('pandora.php'));
+    forgetPublishedPandoraMigrations();
+});
+
 /** Acceptance criteria 1, 2, 3 -- installation. */
 it('boots with no configuration at all', function (): void {
     expect(app()->bound(Pandora::class))->toBeTrue()

@@ -63,7 +63,7 @@ beforeEach(function (): void {
             $this->context->agent,
             $this->context->session,
             $this->context->actor,
-            [new ToolCall(id: 'call_'.bin2hex(random_bytes(3)), name: 'ledger.lookup_invoice', arguments: $arguments)],
+            [new ToolCall(id: 'call_'.bin2hex(random_bytes(3)), name: 'ledger-lookup_invoice', arguments: $arguments)],
         );
 
         // Synchronously, so the row is terminal by the time it is read: the
@@ -76,7 +76,7 @@ it('writes a tool execution row for a remote call', function (): void {
     ($this->dispatch)(['arguments' => ['query' => 'INV-42']]);
 
     /** @var ToolExecution $execution */
-    $execution = ToolExecution::query()->where('tool_name', 'ledger.lookup_invoice')->firstOrFail();
+    $execution = ToolExecution::query()->where('tool_name', 'ledger-lookup_invoice')->firstOrFail();
 
     expect($execution->run_id)->toBe($this->context->runId())
         ->and($execution->status->value)->toBe('succeeded');
@@ -86,7 +86,7 @@ it('redacts a remote call\'s arguments exactly like a local one\'s', function ()
     ($this->dispatch)(['arguments' => ['api_key' => 'sk-live-should-not-be-stored', 'query' => 'INV-42']]);
 
     /** @var ToolExecution $execution */
-    $execution = ToolExecution::query()->where('tool_name', 'ledger.lookup_invoice')->firstOrFail();
+    $execution = ToolExecution::query()->where('tool_name', 'ledger-lookup_invoice')->firstOrFail();
 
     // The same Redactor, because a second path for remote calls would be the
     // place handling the least trustworthy data and the place most likely to
@@ -100,7 +100,7 @@ it('records the remote name and the server on the row', function (): void {
     ($this->dispatch)(['arguments' => ['query' => 'INV-42']]);
 
     /** @var ToolExecution $execution */
-    $execution = ToolExecution::query()->where('tool_name', 'ledger.lookup_invoice')->firstOrFail();
+    $execution = ToolExecution::query()->where('tool_name', 'ledger-lookup_invoice')->firstOrFail();
 
     $result = json_encode($execution->result, JSON_THROW_ON_ERROR);
 
@@ -117,7 +117,7 @@ it('records a refused remote call with a reason an operator can read', function 
     ($this->dispatch)(['arguments' => ['query' => 'INV-42']]);
 
     /** @var ToolExecution|null $execution */
-    $execution = ToolExecution::query()->where('tool_name', 'ledger.lookup_invoice')->first();
+    $execution = ToolExecution::query()->where('tool_name', 'ledger-lookup_invoice')->first();
 
     // Phase 6's own lesson, applied to the remote half: a refusal that records
     // nothing is a refusal nobody can explain.
@@ -132,7 +132,7 @@ it('records a failed remote call as failed rather than as nothing', function ():
     ($this->dispatch)(['arguments' => ['query' => 'INV-42']]);
 
     /** @var ToolExecution $execution */
-    $execution = ToolExecution::query()->where('tool_name', 'ledger.lookup_invoice')->firstOrFail();
+    $execution = ToolExecution::query()->where('tool_name', 'ledger-lookup_invoice')->firstOrFail();
 
     expect($execution->status->isTerminal())->toBeTrue()
         ->and($execution->status->value)->not->toBe('succeeded');

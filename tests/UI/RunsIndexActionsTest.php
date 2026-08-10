@@ -80,3 +80,27 @@ it('polls while a run can still change, and stops once none can', function (): v
 
     Livewire::test(RunsIndex::class)->assertDontSeeHtml('wire:poll');
 });
+
+it('paginates with Pandora markup rather than the framework default', function (): void {
+    // Found in the browser: the list rendered a chevron the height of the
+    // viewport and two paginators, one above the table and one far below it.
+    //
+    // Laravel's default pagination view is written for Tailwind. Pandora ships
+    // its own CSS and no Tailwind, so the utility classes that hide one of the
+    // view's two blocks do nothing, and its inline SVG chevrons -- sized
+    // entirely by those classes -- render unbounded. A page that merely
+    // "renders the paginator" asserts none of that, which is why this asserts
+    // WHICH paginator.
+    foreach (range(1, 30) as $ignored) {
+        $this->makeRun(['state' => RunState::Completed->value]);
+    }
+
+    $html = Livewire::test(RunsIndex::class)->assertOk()->html();
+
+    expect($html)->toContain('pd-pagination')
+        // The two things the default view brings and this design system cannot
+        // size: an inline SVG, and Tailwind's responsive visibility utilities.
+        ->and($html)->not->toContain('<svg')
+        ->and($html)->not->toContain('sm:hidden')
+        ->and($html)->not->toContain('hidden sm:');
+});

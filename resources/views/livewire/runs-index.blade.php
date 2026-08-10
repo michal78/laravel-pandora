@@ -63,5 +63,5 @@
         </div>
     </x-pandora::card>
 
-    {{ $runs->links() }}
+    {{ $runs->links('pandora::pagination') }}
 </div>

@@ -701,9 +701,19 @@ return [
             'max_description_length' => 2000,
 
             // The separator between a server's namespace and a remote tool
-            // name. Reserved: a core tool may not contain it, so no remote
-            // name can be mistaken for one.
-            'namespace_separator' => '.',
+            // name. Two constraints, and both are hard:
+            //
+            // 1. Reserved -- a core tool may not contain it, so no remote name
+            //    can be mistaken for one.
+            // 2. Legal in a provider's function-name grammar. OpenAI and
+            //    Anthropic both accept only `^[a-zA-Z0-9_-]+$`, so a dot makes
+            //    every remote tool name a 400 from the provider the moment one
+            //    is advertised -- and the run fails with a sentence about the
+            //    provider that names neither MCP nor the tool.
+            //
+            // `-` satisfies both. `_` satisfies only the second: core tool
+            // names are full of underscores.
+            'namespace_separator' => '-',
         ],
 
         'transports' => [
@@ -729,6 +739,14 @@ return [
         | served. It decides what EXISTS; it does not decide who may call it.
         | Every call is separately authorized against the actor behind the
         | token, because skipping that makes the token a superuser.
+        |
+        | `middleware` MUST authenticate. Pandora ships no authentication and
+        | the bare `api` group in a stock Laravel application authenticates
+        | nobody, so every call resolves a null actor, every `tools/call` is
+        | refused, and the audit entry says `reason: no actor`. That reads as a
+        | broken server and is an unconfigured one. Put your token guard here
+        | -- `['api', 'auth:sanctum']` for most installations -- and give the
+        | caller a user whose abilities are the ones it should have.
         */
         'server' => [
             'enabled' => env('PANDORA_MCP_SERVER_ENABLED', false),

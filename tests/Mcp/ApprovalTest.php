@@ -66,13 +66,13 @@ beforeEach(function (): void {
     );
 
     $this->call = fn (array $arguments = []) => app(ToolGatekeeper::class)->evaluate(
-        new ToolCall(id: 'call_1', name: 'ledger.lookup_invoice', arguments: $arguments),
+        new ToolCall(id: 'call_1', name: 'ledger-lookup_invoice', arguments: $arguments),
         $this->context,
     );
 });
 
 it('does not offer an unapproved remote tool', function (): void {
-    expect(($this->advertised)())->not->toContain('ledger.lookup_invoice');
+    expect(($this->advertised)())->not->toContain('ledger-lookup_invoice');
 });
 
 it('refuses an unapproved remote tool that is called anyway', function (): void {
@@ -88,7 +88,7 @@ it('refuses an unapproved remote tool that is called anyway', function (): void 
 it('offers it once this agent has approved it', function (): void {
     ($this->approveFor)($this->context->agent->getKey());
 
-    expect(($this->advertised)())->toContain('ledger.lookup_invoice');
+    expect(($this->advertised)())->toContain('ledger-lookup_invoice');
 });
 
 it('allows the call once approved', function (): void {
@@ -103,18 +103,18 @@ it('allows the call once approved', function (): void {
 it('grants nothing to another agent', function (): void {
     ($this->approveFor)('01JOTHERAGENTOTHERAGENTXXY');
 
-    expect(($this->advertised)())->not->toContain('ledger.lookup_invoice')
+    expect(($this->advertised)())->not->toContain('ledger-lookup_invoice')
         ->and(($this->call)()->isAllowed())->toBeFalse();
 });
 
 it('stops offering it the moment approval is revoked', function (): void {
     $approval = ($this->approveFor)($this->context->agent->getKey());
 
-    expect(($this->advertised)())->toContain('ledger.lookup_invoice');
+    expect(($this->advertised)())->toContain('ledger-lookup_invoice');
 
     $approval->update(['revoked_at' => now(), 'revoked_reason' => 'operator']);
 
-    expect(($this->advertised)())->not->toContain('ledger.lookup_invoice')
+    expect(($this->advertised)())->not->toContain('ledger-lookup_invoice')
         ->and(($this->call)()->isAllowed())->toBeFalse();
 });
 
@@ -125,7 +125,7 @@ it('stops offering it when the tool changed under the approval', function (): vo
     // asserts the call path agrees rather than relying on that having run.
     McpTool::query()->firstOrFail()->update(['schema_hash' => str_repeat('a', 64)]);
 
-    expect(($this->advertised)())->not->toContain('ledger.lookup_invoice')
+    expect(($this->advertised)())->not->toContain('ledger-lookup_invoice')
         ->and(($this->call)()->isAllowed())->toBeFalse();
 });
 
@@ -136,7 +136,7 @@ it('stops offering it when the server goes unhealthy', function (): void {
 
     // Unavailable rather than slow: a run that waits on a server known to be
     // down has converted a clear failure into a timeout.
-    expect(($this->advertised)())->not->toContain('ledger.lookup_invoice')
+    expect(($this->advertised)())->not->toContain('ledger-lookup_invoice')
         ->and(($this->call)()->isAllowed())->toBeFalse();
 });
 
@@ -146,7 +146,7 @@ it('stops offering it when the server withdrew it', function (): void {
     $this->fake->withdraw('lookup_invoice');
     app(Discovery::class)->run($this->server->refresh());
 
-    expect(($this->advertised)())->not->toContain('ledger.lookup_invoice')
+    expect(($this->advertised)())->not->toContain('ledger-lookup_invoice')
         ->and(($this->call)()->isAllowed())->toBeFalse();
 });
 
@@ -155,7 +155,7 @@ it('offers nothing remote at all while the client is disabled', function (): voi
 
     config()->set('pandora.mcp.client.enabled', false);
 
-    expect(($this->advertised)())->not->toContain('ledger.lookup_invoice')
+    expect(($this->advertised)())->not->toContain('ledger-lookup_invoice')
         ->and(($this->call)()->isAllowed())->toBeFalse();
 });
 
@@ -165,6 +165,6 @@ it('does not need the tool in the agent allowlist as well', function (): void {
     // them.
     ($this->approveFor)($this->context->agent->getKey());
 
-    expect($this->context->agent->allowedTools())->not->toContain('ledger.lookup_invoice')
+    expect($this->context->agent->allowedTools())->not->toContain('ledger-lookup_invoice')
         ->and(($this->call)(['arguments' => []])->isAllowed())->toBeTrue();
 });

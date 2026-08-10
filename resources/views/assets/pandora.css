@@ -914,6 +914,142 @@ button { font: inherit; cursor: pointer; }
     [data-pd-sidebar="collapsed"] .pd-sidebar-button { justify-content: flex-start; }
 }
 
+/* --------------------------------------------------- providers: one row */
+
+/*
+ * A provider is shut until it is asked for. The page was one long scroll
+ * because every connection rendered its whole model catalogue whether or not
+ * anybody was looking at it.
+ *
+ * The rule the summary has to satisfy: a closed row is a claim that nothing
+ * here needs you. So it carries the answer -- health, credential, model count
+ * -- and a connection with something wrong opens itself and says what.
+ */
+.pd-provider { padding: 0; }
+
+.pd-provider-summary {
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    transition: background var(--pd-transition);
+}
+
+.pd-provider-summary::-webkit-details-marker { display: none; }
+.pd-provider-summary:hover { background: var(--pd-surface-alt); }
+
+.pd-provider-summary:focus-visible {
+    outline: 2px solid var(--pd-accent);
+    outline-offset: -2px;
+}
+
+/* A closed card has no body, so its head's rule would be a line under
+   nothing. */
+.pd-provider:not([open]) > .pd-provider-summary { border-bottom: 0; }
+
+.pd-provider-name { display: flex; align-items: center; gap: var(--pd-space-3); min-width: 0; }
+.pd-provider-name .pd-card-title { font-family: var(--pd-mono); }
+
+/* Drawn rather than an icon: an inline SVG is one more thing whose size lives
+   somewhere else. */
+.pd-provider-marker {
+    width: 0; height: 0; flex-shrink: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 6px solid var(--pd-text-faint);
+    transition: transform var(--pd-transition);
+}
+
+.pd-provider[open] > .pd-provider-summary .pd-provider-marker { transform: rotate(90deg); }
+.pd-provider-summary:hover .pd-provider-marker { border-left-color: var(--pd-text); }
+
+.pd-provider-facts {
+    display: flex; align-items: center; gap: var(--pd-space-3);
+    flex-wrap: wrap; justify-content: flex-end;
+    font-size: 12px;
+}
+
+.pd-provider-attention {
+    color: var(--pd-warning);
+    font-size: 12px; font-weight: var(--pd-weight-label);
+}
+
+@media (max-width: 640px) {
+    .pd-provider-summary { flex-direction: column; align-items: flex-start; }
+    .pd-provider-facts { justify-content: flex-start; }
+}
+
+/* ------------------------------------------------------------ pagination */
+
+/*
+ * Laravel's default paginator is a Tailwind view. In a package that ships its
+ * own CSS it renders both of its blocks at once and its inline SVG chevrons
+ * have nothing bounding them, so they fill the page. `pandora::pagination`
+ * replaces it; these are the only styles it needs.
+ */
+.pd-pagination {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--pd-space-4); flex-wrap: wrap;
+    margin-top: var(--pd-space-4);
+}
+
+.pd-pagination-count {
+    margin: 0;
+    font-size: 12px; color: var(--pd-text-faint);
+    font-variant-numeric: tabular-nums;
+}
+
+.pd-pagination-pages { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+.pd-pagination-pages .pd-btn { min-width: 2rem; font-variant-numeric: tabular-nums; }
+
+/* The current page is a label, not a control: it is where you already are. */
+.pd-pagination-pages .pd-btn.is-current {
+    background: var(--pd-accent-soft);
+    border-color: color-mix(in srgb, var(--pd-accent) 40%, transparent);
+    color: var(--pd-accent);
+    cursor: default;
+}
+
+.pd-pagination-pages .pd-btn[aria-disabled="true"] {
+    color: var(--pd-text-faint);
+    border-color: var(--pd-border);
+    cursor: default;
+}
+
+.pd-pagination-gap { padding: 0 4px; color: var(--pd-text-faint); }
+
+/* ------------------------------------------- mcp: who may call one tool */
+
+/*
+ * The Approved-for column answers two different questions and used to answer
+ * them in one run-on line: what is granted right now, and who to grant it to
+ * next. State reads as a list of standing grants -- one per line, marked with
+ * the same green the description diff uses for "what is true now" -- and the
+ * action sits under it, quiet until it has something to do.
+ */
+.pd-grants { min-width: 16rem; }
+
+.pd-grant-list {
+    list-style: none; margin: 0 0 var(--pd-space-3); padding: 0;
+    display: grid; gap: 4px;
+}
+
+.pd-grant {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--pd-space-3);
+    padding: 2px 0 2px 9px;
+    border-left: 2px solid color-mix(in srgb, var(--pd-success) 60%, transparent);
+}
+
+/* Secondary and destructive at once: reachable, never the loudest thing in
+   a row whose subject is a tool somebody else wrote. */
+.pd-grant .pd-btn { flex-shrink: 0; }
+
+.pd-grant-add { display: flex; align-items: center; gap: var(--pd-space-2); }
+.pd-grant-add .pd-select { flex: 1; min-width: 0; }
+
+.pd-select-sm { padding: 5px 10px; font-size: 12px; border-radius: var(--pd-radius-sm); }
+
 /* ------------------------------------------------------- reduced motion */
 
 @media (prefers-reduced-motion: reduce) {

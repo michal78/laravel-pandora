@@ -70,7 +70,7 @@ it('degrades on one failure rather than condemning the server', function (): voi
     // A server that flapped on a single reset connection would pull its tools
     // out from under every agent for no reason anybody could later explain.
     expect(app(HealthProbe::class)->probe($this->server))->toBe(ServerHealth::Degraded)
-        ->and(($this->available)())->toContain('ledger.lookup_invoice');
+        ->and(($this->available)())->toContain('ledger-lookup_invoice');
 });
 
 it('goes unhealthy on a run of failures', function (): void {

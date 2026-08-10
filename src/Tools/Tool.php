@@ -155,6 +155,25 @@ abstract class Tool
     }
 
     /**
+     * Whether arguments this tool did not declare survive validation.
+     *
+     * False for every tool in core, and it has to stay false: Laravel's
+     * validator returns only the keys it was given rules for, and that
+     * stripping is what stops an undeclared key from reaching `handle()` and
+     * being acted on by something nobody reviewed.
+     *
+     * A remote MCP tool is the one thing this cannot be true for, because it
+     * does not declare its arguments at all — the model forms its call against
+     * a schema the SERVER advertised, so every key is undeclared here by
+     * construction. Stripping them leaves a call that succeeds, is audited,
+     * and asks the far end for nothing.
+     */
+    protected function carriesUndeclaredArguments(): bool
+    {
+        return false;
+    }
+
+    /**
      * Validate model-supplied arguments.
      *
      * Failure is not a run-ending error: the model is told what was wrong and
@@ -169,7 +188,7 @@ abstract class Tool
         $rules = $this->rules();
 
         if ($rules === []) {
-            return new ToolInput([]);
+            return new ToolInput($this->carriesUndeclaredArguments() ? $arguments : []);
         }
 
         try {
@@ -182,6 +201,8 @@ abstract class Tool
             throw ToolInputInvalid::make($this->name(), $errors);
         }
 
-        return new ToolInput($validated);
+        // The declared keys win, because those are the ones a rule may have
+        // cast or defaulted.
+        return new ToolInput($this->carriesUndeclaredArguments() ? [...$arguments, ...$validated] : $validated);
     }
 }

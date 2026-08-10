@@ -13,17 +13,45 @@
     @endif
 
     @forelse ($connections as $connection)
-        <x-pandora::card :title="$connection['key']" :padded="false" wire:key="provider-{{ $connection['key'] }}">
-            <x-slot:actions>
-                @if ($connection['is_default'])
-                    <x-pandora::badge tone="info">Default</x-pandora::badge>
-                @endif
+        @php($status = $connection['health']->status)
 
-                @php($status = $connection['health']->status)
-                <x-pandora::badge :tone="$status === 'healthy' ? 'success' : ($status === 'unknown' ? 'neutral' : 'danger')">
-                    {{ ucfirst($status) }}
-                </x-pandora::badge>
-            </x-slot:actions>
+        {{--
+            One provider, shut until it is asked for — or until it has
+            something to say. `<details>` rather than a Livewire toggle: no
+            round-trip, no state to keep, and the browser gives keyboard
+            operation and find-in-page for free.
+
+            The summary carries the whole scanning answer. Collapsing a page
+            that hides whether a credential is installed has moved the problem
+            rather than solved it.
+        --}}
+        <details class="pd-card pd-provider" wire:key="provider-{{ $connection['key'] }}"
+                 @if ($connection['attention'] !== []) open @endif>
+            <summary class="pd-card-head pd-provider-summary">
+                <span class="pd-provider-name">
+                    <span class="pd-provider-marker" aria-hidden="true"></span>
+                    <span class="pd-card-title">{{ $connection['key'] }}</span>
+                    @if ($connection['is_default'])
+                        <x-pandora::badge tone="info">Default</x-pandora::badge>
+                    @endif
+                </span>
+
+                <span class="pd-provider-facts">
+                    @if ($connection['attention'] !== [])
+                        <span class="pd-provider-attention">{{ implode(' · ', $connection['attention']) }}</span>
+                    @endif
+
+                    <span class="pd-faint">{{ $connection['models']->count() }} {{ $connection['models']->count() === 1 ? 'model' : 'models' }}</span>
+
+                    <x-pandora::badge :tone="$connection['has_credential'] ? 'success' : 'warning'">
+                        {{ $connection['has_credential'] ? 'Key installed' : 'No key' }}
+                    </x-pandora::badge>
+
+                    <x-pandora::badge :tone="$status === 'healthy' ? 'success' : ($status === 'unknown' ? 'neutral' : 'danger')">
+                        {{ ucfirst($status) }}
+                    </x-pandora::badge>
+                </span>
+            </summary>
 
             <div class="pd-table-wrap">
                 <table class="pd-table pd-table-kv">
@@ -112,7 +140,7 @@
                     </table>
                 </div>
             @endif
-        </x-pandora::card>
+        </details>
     @empty
         <x-pandora::empty-state
             title="No providers configured"

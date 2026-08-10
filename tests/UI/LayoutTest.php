@@ -55,3 +55,25 @@ it('denies a guest the control center on its own, without host middleware', func
     // answer is still a refusal rather than a rendered page.
     $this->get('/pandora')->assertForbidden();
 });
+
+it('never leaves a page on the framework default paginator', function (): void {
+    // The class of defect, not one instance of it. Laravel's default
+    // pagination view is written for Tailwind, and a package that ships its
+    // own CSS cannot render it: both of its blocks appear at once, because
+    // the utilities that hide one do not exist, and its inline SVG chevrons
+    // are sized entirely by those same utilities, so they fill the page.
+    //
+    // Found in the browser on /runs, where the chevron was taller than the
+    // viewport and the page numbers sat two screens below the table.
+    $views = glob(__DIR__.'/../../resources/views/livewire/*.blade.php') ?: [];
+
+    expect($views)->not->toBeEmpty();
+
+    foreach ($views as $view) {
+        $source = (string) file_get_contents($view);
+
+        // `->links()` with no argument takes whatever the framework defaults
+        // to, which is the one view this design system cannot style.
+        expect($source)->not->toContain('->links()', basename($view));
+    }
+});

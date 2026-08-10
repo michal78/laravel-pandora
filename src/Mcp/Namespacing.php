@@ -54,7 +54,7 @@ final class Namespacing
 
     public static function separator(): string
     {
-        $separator = config('pandora.mcp.client.namespace_separator', '.');
+        $separator = config('pandora.mcp.client.namespace_separator', '-');
 
         return is_string($separator) && $separator !== '' ? $separator : '.';
     }

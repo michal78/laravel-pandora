@@ -91,7 +91,7 @@ it('marks the description as coming from somewhere else', function (): void {
 
     $remote = array_values(array_filter(
         $definitions,
-        static fn (ToolDefinition $d): bool => $d->name === 'ledger.lookup_invoice',
+        static fn (ToolDefinition $d): bool => $d->name === 'ledger-lookup_invoice',
     ));
 
     // Not a fix -- the fix is that nothing in it is executed. But a sentence
@@ -114,7 +114,7 @@ it('carries the description as a description and never as an instruction', funct
         expect($definition)->toBeInstanceOf(ToolDefinition::class);
     }
 
-    expect(array_column($definitions, 'name'))->toContain('ledger.lookup_invoice');
+    expect(array_column($definitions, 'name'))->toContain('ledger-lookup_invoice');
 });
 
 it('never puts a remote description into the system instructions', function (): void {
@@ -151,7 +151,7 @@ it('keeps the hostile text out of the tool NAME entirely', function (): void {
     /** @var McpTool $tool */
     $tool = McpTool::query()->firstOrFail();
 
-    expect($tool->namespaced_name)->toBe('ledger.lookup_invoice')
+    expect($tool->namespaced_name)->toBe('ledger-lookup_invoice')
         ->and($tool->namespaced_name)->not->toContain('ignore all previous');
 });
 

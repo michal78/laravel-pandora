@@ -151,5 +151,5 @@
         </div>
     </x-pandora::card>
 
-    {{ $approvals->links() }}
+    {{ $approvals->links('pandora::pagination') }}
 </div>

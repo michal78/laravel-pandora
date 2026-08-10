@@ -44,6 +44,24 @@ it('reserves the separator, so no core tool name can contain one', function (): 
     }
 });
 
+it('publishes only names a provider will accept as a function name', function (): void {
+    // The second constraint on the separator, and the one that is invisible
+    // until a real provider sees a real remote tool. OpenAI and Anthropic both
+    // hold function names to `^[a-zA-Z0-9_-]{1,64}$`; a dot separator is a 400
+    // from the provider the first time an approved remote tool is advertised,
+    // and the run fails with a sentence naming neither MCP nor the tool.
+    $grammar = '/^[a-zA-Z0-9_-]{1,64}$/';
+
+    expect(Namespacing::separator())->toMatch($grammar)
+        ->and(Namespacing::qualify('ledger', 'lookup_invoice'))->toMatch($grammar);
+
+    app(ToolRegistry::class)->flush()->registerMany(BuiltInTools::all());
+
+    foreach (app(ToolRegistry::class)->all() as $tool) {
+        expect($tool->name())->toMatch($grammar);
+    }
+});
+
 it('refuses to register a core tool that collides with the namespace form', function (): void {
     // Boot time, loudly. A core tool that collides with a namespace is a
     // packaging mistake, not something to discover mid-run.
@@ -51,7 +69,7 @@ it('refuses to register a core tool that collides with the namespace form', func
     {
         public function name(): string
         {
-            return 'ledger.lookup_invoice';
+            return 'ledger-lookup_invoice';
         }
 
         public function description(): string
@@ -76,7 +94,7 @@ it('never asks the core registry about a namespaced name', function (): void {
     // Nothing remote exists at all, so if this resolved it resolved from the
     // core registry -- which is the failure being excluded.
     $decision = app(ToolGatekeeper::class)->evaluate(
-        new ToolCall(id: 'c1', name: 'ledger.request_approval', arguments: []),
+        new ToolCall(id: 'c1', name: 'ledger-request_approval', arguments: []),
         $context,
     );
 
@@ -106,7 +124,7 @@ it('cannot be resolved as a core tool by naming itself one', function (): void {
     $tool = McpTool::query()->firstOrFail();
 
     // Published under the namespace, and therefore not the core name.
-    expect($tool->namespaced_name)->toBe('evil.request_approval');
+    expect($tool->namespaced_name)->toBe('evil-request_approval');
 
     $context = $this->toolContext();
 
@@ -128,7 +146,8 @@ it('refuses a namespace that could collide or escape', function (string $namespa
     expect(Namespacing::isValidNamespace($namespace))->toBeFalse();
 })->with([
     'has.dot',
-    'Has-Capital',
+    'has-dash',      // the separator itself
+    'Has_Capital',
     'has space',
     '9starts_with_digit',
     '',
@@ -140,6 +159,7 @@ it('refuses a remote tool name that could collide or escape', function (string $
     expect(Namespacing::isPublishableRemoteName($name))->toBeFalse();
 })->with([
     'has.dot',
+    'has-dash',      // the separator itself
     'has space',
     '../escape',
     'has/slash',
@@ -148,15 +168,15 @@ it('refuses a remote tool name that could collide or escape', function (string $
 ]);
 
 it('splits a namespaced name only when both halves are legal', function (): void {
-    expect(Namespacing::split('ledger.lookup_invoice'))->toBe(['ledger', 'lookup_invoice'])
+    expect(Namespacing::split('ledger-lookup_invoice'))->toBe(['ledger', 'lookup_invoice'])
         ->and(Namespacing::split('lookup_invoice'))->toBeNull()
-        ->and(Namespacing::split('Bad-NS.tool'))->toBeNull()
-        ->and(Namespacing::split('ledger.has space'))->toBeNull();
+        ->and(Namespacing::split('Bad-tool'))->toBeNull()
+        ->and(Namespacing::split('ledger-has space'))->toBeNull();
 });
 
 it('recognises the remote shape without deciding which tool it is', function (): void {
     // `looksRemote` only ever routes a lookup to the right half of the world.
     // Deciding WHICH remote tool it is stays an exact database match.
-    expect(Namespacing::looksRemote('ledger.lookup_invoice'))->toBeTrue()
+    expect(Namespacing::looksRemote('ledger-lookup_invoice'))->toBeTrue()
         ->and(Namespacing::looksRemote('request_approval'))->toBeFalse();
 });
