@@ -416,7 +416,21 @@ tests · complete documentation set · example application under `tests/Fixtures
 automation · CHANGELOG · v1.0 checklist.
 
 **Acceptance:** every T1–T15 threat has a passing test. The matrix is green. The example application
-runs the documented quick start end to end.
+runs the documented quick start end to end. See `docs/development/phase-9-acceptance.md` — **34
+criteria, none accepted**, and deliberately none inherited.
+
+This is the first phase whose subject is the **suite** rather than the code, so a green test is
+evidence to be audited rather than a criterion already met. Phase 6 closed at 30 verified criteria
+over an MCP client that had never worked outside the test suite, and both defects sat exactly where a
+fake stood in for a boundary. The bar here is accordingly that every T1–T15 test **fails when its
+mitigation is removed** — a test that passes with the control gone was never testing the control.
+
+Three findings already, from writing the plan. The CI matrix is **already built** and is not a
+deliverable of this phase. T6's SSRF mitigations do not exist in `src/` — and neither does an HTTP
+tool, so the threat is currently mitigated by absence, which holds exactly until somebody adds a fetch
+tool; it becomes an architectural test instead of an allowlist guarding nothing. And T9 has no test at
+all: ADR-0008 says an imported skill is never executed, which is the strongest available mitigation
+and is currently unasserted.
 
 ---
 
