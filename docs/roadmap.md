@@ -14,7 +14,7 @@
 | 3.5 | Agents page | ✅ 20/20 — host walkthrough driven 2026-08-07; found a missing slug on the Overview tab, fixed, and a stale stub-tab list in the walkthrough itself |
 | 4 | Automation | ✅ 26/26 on all four engines; host walkthrough complete |
 | 5 | Memory and context | ✅ 28/28 incl. a real pgvector CI leg; host walkthrough driven 2026-08-07 — four defects, all fixed, one of them a cross-user memory disclosure on the Memory page |
-| 6 | Multi-agent and MCP | 🔨 30/30 verified; delegation walkthrough fully driven (2026-08-08 headless, 2026-08-10 browser) — 9 findings, 4 fixed. The MCP half is still undriven and needs a real MCP server |
+| 6 | Multi-agent and MCP | ✅ 31/31; both walkthrough halves driven (delegation 2026-08-08 + 2026-08-10, MCP 2026-08-10 against real servers) — 15 findings, 13 fixed. Two open by decision: no audit page, and a dead-end tool result becomes a retry storm |
 | 7 | Workspaces, released and on object storage | ✅ 25/25 — walkthrough driven end to end 2026-08-10 against real MinIO; 7 defects, 6 fixed. Tenancy section needs a two-tenant host |
 | 8 | Channels and extensions | 🔨 32/33 — walkthrough sections 1–4 and 6–8 driven; only section 5 (two people, one channel account, simultaneously) remains, blocked on a second Slack account. 16 findings |
 | 9 | Hardening and release | ⬜ |
@@ -310,7 +310,7 @@ needs Postgres and runs in CI instead, the second is Phase 7.
 
 ---
 
-## Phase 6 — Multi-agent and MCP 🔨
+## Phase 6 — Multi-agent and MCP ✅
 
 `DelegateToAgent`, child runs, depth limits, budget inheritance, cancellation propagation, structured
 results · MCP client with transports, discovery, schema caching and hashing, per-agent permissions,
@@ -324,9 +324,15 @@ other detection (ADR-0014).
 
 **Acceptance:** delegation cannot escalate privilege — the child's abilities are the intersection.
 Depth limits hold. A changed remote schema hash revokes approval. Nothing is exposed by the MCP server
-without explicit configuration. See `docs/development/phase-6-acceptance.md` — **all 30 criteria
-verified**; what remains is a human driving `phase-6-walkthrough.md` against a real MCP server,
-**deliberately deferred to after Phase 8** and paid before Phase 9.
+without explicit configuration. See `docs/development/phase-6-acceptance.md` — **all 31 criteria
+verified**, the walkthrough driven 2026-08-10 against a real HTTP MCP server and a real stdio one.
+
+Driving it found that the MCP client half had never worked outside the suite. The default namespace
+separator `.` is illegal in OpenAI's and Anthropic's function-name grammar, so every approved remote
+tool made the provider answer 400 and the run fail with a sentence naming neither MCP nor the tool;
+and remote arguments were stripped by validation before reaching the wire, so every remote call
+succeeded having asked the far end nothing. Both fixed. Neither was reachable by another test of the
+same kind — a fake provider accepts any name, and a hand-built `ToolInput` skips validation.
 
 ---
 

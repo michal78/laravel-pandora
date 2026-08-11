@@ -5,6 +5,66 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## Unreleased — Phase 6 walkthrough fixes
+
+Driving the MCP half of `phase-6-walkthrough.md` against real servers found that the MCP **client**
+had never worked outside the test suite. Two of the entries below are that.
+
+### Fixed
+
+- **The remote tool namespace separator is now `-` (was `.`).** OpenAI and Anthropic both hold
+  function names to `^[a-zA-Z0-9_-]+$`, so every approved remote tool made the provider answer
+  `400 Invalid 'tools[0].function.name'` and the run failed with a message naming neither MCP nor
+  the tool. The separator has to be reserved *and* legal in a provider's grammar; `-` is both and
+  `_` is not, because core tool names are full of underscores.
+
+  **Upgrading:** every `namespaced_name` changes, and the namespaced name is part of the schema
+  hash — so the next discovery reports every remote tool as changed and revokes its approvals. That
+  is correct (an approval names a specific string) and it means re-approving everything once.
+- **Remote tool arguments reached the far end.** `RemoteTool` declares only `arguments` in its
+  rules, and Laravel's validator returns only the keys it has rules for — but a model forms its call
+  against the schema the *server* advertised, so its arguments are top-level and were stripped
+  before `handle()` saw them. Every remote call arrived as `{"arguments":{}}`, succeeded, and was
+  audited as allowed. `Tool::carriesUndeclaredArguments()` is false for every tool in core and true
+  only for `RemoteTool`, whose arguments were never ours to declare.
+- **The MCP page names the agent an approval belongs to**, instead of printing its ULID. Falls back
+  to the key when an approval outlives its agent, which is a real state and still needs revoking.
+
+### Added
+
+- **`pandora_mcp_tools.previous_description`**, and a before/after on the MCP page. Two hashes say
+  *that* a tool moved; only this says *what* moved, which is the whole question when the thing that
+  moved is a sentence written by a stranger and read by a model. The page now distinguishes "its
+  description changed" from "its description is unchanged, so what moved is a parameter".
+- **Providers collapse to one row each.** Every connection used to render its
+  whole model catalogue whether or not anybody was reading it. The closed row
+  carries the scanning answer — health, credential, model count — and a
+  connection that is not answering, holds no credential, or is charging against
+  stale pricing opens itself and says which, because a closed row is a claim
+  that nothing there needs you.
+- **Approve from the MCP page**, gated on `mcp.manage` like Revoke. The page existed to make a
+  change reviewable and then offered no way to act on the review. The hash is re-derived server-side
+  rather than carried through the browser.
+
+### Changed
+
+- **The test suite no longer shadows its own configuration.** `pandora:install`
+  publishes the config as well as the migrations, and `InstallationTest` runs it
+  sixteen times while cleaning up only the migrations — so every full run left a
+  published `config/pandora.php` in the Testbench skeleton and the next run
+  silently used that snapshot instead of the package's. Nothing failed;
+  `mergeConfigFrom()` merges one level deep, so a key added to the package
+  quietly did not exist.
+- **Paginated pages use Pandora's own paginator.** Laravel's default view is
+  written for Tailwind, which this package does not ship, so `/runs` and
+  `/approvals` rendered both of its blocks at once and its inline chevrons —
+  sized entirely by Tailwind utilities — filled the page.
+- `pandora.mcp.server.middleware` documents that it **must authenticate**. The bare `api` group in a
+  stock Laravel application authenticates nobody, so `tools/list` works, every `tools/call` is
+  refused, and `mcp.exposure_denied` records `reason: no actor` — which reads as a broken server and
+  is an unconfigured one.
+
+
 ## Phase 8 — Channels and extensions (in progress)
 
 ### Added

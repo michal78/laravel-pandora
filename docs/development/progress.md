@@ -5,6 +5,103 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-10 (later) — Phase 6's MCP half, and a feature that had never run
+
+Phase 6 closed, 31/31, both walkthrough halves driven. Q10 paid. Every box in
+`phase-6-walkthrough.md` is ticked.
+
+```
+vendor/bin/pest        -> Tests: 1,814 passed, 8 skipped (5,928 assertions)
+                          PANDORA_TEST_S3_ENDPOINT set, so the object-storage
+                          legs ran against real MinIO
+vendor/bin/phpstan     -> [OK] No errors (level 8)
+vendor/bin/pint --test -> passed
+```
+
+**Six findings (10–15), all fixed. Two of them meant the MCP client had never
+worked once outside the test suite**, on an acceptance plan with thirty verified
+criteria and a fake server that hangs, lies, and rewrites descriptions.
+
+The default namespace separator was `.`. OpenAI and Anthropic both hold function
+names to `^[a-zA-Z0-9_-]+$`, so the first time an approved remote tool was
+advertised the provider answered `400 Invalid 'tools[0].function.name'` and the
+run failed with *"The AI provider could not complete this request."* — naming
+neither MCP, nor the tool, nor the name that was rejected. And remote arguments
+never reached the wire: `RemoteTool` declares only `arguments` in its rules,
+Laravel's validator returns only the keys it has rules for, and a model forms
+its call against the schema the *server* advertised. Every remote call arrived
+as `{"arguments":{}}`, succeeded, and was audited as allowed. The far end
+answered a question nobody asked — `Invoice UNKNOWN: 4 800,00 DKK`.
+
+**Where both defects lived is the transferable part.** Not "drive walkthroughs
+sooner", which was already known. Both sat exactly at a fake: `FakeProvider`
+accepts any function name a tool cares to have, and `FakeMcpServer` is reached
+through a `ToolInput` every test built by hand, skipping validation — the only
+step that could lose an argument. **A fake placed at a boundary makes that
+boundary untested by construction**, and these two were at the two ends of the
+only path that matters. `FakeMcpServer` is a genuinely good fake; it is a
+deliverable, it misbehaves in five different ways, and it still could not be a
+provider or be a wire.
+
+**The suite was also lying about which configuration it tested, and this time
+the cause got found.** A published `config/pandora.php` in the Testbench
+skeleton has shadowed the package's three times before, always deleted by hand
+and never chased. It reappeared *within this session*, which finally made it an
+address rather than folklore: `pandora:install` publishes the config as well as
+the migrations, `InstallationTest` runs it sixteen times, and its cleanup helper
+only ever deleted migrations. Nothing fails — `mergeConfigFrom()` merges one
+level deep, so the snapshot's top-level arrays replace the package's outright
+and a newly added key silently does not exist. An `afterEach` now removes it.
+Four occurrences before anybody asked *what writes this file*.
+
+### The browser half, and what it is for
+
+Driven in the same two-person format as the earlier session, and it earned its
+place three more times. The MCP page said *"Changed. Approvals were cleared."*
+and could not say **what** changed — the operator being asked to re-approve a
+sentence a stranger rewrote could not see the sentence it replaced. It answered
+"who may call this tool" with a ULID. And having shown the diff, it offered
+Revoke and no Approve, so the person who read it went to a terminal to retype
+what they were looking at. All three are the same defect wearing different
+clothes: the page existed to make a decision possible and stopped one step
+short of the decision.
+
+`/runs` produced the session's most visible bug and the least interesting one —
+Laravel's default Tailwind paginator in a package that ships no Tailwind, so
+both of its blocks rendered and its inline chevrons, sized entirely by utilities
+that did not exist, filled the viewport. Worth noting only because the page was
+not untested: `RunsIndexActionsTest` clicks its buttons and `LayoutTest` renders
+it through the router. The markup was *correct* — for a framework we do not
+ship. The guard is now at two altitudes, one asserting which paginator that page
+uses and one asserting no Livewire view anywhere calls bare `->links()`.
+
+### On collapsing /providers
+
+Asked for late and worth recording, because the interesting part was not the
+disclosure. A closed row is a claim that nothing inside needs you, so the page
+has to make the claim true: the summary carries health, credential and model
+count, and a provider that is not answering, holds no credential, or is charging
+against stale pricing opens itself and names which. Collapsing a page that hides
+whether a key is installed has moved the scroll problem, not solved it.
+
+The first rule flagged `unknown` health as attention-worthy. A test caught it:
+unprobed is the normal state of a fresh install, so every row would have opened
+on day one and the feature would have undone itself.
+
+### Notes for the next person
+
+- **`pkill -f queue:work` on the host does not kill the worker in the Sail
+  container.** Three workers accumulated on three versions of the package
+  source, jobs went to whichever grabbed them first, and the same run alternated
+  between working, denying the tool at the registry layer, and calling with
+  empty arguments — with no code change in between. Half an hour on a race that
+  was three processes. `sail exec laravel.test pkill -f queue:work`.
+- **A finding reported by a person is a symptom, not a diagnosis, and it is
+  right anyway.** "There is no option to reapprove" was exactly correct.
+- **When the human says a thing looks wrong, ask which thing.** "It could be
+  much better looking" produced one guess; asking what bothered them most
+  produced the fix in one pass.
+
 ## 2026-08-10 — Four walkthroughs in one session, and how they were driven
 
 Phase 7 closed (25/25). Phase 1 closed (20/20). Phase 8 section 7 driven, leaving only section 5.

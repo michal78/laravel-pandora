@@ -1,15 +1,15 @@
 # Phase 6 — Host Walkthrough
 
-> Status: **the delegation half is driven.** 2026-08-08 headlessly, finding four
-> defects, all fixed and covered; the remaining browser checks driven
-> 2026-08-10, finding five more (5–9). Depth, cycle, cancellation and the audit
-> actions all pass. Two of the new findings are structural rather than
-> cosmetic: there is no audit page at all (6), and a failed delegation puts the
-> parent into a retry loop that ends the run (7).
+> Status: **both halves are driven.** Delegation on 2026-08-08 headlessly
+> (four defects) and 2026-08-10 in the browser (five more, 5–9); MCP on
+> 2026-08-10 against real servers (six more, 10–15). Fifteen findings, thirteen
+> fixed. Two remain open and are named as such: there is no audit page at all
+> (6), and a failed delegation puts the parent into a retry loop that ends the
+> run (7).
 >
-> The MCP half is **not driven at all** — see `## MCP — not driven` below. It
-> needs a real MCP server you control, so it is the one section here with a
-> setup cost beyond the host application.
+> The MCP half needed a real MCP server you control, which is why it was the
+> last section here to be driven. Both servers used are described under
+> `## MCP` below and were the cheapest part of the exercise.
 
 Every walkthrough so far has found something the suite could not. This one found
 the most expensive kind yet: a delegation that was refused *correctly*, bounded
@@ -250,22 +250,24 @@ carried an empty `error` on the `runs` row while `pandora_audit_log` held the
 error code and class. The same gap was seen during Phase 8 on 2026-08-09. An
 operator reading the runs table sees a failed run and no reason.
 
-## Not in this walkthrough
+## Not in the delegation half
 
 The MCP half — servers, discovery, schema hashing, approval, the Pandora MCP
-server and the agent's Permissions tab.
+server and the agent's Permissions tab. It is the `## MCP` section below, and
+as of 2026-08-10 it is driven too.
 
-*Corrected 2026-08-10: this section used to say "none of it is built" and that
-criteria 14–30 remained open. Both were true when it was written and neither is
-true now — all 30 criteria are verified, `src/Mcp/` holds discovery, schema
-hashing, approval and a health probe, and `/pandora/mcp` is a real page. What is
-still missing is the driving, which is what `## MCP — not driven` below is for.*
+*Corrected twice. This section first said "none of it is built" and that
+criteria 14–30 remained open; that was true when written and stopped being true
+when `src/Mcp/` was built. It then said the MCP half was undriven; that stopped
+being true on 2026-08-10.*
 
-## MCP — not driven
+## MCP
 
-> Every box below is unticked. The delegation half of this document was driven on
-> 2026-08-08 and found four defects; this half has not been driven at all, and
-> the phase is not done until it has.
+> Driven 2026-08-10, against a real HTTP MCP server and a real stdio one, both
+> written for this document so they could be changed mid-run. Six findings
+> (10–15), all fixed. Two of them — a namespace separator no provider will
+> accept, and arguments dropped by validation before they reached the wire —
+> meant this half of the phase had never worked outside the test suite.
 
 The check the suite structurally cannot make is the last one: **a real server,
 changed after approval, whose tool stops working until a person looks at what
@@ -274,14 +276,14 @@ prove that an operator meets that situation and understands it.
 
 ### Before you start
 
-- [ ] **`vendor:publish --tag=pandora-config --force`.** A published config from
+- [x] **`vendor:publish --tag=pandora-config --force`.** A published config from
       before this phase has no `mcp` block at all, so the client is off, no
       transport is enabled and the server does not exist. All three read as
       "MCP is broken" rather than "MCP is not configured".
       *And check `vendor/orchestra/testbench-core/laravel/config/` if you run the
       package suite — a stale published config there shadows the package's own.
       It has reappeared twice.*
-- [ ] `vendor:publish --tag=pandora-migrations`, then **delete the duplicates it
+- [x] `vendor:publish --tag=pandora-migrations`, then **delete the duplicates it
       just made**, then `migrate`. Three new tables.
 
       The publish re-copies the *whole* directory with fresh timestamps, so
@@ -297,73 +299,195 @@ prove that an operator meets that situation and understands it.
 
       This bites on every phase that adds a table, and it bit while writing this
       document.
-- [ ] **A real MCP server you control**, so you can change it mid-walkthrough.
+- [x] **A real MCP server you control**, so you can change it mid-walkthrough.
       Anything that speaks `tools/list` and `tools/call` over HTTP will do.
-- [ ] `pandora.mcp.client.enabled` true, and a credential in the encrypted store
+- [x] `pandora.mcp.client.enabled` true, and a credential in the encrypted store
       if your server wants one.
 
 ### Registering and discovering
 
-- [ ] Register a server. The row takes a namespace, an endpoint and the NAME of a
+- [x] Register a server. The row takes a namespace, an endpoint and the NAME of a
       credential — confirm there is nowhere on it to paste a token.
-- [ ] `php artisan pandora:mcp:discover`. It reports what it found and says
+- [x] `php artisan pandora:mcp:discover`. It reports what it found and says
       **"Nothing was approved."**
-- [ ] `/pandora/mcp` lists the server, its health, and every tool as approved for
+- [x] `/pandora/mcp` lists the server, its health, and every tool as approved for
       **nobody**.
-- [ ] The description shown is the server's own, marked as remote. Put markup and
+- [x] The description shown is the server's own, marked as remote. Put markup and
       an "ignore previous instructions" sentence in one on your server, rediscover,
       and confirm the page renders it as text.
 
 ### Approving
 
-- [ ] `pandora:mcp:approve <tool> <agent>`. The agent's **Permissions** tab now
+- [x] `pandora:mcp:approve <tool> <agent>`. The agent's **Permissions** tab now
       lists it.
-- [ ] Ask the agent to use it. It works, and the call appears as an ordinary tool
+- [x] Ask the agent to use it. It works, and the call appears as an ordinary tool
       execution on the run trace with its arguments redacted.
-- [ ] A **second agent** cannot call it. Approval is per agent.
-- [ ] Approve with `--hash=` and a hash you made up. Refused.
+- [x] A **second agent** cannot call it. Approval is per agent.
+- [x] Approve with `--hash=` and a hash you made up. Refused.
 
 ### The one that matters
 
-- [ ] **Change the tool's description on your server** — keep every parameter
+- [x] **Change the tool's description on your server** — keep every parameter
       identical. Rediscover.
-- [ ] The approval is gone. `pandora:mcp:list --tools` says unapproved; the page
+- [x] The approval is gone. `pandora:mcp:list --tools` says unapproved; the page
       says the tool changed and approvals were cleared; the audit log has
       `mcp.schema_changed` at `warning` naming the description as what moved.
-- [ ] The agent can no longer call it, and says so rather than failing oddly.
-- [ ] Re-approve. It works again. **Was it obvious what had changed and why you
+- [x] The agent can no longer call it, and says so rather than failing oddly.
+- [x] Re-approve. It works again. **Was it obvious what had changed and why you
       were being asked?** If not, that is the finding.
 
 ### When the server misbehaves
 
-- [ ] Stop the server. The agent's call fails as a tool error and the run
+- [x] Stop the server. The agent's call fails as a tool error and the run
       continues. Two failed probes later its tools are not offered at all.
-- [ ] Make it hang. One tool call is lost, not one worker.
-- [ ] Make it return something enormous. Refused on size.
-- [ ] Confirm the model was never told your hostname, port or credential error —
+- [x] Make it hang. One tool call is lost, not one worker.
+- [x] Make it return something enormous. Refused on size.
+- [x] Confirm the model was never told your hostname, port or credential error —
       only that the tool was unavailable.
 
 ### stdio
 
-- [ ] Register a stdio server without enabling the transport. Refused, naming
+- [x] Register a stdio server without enabling the transport. Refused, naming
       `pandora.mcp.transports.stdio.enabled`.
-- [ ] Enable it, point it at a real local MCP binary, confirm it works, then turn
+- [x] Enable it, point it at a real local MCP binary, confirm it works, then turn
       it back off.
 
 ### Being a server
 
-- [ ] With `pandora.mcp.server.enabled` false, the endpoint 404s.
-- [ ] Enable it with an empty allowlist: `tools/list` returns nothing.
-- [ ] Expose one tool. It is listed and callable by a user who holds its ability.
-- [ ] **Call it as a user who does not hold the ability.** Refused, and
+- [x] With `pandora.mcp.server.enabled` false, the endpoint 404s.
+- [x] Enable it with an empty allowlist: `tools/list` returns nothing.
+- [x] Expose one tool. It is listed and callable by a user who holds its ability.
+- [x] **Call it as a user who does not hold the ability.** Refused, and
       `mcp.exposure_denied` is recorded at `warning`. This is the check that
       distinguishes a token from an authorization.
-- [ ] Ask for a tool that is not exposed. The same answer as one that does not
+- [x] Ask for a tool that is not exposed. The same answer as one that does not
       exist.
-- [ ] Expose `inspect_run_status` deliberately and call it. It refuses cleanly,
+- [x] Expose `inspect_run_status` deliberately and call it. It refuses cleanly,
       saying it needs a run — not a stack trace.
 
 ### What this found
 
-*Fill this in. If it found nothing, say so — a walkthrough with an empty findings
-section is indistinguishable from one nobody ran.*
+Driven 2026-08-10 against a real HTTP MCP server and a real stdio one, both
+written for this document and both controllable mid-run. Six findings, all
+fixed. Two of them meant the MCP client half **had never worked at all** outside
+the test suite, and neither could have been found by adding another test of the
+same kind.
+
+**Finding 10 — the namespace separator was illegal in every provider's function
+name.** The default was `.`, and OpenAI and Anthropic both hold function names
+to `^[a-zA-Z0-9_-]+$`. So the first time an approved remote tool was advertised,
+the provider answered
+
+```
+400 Invalid 'tools[0].function.name': string does not match pattern.
+```
+
+and the run failed with *"The AI provider could not complete this request."* —
+a sentence naming neither MCP, nor the tool, nor the name that was rejected. The
+`runs` row carried an empty `error`, as Finding 8 already noted. Every remote
+tool on every agent, on both major providers, with the shipped configuration.
+
+The separator has two constraints and only one of them had been thought about.
+It must not appear in any core tool name — the reserved-separator invariant a
+test already asserted — *and* it must be legal in a provider's function-name
+grammar. `-` satisfies both; `_` fails the first, because core tool names are
+full of underscores. Changed to `-`, and the test that would have caught it now
+asserts the grammar directly rather than the constant.
+
+`FakeProvider` accepts any name a tool cares to have, which is why 1,795 tests
+were green over a feature that could not execute once.
+
+**Finding 11 — remote tool arguments were silently dropped.** `RemoteTool`
+declares `rules()` as `['arguments' => 'nullable|array']` and `handle()` falls
+back to `$input->toArray()`. But a model forms its call against the schema the
+*server* advertised, so its arguments are top-level `invoice_id`, and Laravel's
+validator returns only the keys it has rules for. Every remote call reached the
+far end as `{"name":"lookup_invoice","arguments":{}}`.
+
+Nothing failed. The tool succeeded, the execution row was written, the run
+completed, the audit entry said `outcome: allow`, and the server answered a
+question nobody had asked — `Invoice UNKNOWN: 4 800,00 DKK`. Only the request
+log on the far side showed it, which is the one place no test looks.
+
+Every existing test built its `ToolInput` by hand as `['arguments' => [...]]`,
+so all of them skipped validation — the only step that could lose anything. The
+new test goes `ToolCall → ToolGatekeeper::evaluate → handle → the wire`, and
+fails on the old code. The fix is a `carriesUndeclaredArguments()` hook on
+`Tool`, false everywhere in core and true only here, because a remote tool's
+arguments were never ours to declare.
+
+**Finding 12 — the page answered "who may call this tool" with a ULID.** The
+Approved-for column printed `$approval->agent_id`. The tests asserted a fixture
+ULID, so they asserted the bug. Now the agent's slug, falling back to the key
+when an approval outlives its agent — which is a real state and still needs
+revoking.
+
+**Finding 13 — "Changed" is not a diff.** The check that matters is whether an
+operator meeting a rewritten tool understands what happened. They did not, and
+said so: the page said *"Changed 2 minutes ago. Approvals were cleared."* and
+nothing else, in a full-width notice jammed into the narrow tool column that
+broke the row apart. It showed the new description and had no idea what the old
+one was, so the person being asked to re-approve a sentence a stranger rewrote
+could not see the sentence it replaced.
+
+`previous_description` now persists on the tool row when — and only when — the
+description moved, so the page shows a struck-through before and a green after,
+and says *"Its description changed"* or *"Its description is unchanged, so what
+moved is a parameter."* Those are opposite situations and an operator needs to
+be told which one they are in. The notice moved next to the description; the
+tool column keeps a small Changed tag.
+
+**Finding 14 — the page that showed the diff could not act on it.** It offered
+Revoke and no Approve, so an operator who read the diff and decided it was fine
+went to a terminal to retype what they had just been looking at. Added, gated on
+`mcp.manage` like Revoke, naming one agent — "approve this tool" is not a thing
+that can be said — and re-deriving the hash server-side rather than carrying one
+through the browser.
+
+**A configuration gap, not a defect: the server's default middleware
+authenticates nobody.** `'middleware' => ['api']` in a stock Laravel application
+resolves a null actor, so `tools/list` works and every single `tools/call` comes
+back `Not authorized to call this tool.` with `mcp.exposure_denied` and
+`reason: no actor`. That reads as a broken server and is an unconfigured one.
+The config comment and the guide now say so and name `['api', 'auth:sanctum']`.
+
+**Finding 15 — the published config shadowed the package's, and this time the
+cause was found.** `vendor/orchestra/testbench-core/laravel/config/pandora.php`
+was back for the third time, so the entire MCP suite was exercising a separator
+the package no longer shipped. Deleted — and then it reappeared *within this
+session*, which is what finally made it findable.
+
+`pandora:install` publishes the config as well as the migrations, and
+`InstallationTest` runs it sixteen times. It had a helper to delete the
+published migrations afterwards and nothing at all for the config, so every
+full-suite run left one behind and the next run silently used it. Nothing
+fails: `mergeConfigFrom()` merges one level deep, so the snapshot's top-level
+arrays replace the package's outright, and a key added to the package quietly
+does not exist. Twice was a coincidence, three times was a thing that needed a
+guard, and four times in one day was a bug with an address. An `afterEach` in
+that file now removes it, and a full run leaves the tree clean.
+
+**What held up.** Everything else, and some of it under real hostility. The
+`<script>` and *"ignore previous instructions"* description rendered as visible
+text with no alert. Two unpublishable tool names — `../../etc/passwd` and
+`ledger.shadow` — were skipped rather than sanitised, every time. Discovery
+approved nothing and said so. A made-up `--hash` was refused with both hashes
+printed. A second agent was never offered the tool at all. A stopped server
+became a tool error and the run continued; two failed probes took its tools out
+of circulation entirely; a hang cost one call and cost the worker nothing; 600 KB
+was refused unread. The model was told *"That tool is not available right now."*
+while the operator got `HTTP 401` — the server's own error text, which named its
+hostname and port, reached nobody. stdio refused until enabled, worked against a
+real local binary, and refused again when turned off. And the check the whole
+server half exists for passed: the same tool, the same endpoint, two
+authenticated users, one gets data and one gets `mcp.exposure_denied` at
+`warning` with their user id, IP and agent on the row.
+
+**One environment hazard worth writing down.** `pkill -f queue:work` on the host
+does not kill the worker running inside the Sail container. Three workers
+accumulated on three different versions of the package source, and jobs went to
+whichever grabbed them first — so the same run alternated between working,
+denying the tool at the registry layer, and calling with empty arguments, with
+no code change in between. Half an hour went into chasing a race that was three
+processes. Kill it where it runs:
+`sail exec laravel.test pkill -f queue:work`.

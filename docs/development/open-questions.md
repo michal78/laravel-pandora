@@ -266,7 +266,7 @@ feature flag does nothing".
 
 ---
 
-## Q10 — Two undriven walkthroughs carried into Phase 8 ⏸ **deferred, deliberately**
+## Q10 — Two undriven walkthroughs carried into Phase 8 ✅ **paid, 2026-08-10**
 
 **Raised:** 2026-08-08 · **Deferred to:** after Phase 8, and before Phase 9
 
@@ -289,3 +289,19 @@ The cost accepted in exchange: with three phases open at once, a defect found in
 to attribute to the change that caused it. Mitigation is only that both are paid before Phase 9,
 which is the phase that claims T1–T15 are covered — and that claim cannot be made over an undriven
 surface.
+
+**Resolved 2026-08-10, both paid, and the deferral was expensive.** Phase 7 was driven first and
+found six browser defects, five of them visual and all invisible to the suite. Phase 6's MCP half
+was driven the same day against a real HTTP MCP server and a real stdio one, and found that the
+client half **had never worked at all** outside the test suite: the default namespace separator was
+a character no provider will accept in a function name, and remote tool arguments were stripped by
+validation before they reached the wire. Thirty green criteria, a fake server that hangs and lies
+and rewrites descriptions, and the feature could not execute once against a real model or send a
+single argument to a real server.
+
+The lesson is narrower than "drive walkthroughs sooner", which was already known. It is that both
+defects lived precisely where the fakes stop: `FakeProvider` accepts any function name a tool cares
+to have, and `FakeMcpServer` is reached through a `ToolInput` the tests build by hand. **A fake
+placed at a boundary makes the boundary untested by construction**, and the two fakes here were at
+the two ends of the only path that matters. That belongs in Phase 9's thinking about CI, alongside
+the published-config shadowing that has now reappeared three times.

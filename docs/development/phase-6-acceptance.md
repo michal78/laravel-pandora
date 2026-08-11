@@ -1,33 +1,31 @@
 # Phase 6 — Acceptance Test Plan
 
-> **Status: all 30 criteria verified. The walkthrough has not been driven, and is deliberately
-> deferred to after Phase 8 (decided 2026-08-08).**
->
-> The deferral is a scheduling decision, not a re-grading of the evidence: nothing below moves from
-> unticked to ticked because of it, and the phase is not "complete" while criterion 31 is open. It
-> is recorded here rather than left implied because two phases now carry an undriven walkthrough at
-> once, and an undriven walkthrough that nobody wrote down is indistinguishable from one nobody
-> remembered. When it is driven, it is driven against a real MCP server — the changed-description
-> scenario below is the whole reason the box exists, and `FakeMcpServer` structurally cannot stand
-> in for it, because what is being checked is whether the refusal makes sense to a person.
+> **Status: complete. 31 of 31 criteria verified, walkthrough driven 2026-08-10.**
 >
 > Nothing below is ticked on the strength of code existing; each criterion is ticked only when the
-> named automated test asserts it and that test passes.
+> named automated test asserts it and that test passes. Criterion 31 is the exception by design —
+> it is a person, and it was deferred to after Phase 8 (decided 2026-08-08) because two phases
+> carried an undriven walkthrough at once and that needed writing down rather than remembering.
 >
-> Criteria 1–13 (delegation) and 14–30 (MCP) are verified and the suite is green on every commit.
-> What is NOT done is the last line of the definition of done: a human driving the pages in a host
-> application, including the check the suite structurally cannot make — a real MCP server, changed
-> after approval, whose tool stops working until a person looks at what changed. Every box in the
-> MCP section of `phase-6-walkthrough.md` is unticked and stays that way until it has been.
+> **Driving it found six things thirty green criteria did not**, and two of them meant the MCP
+> half had never worked outside the suite: the default namespace separator `.` is illegal in
+> OpenAI's and Anthropic's function-name grammar, so every approved remote tool made the provider
+> return 400; and remote tool arguments were stripped by validation before reaching the wire, so
+> every remote call succeeded having asked the far end nothing. Neither is reachable by another
+> test of the same kind — `FakeProvider` accepts any function name, and every existing test built
+> its `ToolInput` by hand, skipping the only step that lost the arguments. See
+> `phase-6-walkthrough.md`, findings 10–15.
 >
-> The MCP half runs against `FakeMcpServer`, which ships in `src/Testing` because it is a
-> deliverable rather than a fixture: it hangs, goes unreachable, returns oversized bodies, offers
-> names that cannot be published, and rewrites a description while keeping every parameter. Every
-> criterion below about a remote server is a claim about how we behave when the other end
-> misbehaves, and a suite that only ever ran against a well-behaved one asserts none of them.
+> The MCP half of the suite runs against `FakeMcpServer`, which ships in `src/Testing` because it
+> is a deliverable rather than a fixture: it hangs, goes unreachable, returns oversized bodies,
+> offers names that cannot be published, and rewrites a description while keeping every parameter.
+> Every criterion below about a remote server is a claim about how we behave when the other end
+> misbehaves, and a suite that only ever ran against a well-behaved one asserts none of them. What
+> it cannot do is be a provider, or be a wire — which is exactly where the two findings above
+> lived.
 >
-> **Two defects reached the walkthrough that the suite could not have caught**, and both are worth
-> reading before writing the MCP half:
+> **Two defects reached the earlier walkthrough that the suite could not have caught**, and both
+> are worth reading:
 >
 > - A run with no conversation could not see its own tool loop, so every delegated child repeated
 >   one call until its iteration budget ended it. The suite scripted children that answered on
@@ -36,9 +34,9 @@
 > - A refused call recorded nothing an operator could read — the reason existed only in a result
 >   blob or not at all. Delegation refusals are correct, bounded and were invisible.
 >
-> The pattern in both: the guard was right, the run was wrong, and nothing failed loudly enough to
-> notice. A criterion asserting a refusal is *recorded* is worth as much as one asserting it
-> happened.
+> The pattern in all of them: the guard was right, the run was wrong, and nothing failed loudly
+> enough to notice. A criterion asserting a refusal is *recorded* is worth as much as one asserting
+> it happened.
 
 Every phase so far has widened what Pandora can *do*. Phase 6 is the first that widens who is
 allowed to ask — an agent may now call another agent, and a tool may now live on a machine that is
@@ -184,6 +182,11 @@ delegation — a child outliving its parent's run.
       `docs/guides/delegation.md`, `docs/guides/mcp.md` and `CHANGELOG.md` updated
 - [x] An ADR for the MCP trust boundary — what is hashed, what clears approval, and why the server
       is off by default — `docs/adr/0014-mcp-trust-boundary.md`
-- [ ] **A human drives the pages in a host application**, against a `phase-6-walkthrough.md`,
+- [x] **A human drives the pages in a host application**, against a `phase-6-walkthrough.md`,
       including the check the suite structurally cannot make: a real MCP server, changed after
-      approval, whose tool stops working until a person looks at what changed
+      approval, whose tool stops working until a person looks at what changed — driven 2026-08-10
+      against a real HTTP MCP server and a real stdio one, both controllable mid-run. Fifteen
+      findings across the two halves, thirteen fixed. The changed-description check found that the
+      page said "Changed" and could not say what changed, and could not act on the answer; both
+      fixed. Two findings stay open by decision and are named in the walkthrough: no audit page
+      (6) and the dead-end-result retry storm (7).

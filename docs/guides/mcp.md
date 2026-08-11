@@ -36,7 +36,7 @@ use Pandora\Mcp\McpServer;
 McpServer::query()->create([
     'name' => 'Ledger',
     'slug' => 'ledger',
-    'namespace' => 'ledger',            // remote tools become ledger.<name>
+    'namespace' => 'ledger',            // remote tools become ledger-<name>
     'transport' => 'http',
     'endpoint' => 'https://mcp.example.com/rpc',
     'credential_key' => 'mcp.ledger',   // a key in the encrypted store
@@ -68,8 +68,8 @@ the server withdraws is marked unavailable rather than deleted.
 ### 3. Approve, per agent, per tool
 
 ```
-php artisan pandora:mcp:approve ledger.lookup_invoice support-agent
-php artisan pandora:mcp:approve ledger.lookup_invoice support-agent --hash=<hash>
+php artisan pandora:mcp:approve ledger-lookup_invoice support-agent
+php artisan pandora:mcp:approve ledger-lookup_invoice support-agent --hash=<hash>
 ```
 
 Never per server. "Trust this server" is a blanket that keeps covering tools
@@ -111,10 +111,24 @@ friction for "something outside our control changed what our agent will be told"
 
 ## Namespacing
 
-Remote tools are `namespace.tool`, and the separator is reserved: registering a
+Remote tools are `namespace-tool`, and the separator is reserved: registering a
 core tool containing one fails at boot. More importantly, **resolution is split
 by origin** — the core registry is never asked about a namespaced name and the
 remote resolver is never asked about a core one.
+
+The separator is `-` and changing it is not a cosmetic choice. It has to satisfy
+two things at once: no core tool name may contain it, and it must be legal in a
+provider's function-name grammar. OpenAI and Anthropic both hold function names
+to `^[a-zA-Z0-9_-]+$`, so a `.` separator makes every approved remote tool a 400
+from the provider the first time one is advertised — and the run fails with a
+sentence about the provider that names neither MCP nor the tool. `_` is legal for
+providers and useless here, because core tool names are full of underscores.
+
+Changing the separator on a live installation changes every `namespaced_name`,
+and the namespaced name is part of the schema hash. The next discovery therefore
+reports every tool as changed and revokes its approvals. That is the correct
+behaviour — an approval names a specific string — but it means a separator change
+is followed by re-approving everything.
 
 Both halves matter. A convention enforced only by prefix matching is one
 normalisation bug away from being no convention, and the strings being normalised
@@ -165,6 +179,16 @@ Off by default. Installing Pandora exposes nothing.
     'exposed_tools' => ['lookup_order'],   // an allowlist; empty serves nothing
 ],
 ```
+
+**`middleware` has to authenticate somebody, and the default does not.** Pandora
+ships no authentication, and the bare `api` group in a stock Laravel application
+authenticates nobody — so the actor resolves to null, every `tools/call` comes
+back `Not authorized to call this tool.`, and `mcp.exposure_denied` is recorded
+with `reason: no actor`. `tools/list` still works, which makes it look like a
+broken server rather than an unconfigured one. Use `['api', 'auth:sanctum']`, or
+whatever guard your application already has, and issue the caller a user whose
+abilities are the ones it should have. The route is `POST` at your route prefix,
+so with the defaults it is `POST /pandora/mcp`.
 
 Two separate questions, and both are asked:
 
