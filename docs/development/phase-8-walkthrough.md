@@ -1,17 +1,21 @@
 # Phase 8 — Host Walkthrough
 
-> Status: **partially driven, 2026-08-09 and 2026-08-10**, against
-> `laravel-test` and a real Slack workspace (`T0BNV8RM7MZ`). Sections 1–4 and
-> 6–8 driven; only 5 remains. Sixteen findings, seven fixed during the run.
-> Criterion 33 stays open on section 5 alone.
+> Status: **driven 2026-08-09 and 2026-08-10** against `laravel-test` and a real
+> Slack workspace (`T0BNV8RM7MZ`), for every section but 5. Sixteen findings,
+> seven fixed during the run. Criterion 33 is ticked; **section 5 is closed as
+> known untested (33a), not as pending.**
 >
 > - **Sections 1–4 driven.** Install, register, refuse a stranger, link, and
 >   answer as the linked user. Findings 1–7 came from these.
-> - **Section 5 not driven — no second Slack account was available.** Two
->   people on one channel account **at the same time** is therefore unproven,
->   in either direction. It is the claim a single-account walkthrough cannot
->   make. Section 6's relink covers the same boundary *sequentially* and it
->   held; that is weaker evidence, not a substitute.
+> - **Section 5 not driven, and now accepted that way — 2026-08-11.** No second
+>   Slack account was available, and waiting for one was not a plan. Two people
+>   on one channel account **at the same time** is unproven in either direction:
+>   the claim a single-account walkthrough cannot make. Section 6's relink covers
+>   the same boundary *sequentially*, against the real workspace, and it held —
+>   weaker evidence, not a substitute. What remains genuinely unknown is narrow:
+>   two linked identities interleaving in real time, where a defect would be a
+>   race in session resolution rather than a wrong isolation key. That sentence
+>   goes in the v1.0 support statement.
 > - **Section 6 driven.** Revocation, unlink, refusal, and relink to a
 >   different host user. The isolation claim held on both layers. Findings 12
 >   and 13 came from this, and finding 5 was re-confirmed live.
@@ -115,12 +119,21 @@ The same landmines as Phases 6 and 7, plus one new one:
 - [ ] Ask it to do something your user is *not* permitted to do. It is refused
       on your abilities, not the agent's.
 
-## 5. Two people, one channel
+## 5. Two people, one channel — ⚠ known untested
+
+**Closed unticked, 2026-08-11.** These boxes stay empty permanently. They needed
+a second Slack account; there was not one, and there was not going to be one on
+this schedule. Leaving them open implied a plan that did not exist.
 
 - [ ] Link a second Slack account to a second host user.
 - [ ] Tell the agent something private from account A.
 - [ ] Ask about it from account B. **It does not know.** Two sessions, two
       isolation keys.
+
+*Covered by other means, and honestly weaker:* `Channels/SessionIsolationTest`
+asserts two participants resolve to two sessions, and section 6 relinked one real
+account to a different host user with no inheritance. Both are sequential. The
+concurrent case is unproven.
 
 ## 6. Failure and revocation
 

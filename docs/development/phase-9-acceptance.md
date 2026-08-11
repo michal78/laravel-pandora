@@ -121,7 +121,7 @@ independent ways, in one session.
 | 30 ⬜ | The documentation set is complete: every shipped feature has a guide, every guide's commands are run and their output quoted, and no guide documents behaviour that changed after it was written | *the audit* |
 | 31 ⬜ | Every ADR either describes what shipped or records what replaced it | *the audit* |
 | 32 ⬜ | The CHANGELOG covers every phase, and every breaking change carries an upgrade instruction — the namespace-separator change from Phase 6 is the test case, since it revokes every MCP approval | `CHANGELOG.md` |
-| 33 ⬜ | **A v1.0 support statement exists** naming what is supported, what is explicitly excluded (marketplace installs, remote extension updates), and what is single-operator only | *new* — `docs/product/support-statement.md` |
+| 33 ⬜ | **A v1.0 support statement exists** naming what is supported, what is explicitly excluded (marketplace installs, remote extension updates), what is single-operator only, and **what is shipped untested** — including Phase 8 §5, two identities interleaving on one channel account in real time | *new* — `docs/product/support-statement.md` |
 | 34 ⬜ | A human drives `phase-9-walkthrough.md` | a person |
 
 ## Design decisions taken for this phase
@@ -146,6 +146,6 @@ independent ways, in one session.
 | Phase 6 | The fake-at-a-boundary lesson, now criteria 19–21 |
 | Phase 7 | Tenancy walkthrough section, undriven — needs a two-tenant host |
 | Phase 7 | "What an unattended run may do" and `observe_only` do not share a vocabulary (`phase-7-walkthrough.md:269`) |
-| Phase 8 | Section 5, undriven — two people on one channel account simultaneously, needs a second Slack account |
+| Phase 8 | Section 5, ⚠ **known untested** — two people on one channel account concurrently. Not a task; a disclosure. Criterion 33 below must name it |
 | Phase 8 | `redactText()` over string values inside `redact()`, deferred (`phase-8-walkthrough.md:584`) |
 | Phase 8 | Rate limiter placement across the channel boundary (`phase-8-walkthrough.md:240`) |

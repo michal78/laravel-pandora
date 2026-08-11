@@ -16,7 +16,7 @@
 | 5 | Memory and context | ✅ 28/28 incl. a real pgvector CI leg; host walkthrough driven 2026-08-07 — four defects, all fixed, one of them a cross-user memory disclosure on the Memory page |
 | 6 | Multi-agent and MCP | ✅ 31/31; both walkthrough halves driven (delegation 2026-08-08 + 2026-08-10, MCP 2026-08-10 against real servers) — 15 findings, 13 fixed. Two open by decision: no audit page, and a dead-end tool result becomes a retry storm |
 | 7 | Workspaces, released and on object storage | ✅ 25/25 — walkthrough driven end to end 2026-08-10 against real MinIO; 7 defects, 6 fixed. Tenancy section needs a two-tenant host |
-| 8 | Channels and extensions | 🔨 32/33 — walkthrough sections 1–4 and 6–8 driven; only section 5 (two people, one channel account, simultaneously) remains, blocked on a second Slack account. 16 findings |
+| 8 | Channels and extensions | ✅ 33/33 — walkthrough driven for every section but 5, against a real Slack workspace. 16 findings. Section 5 (two people, one channel account, **concurrently**) is closed as ⚠ **known untested** — no second account, and it goes in the v1.0 support statement |
 | 9 | Hardening and release | ⬜ |
 
 ---
@@ -375,7 +375,7 @@ walkthrough's tenancy section needs a two-tenant host and is named as undriven r
 
 ---
 
-## Phase 8 — Channels and extension ecosystem 🔨
+## Phase 8 — Channels and extension ecosystem ✅
 
 `Channel` contract · identity linking (channel identity is never application identity) · Slack as the
 reference extension package · extension manifest format · Composer-installed extension discovery and
@@ -397,10 +397,16 @@ booted, including one that would fatal if it were (ADR-0016).
 providers, tools and channels through the documented contracts alone, with no core changes — proved
 by `laravel-pandora-slack` living in its own repository, where a missing seam has to be added to core
 in the open rather than filled in the same commit. See `docs/development/phase-8-acceptance.md` —
-**32 of 33 criteria verified**. Criterion 33 — a human driving `phase-8-walkthrough.md` against a
-real Slack workspace — is driven for sections 1–4 and 6–8, and has produced 16 findings. Only
-section 5 remains: two people on one channel account **at the same time**, which needs a second
-Slack account and is the one claim a single-account walkthrough cannot make.
+**33 of 33 criteria verified**. Criterion 33 — a human driving `phase-8-walkthrough.md` against a
+real Slack workspace — is driven for every section but 5, and produced 16 findings.
+
+Section 5 is **closed as known untested (33a), not as pending.** Two people on one channel account
+*at the same time* needed a second Slack account that did not exist and was not going to; carrying it
+as blocked implied a plan. `Channels/SessionIsolationTest` asserts two participants get two sessions,
+and section 6 relinked a real account to a different host user with no inheritance — both sequential.
+The unproven part is narrow: two linked identities interleaving in real time, where a defect would be
+a race in session resolution rather than a wrong isolation key. It is named in the v1.0 support
+statement, which is where an untested boundary becomes a disclosure instead of an omission.
 
 The reference extension needed no core change at all. It was written from outside the boundary and
 the published contracts were between them enough to build a working adapter on the first attempt,

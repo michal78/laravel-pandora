@@ -1,10 +1,23 @@
 # Phase 8 — Acceptance Test Plan
 
-> **Status: 32 of 33 criteria accepted. What remains is a human driving it.**
+> **Status: 33 of 33 criteria accepted, with one section of the walkthrough accepted as untested.**
 >
 > Criteria are ticked only when the named automated test asserts them and passes. Criterion 33 is a
-> human driving `phase-8-walkthrough.md`, and it is ticked by a person, not by a suite. Every box in
-> that document is unticked and stays that way until it has been.
+> human driving `phase-8-walkthrough.md`, and it is ticked by a person, not by a suite.
+>
+> **Criterion 33a is a documented gap, not a pending task.** Section 5 — two people on one channel
+> account *at the same time* — was never driven, because it needs a second Slack account that did not
+> exist and was not going to. Carrying it as "blocked" implied it was waiting for a scheduling problem
+> to resolve itself; it is not. It is closed as **known untested**, and the honest form of that is to
+> say so in the release documentation rather than to keep an open box that quietly reads as a plan.
+>
+> What is actually known about the boundary: the session isolation key is
+> `(tenant, agent, actor, channel, participant, origin)`, `Channels/SessionIsolationTest` asserts two
+> participants get two sessions, and section 6 relinked one real Slack account to a different host
+> user against a real workspace and the new link inherited nothing. The untested part is narrow and
+> specific — **two linked identities interleaving on one account in real time**, where the failure mode
+> would be a race in session resolution rather than a wrong key. That is the sentence that belongs in
+> the support statement (Phase 9, criterion 33).
 >
 > Two phases enter this one carrying an undriven walkthrough of their own (Q10). That debt is
 > acknowledged, scheduled before Phase 9, and does not move.
@@ -186,7 +199,8 @@ agent's **Channels** tab · `pandora:channel:list`
 | # | Criterion | Verified by |
 |---|---|---|
 | 32 ✅ | **`laravel-pandora-slack` registers a channel and a tool through the documented contracts alone, with no changes to `src/`** — proved by the package living in its own repository, by its own suite running against core, and by needing no core change at all | `laravel-pandora-slack`: `ContractsOnlyTest` · `SlackEventTest` · `SlackDeliveryTest` |
-| 33 | **A human drives `phase-8-walkthrough.md`** against `laravel-test` and a real Slack workspace: an unlinked message refused, a link completed, a reply delivered, an unlink, and a second message refused again | `phase-8-walkthrough.md` |
+| 33 ✅ | **A human drives `phase-8-walkthrough.md`** against `laravel-test` and a real Slack workspace: an unlinked message refused, a link completed, a reply delivered, an unlink, and a second message refused again | `phase-8-walkthrough.md` — sections 1–4, 6–8 |
+| 33a ⚠ | **Section 5 — two people on one channel account, concurrently — is accepted as untested.** No second Slack account was available and one was not going to become available on this schedule. `Channels/SessionIsolationTest` asserts the isolation key, and section 6 drove the same boundary *sequentially* against a real workspace and it held. Neither is the concurrent claim | **known untested**, see below |
 
 ## What the tests must run against
 
@@ -224,7 +238,9 @@ the way every Laravel package does.
 
 ## Definition of done
 
-- [x] 32 of 33 criteria have tests, and they pass. The 33rd is a person.
+- [x] 32 of 33 criteria have tests, and they pass. The 33rd is a person, and they drove it.
+- [x] Walkthrough section 5 closed as **known untested** (33a), to be named in the v1.0 support
+      statement rather than carried as an open box
 - [ ] `vendor/bin/pest` green on all four engines — green on SQLite (1,698 passed, 84 skipped); the matrix has not been re-run since channels landed
 - [x] `vendor/bin/phpstan analyse` clean at level 8, with no ignores and no baseline entries — in both repositories
 - [x] `vendor/bin/pint --test` clean — in both repositories
