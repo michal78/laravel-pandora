@@ -14,5 +14,18 @@ jobs:
         with:
           php-version: '8.3'
           coverage: none
-      - run: composer update --prefer-dist --no-interaction --no-progress
+      - name: Install dependencies
+        # Retried, because a failed download is not a failed test. A `curl error
+        # 60` fetching one zipball turned the whole matrix red once, and now that
+        # `tests complete` is a required check on a publishing branch, a flake of
+        # that kind is a release blocker rather than an annoyance.
+        run: |
+          for attempt in 1 2 3; do
+            if composer update --prefer-dist --no-interaction --no-progress; then
+              exit 0
+            fi
+            echo "composer failed (attempt $attempt of 3); retrying in 15s"
+            sleep 15
+          done
+          exit 1
       - run: vendor/bin/pint --test
