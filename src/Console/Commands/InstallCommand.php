@@ -208,7 +208,16 @@ final class InstallCommand extends Command
              Queue names are configurable under `pandora.queues` and collapse onto your
              default queue unless you split them.
 
-          <options=bold>2. Realtime (optional)</>
+          <options=bold>2. Control center (optional, needs Livewire)</>
+             The UI at /pandora is Livewire, which Pandora suggests rather than requires --
+             a headless install should not drag a frontend in with it.
+
+               composer require livewire/livewire
+
+             Without it no /pandora route is registered at all, so the page 404s rather
+             than erroring. `php artisan pandora:status` reports which of the two you have.
+
+          <options=bold>3. Realtime (optional)</>
              Reverb streams runs, tool calls and approvals live.
 
                composer require laravel/reverb
@@ -218,12 +227,12 @@ final class InstallCommand extends Command
              Pandora works without it: the database is authoritative, so the UI falls back to
              polling and stays correct. Set PANDORA_REALTIME_ENABLED=false to opt out.
 
-          <options=bold>3. Scheduler (needed for automations)</>
+          <options=bold>4. Scheduler (needed for automations)</>
              Automations are driven by Laravel's scheduler.
 
                php artisan schedule:work
 
-          <options=bold>4. Configure a provider</>
+          <options=bold>5. Configure a provider</>
              The default is the built-in `fake` provider, which needs no credentials and is
              useful for verifying the installation. For a real one, set in .env:
 
@@ -231,11 +240,11 @@ final class InstallCommand extends Command
                PANDORA_OPENAI_API_KEY=...
                PANDORA_MODEL=gpt-4o-mini
 
-          <options=bold>5. Register an agent</>
+          <options=bold>6. Register an agent</>
              No agent is created for you -- that is deliberate. Create an AgentDefinition
              class and list it in `pandora.agents.definitions`.
 
-          <options=bold>6. Authorization</>
+          <options=bold>7. Authorization</>
              Pandora defines a gate per ability. By default any authenticated user may access
              and chat, and every administrative ability is DENIED. Define gates of the same
              name in your application to take control.

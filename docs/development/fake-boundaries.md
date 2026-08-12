@@ -109,6 +109,30 @@ rather than passing.
 recall. The alternatives are a null provider (the vector path never runs — the Phase 4 failure on
 purpose) or a hosted one (paid network calls in CI, therefore skipped).
 
+### The suite's own dependencies — `require-dev`
+
+**Stands for:** an application that installed Pandora and nothing else.
+
+**Cannot prove:** anything about a *missing* optional dependency. `livewire/livewire` is a dev
+dependency, so `class_exists(Livewire::class)` is true for every test that will ever run here, and the
+code paths that handle its absence are unreachable by construction — not untested by oversight,
+untestable by layout.
+
+This is not hypothetical. `pandora:status` reported **"Control center: enabled"** from the config flag
+alone, while `PandoraServiceProvider` returns early and registers no `/pandora` route at all when
+Livewire is missing. A stock install therefore said the control center was enabled and answered the
+documented URL with a 404 — the most visual thing the package ships, silently absent, on the exact
+path the installer tells you to open. Found on 2026-08-12 by installing v0.1.0 from Packagist into a
+fresh Laravel application, which is the only place it *could* be found.
+
+**Closed by:** a three-state report (`headless` / `unavailable` / `enabled`), the installer naming
+Livewire as its own step, and the README saying the bare install is headless. Two of the three states
+are asserted in `Feature/InstallationTest`; the third is verified by hand.
+
+**Still open, accepted:** the `unavailable` branch has no automated cover. Closing it means either a
+second CI leg with a deliberately minimal dependency set, or indirection in a status line that does
+not deserve it. Phase 9's example-application criterion (29) is the honest home for this.
+
 ### Fixture packages — `tests/Extensions/`
 
 **Stands for:** Composer-installed extension packages, via a temporary `installed.json`.

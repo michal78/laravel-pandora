@@ -22,9 +22,19 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, sqlite3, pdo_sqlite
           coverage: none
       - name: Install dependencies
+        # Retried for the same reason as every other leg: a failed download is
+        # not a failed test.
         run: |
           composer require "laravel/framework:${{ matrix.laravel }}" --no-interaction --no-update
-          composer update --prefer-dist --no-interaction --no-progress
+
+          for attempt in 1 2 3; do
+            if composer update --prefer-dist --no-interaction --no-progress; then
+              exit 0
+            fi
+            echo "composer failed (attempt $attempt of 3); retrying in 15s"
+            sleep 15
+          done
+          exit 1
       - run: vendor/bin/pest --ci
         env:
           DB_CONNECTION: sqlite
@@ -67,7 +77,20 @@ jobs:
           php-version: '8.3'
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo_mysql, pdo_pgsql
           coverage: none
-      - run: composer update --prefer-dist --no-interaction --no-progress
+      - name: Install dependencies
+        # Retried, because a failed download is not a failed test. A `curl error
+        # 60` fetching one zipball turned the whole matrix red once, and now that
+        # `tests complete` is a required check on a publishing branch, a flake of
+        # that kind is a release blocker rather than an annoyance.
+        run: |
+          for attempt in 1 2 3; do
+            if composer update --prefer-dist --no-interaction --no-progress; then
+              exit 0
+            fi
+            echo "composer failed (attempt $attempt of 3); retrying in 15s"
+            sleep 15
+          done
+          exit 1
       - run: vendor/bin/pest --ci
         env:
           DB_CONNECTION: ${{ matrix.db.conn }}
@@ -131,7 +154,20 @@ jobs:
           php-version: '8.3'
           extensions: dom, curl, libxml, mbstring, zip, pcntl, sqlite3, pdo_sqlite
           coverage: none
-      - run: composer update --prefer-dist --no-interaction --no-progress
+      - name: Install dependencies
+        # Retried, because a failed download is not a failed test. A `curl error
+        # 60` fetching one zipball turned the whole matrix red once, and now that
+        # `tests complete` is a required check on a publishing branch, a flake of
+        # that kind is a release blocker rather than an annoyance.
+        run: |
+          for attempt in 1 2 3; do
+            if composer update --prefer-dist --no-interaction --no-progress; then
+              exit 0
+            fi
+            echo "composer failed (attempt $attempt of 3); retrying in 15s"
+            sleep 15
+          done
+          exit 1
       - run: vendor/bin/pest --ci
         env:
           DB_CONNECTION: sqlite
@@ -141,3 +177,29 @@ jobs:
           PANDORA_TEST_S3_SECRET: pandora-secret
           PANDORA_TEST_S3_BUCKET: pandora-test
           PANDORA_TEST_S3_REGION: us-east-1
+
+  # One check name that stands for every leg above.
+  #
+  # A branch ruleset names the checks it requires, and a matrix expands into one
+  # check per leg — so requiring them individually means editing the ruleset
+  # every time a database is added, and a leg added but not required is a leg
+  # nobody has to pass. This job is the single name to require.
+  #
+  # `if: always()` plus an explicit result check, rather than bare `needs:`,
+  # because a job that is skipped or cancelled does not fail its dependents: a
+  # naive aggregator reports success when a leg never ran, which is the exact
+  # shape of green-but-untested this repository keeps finding.
+  complete:
+    name: tests complete
+    needs: [sqlite, databases, object-storage]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every leg succeeded
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: |
+          echo "A test leg did not succeed: ${{ join(needs.*.result, ', ') }}"
+          exit 1
+      - name: Report
+        run: |
+          echo "Every leg green: ${{ join(needs.*.result, ', ') }}"

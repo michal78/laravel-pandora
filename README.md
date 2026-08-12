@@ -173,6 +173,17 @@ php artisan pandora:install
 php artisan queue:work
 ```
 
+That is the headless install — agents, tools and runs from your own code, with no routes and no
+frontend. **The control center at `/pandora` is Livewire, which Pandora suggests rather than
+requires**, so add it if you want the UI:
+
+```bash
+composer require livewire/livewire
+```
+
+Without it, no `/pandora` route is registered at all — the page 404s rather than erroring, and
+`php artisan pandora:status` tells you which of the two you have.
+
 Want the unstable branch instead? `development` is where everything lands before it is released, and
 Composer will take it without changing your `minimum-stability` — requiring a `dev-` version sets the
 stability flag for that package on its own:

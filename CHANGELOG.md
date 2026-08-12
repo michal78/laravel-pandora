@@ -10,6 +10,44 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
+## v0.1.1 — 2026-08-12
+
+Installing v0.1.0 from Packagist into a fresh Laravel application — which nobody had done, because
+every test in the suite runs against the source tree through Testbench — found the package's most
+visual feature silently absent on a stock install.
+
+### Fixed
+
+- **`pandora:status` no longer calls the control center "enabled" when it cannot run.**
+  `pandora.ui.enabled` says the control center is *wanted*; Livewire says it can *exist*. The service
+  provider returns early and registers no `/pandora` route at all when the class is missing, but the
+  status line read only the config flag. Following the documented path on a stock install therefore
+  produced a 404 on the thing the README leads with. Three states now — `headless`, `unavailable`,
+  `enabled`.
+- **`pandora:install` names Livewire as its own step**, instead of closing with "Then open /pandora"
+  and never mentioning it.
+- **The README says plainly that the bare install is headless**, and what to add for the UI.
+
+### Changed
+
+- **CI retries `composer update` three times.** A single `curl error 60` fetching one zipball turned
+  the whole matrix red with nothing wrong in the package. Cosmetic before; not any more, now that a
+  green matrix is a required check on a branch where merging publishes.
+- **The matrix reports through one check, `tests complete`.** A branch ruleset names the checks it
+  requires and a matrix expands into one check per leg, so requiring them individually means editing
+  the ruleset every time a database is added — and a leg added but not required is a leg nobody has
+  to pass. It uses an explicit result check rather than bare `needs:`, because a skipped or cancelled
+  job does not fail its dependents.
+
+### Documentation
+
+- `docs/development/fake-boundaries.md` gains a sixth entry: **the suite's own dependencies.**
+  `livewire/livewire` is a dev dependency, so `class_exists()` is true for every test that will ever
+  run and the code handling its absence is unreachable by construction — untestable by layout rather
+  than untested by oversight. It is the same lesson as the two Phase 6 defects, in a place nobody had
+  thought to look, and it was only findable by installing the published package.
+
+
 ## v0.1.0 — 2026-08-12
 
 The first published release. Nine phases of work: a durable agent kernel, tools with approvals,
