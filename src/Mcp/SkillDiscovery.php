@@ -46,13 +46,13 @@ final readonly class SkillDiscovery
                 continue;
             }
 
-            $slug = $server->namespace.'-'.Str::slug($name);
-
             if (Str::slug($name) === '') {
                 $skipped++;
 
                 continue;
             }
+
+            $slug = $this->boundSlug($server->namespace.'-'.Str::slug($name));
 
             Skill::query()->updateOrCreate(
                 ['slug' => $slug, 'version' => '1.0.0'],
@@ -90,5 +90,30 @@ final readonly class SkillDiscovery
         );
 
         return ['discovered' => $discovered, 'skipped' => $skipped];
+    }
+
+    /**
+     * Hold a composed slug to the width of the column that stores it.
+     *
+     * `name` was already bounded on the way in; the slug is *derived* from the
+     * unbounded original, so a server advertising a 5,000-character skill name
+     * produced a 5,000-character slug against a `varchar(191)`. SQLite does not
+     * enforce declared widths, so the suite was green and MySQL, MariaDB and
+     * PostgreSQL each answered with a truncation error — a remote server
+     * choosing a long name could stop discovery for every skill behind it.
+     *
+     * Truncation alone would be worse than the bug in one respect: two skills
+     * whose names share a long prefix would collapse onto one slug, and the
+     * `updateOrCreate` below would quietly overwrite one with the other. So a
+     * truncated slug carries a digest of the full one, which is the same idiom
+     * `WorkspaceRoots` uses for a tenant id that is not path-safe.
+     */
+    private function boundSlug(string $slug): string
+    {
+        if (mb_strlen($slug) <= 191) {
+            return $slug;
+        }
+
+        return mb_substr($slug, 0, 182).'-'.substr(hash('sha256', $slug), 0, 8);
     }
 }

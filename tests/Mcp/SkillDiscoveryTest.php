@@ -137,7 +137,31 @@ it('bounds what a server can store', function (): void {
 
     expect(mb_strlen($skill->name))->toBe(191)
         ->and(mb_strlen((string) $skill->description))->toBe(2000)
-        ->and(mb_strlen($skill->instructions))->toBe(100000);
+        ->and(mb_strlen($skill->instructions))->toBe(100000)
+        // The slug is DERIVED from the unbounded name, so bounding the name
+        // did not bound it. `pandora_skills.slug` is `varchar(191)`; SQLite
+        // ignores declared widths and MySQL, MariaDB and PostgreSQL do not, so
+        // this assertion was the difference between a green suite and three red
+        // CI legs.
+        ->and(mb_strlen($skill->slug))->toBeLessThanOrEqual(191);
+});
+
+it('keeps two over-long skill names on two rows', function (): void {
+    // Truncating to fit would collapse these onto one slug and the second
+    // would silently overwrite the first -- a remote server could retire a
+    // skill by naming a new one after it.
+    $prefix = str_repeat('n', 400);
+
+    ($this->ingest)([
+        ['name' => $prefix.' alpha', 'instructions' => 'First.'],
+        ['name' => $prefix.' beta', 'instructions' => 'Second.'],
+    ]);
+
+    $slugs = Skill::query()->pluck('slug');
+
+    expect(Skill::query()->count())->toBe(2)
+        ->and($slugs->unique())->toHaveCount(2)
+        ->and($slugs->every(fn (string $slug): bool => mb_strlen($slug) <= 191))->toBeTrue();
 });
 
 it('updates a skill in place rather than accumulating versions of it', function (): void {

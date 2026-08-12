@@ -86,22 +86,46 @@ jobs:
   # StorageContractTest, KeyNormalisationTest and TenantPrefixTest SKIP without
   # an endpoint rather than passing, so deleting this job makes the gap visible
   # instead of silent.
+  #
+  # MinIO runs as a STEP, not as a `services:` container, and the reason is a
+  # scar: this leg used `bitnami/minio`, whose env vars started the server and
+  # created the bucket for us. Bitnami retired that Docker Hub catalogue and the
+  # tag stopped resolving — `manifest unknown` — so the job died before PHP was
+  # installed. The official `minio/minio` image needs a command (`server /data`)
+  # and `services:` has nowhere to put one. Starting it by hand costs eight
+  # lines and owes nothing to a vendor's distribution policy.
   object-storage:
     name: object storage · minio
     runs-on: ubuntu-latest
-    services:
-      minio:
-        image: 'bitnami/minio:latest'
-        env:
-          MINIO_ROOT_USER: pandora
-          MINIO_ROOT_PASSWORD: pandora-secret
-          MINIO_DEFAULT_BUCKETS: pandora-test
-        ports: ['9000:9000']
-        options: >-
-          --health-cmd="curl -f http://localhost:9000/minio/health/live"
-          --health-interval=10s --health-timeout=5s --health-retries=10
     steps:
       - uses: actions/checkout@v4
+
+      - name: Start MinIO and create the bucket
+        run: |
+          set -euo pipefail
+
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=pandora \
+            -e MINIO_ROOT_PASSWORD=pandora-secret \
+            minio/minio:latest server /data
+
+          # Ready means answering, not running: the bucket creation below fails
+          # against a server that has started but not yet bound its port.
+          for _ in $(seq 1 30); do
+            if curl -fs http://127.0.0.1:9000/minio/health/live >/dev/null; then
+              echo "MinIO is live."
+              break
+            fi
+            sleep 2
+          done
+
+          curl -fs http://127.0.0.1:9000/minio/health/live >/dev/null
+
+          docker run --rm --network host --entrypoint sh minio/mc:latest -c "
+            mc alias set local http://127.0.0.1:9000 pandora pandora-secret &&
+            mc mb --ignore-existing local/pandora-test
+          "
+
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
