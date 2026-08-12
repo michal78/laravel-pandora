@@ -266,6 +266,33 @@ it('reports status', function (): void {
     $this->artisan('pandora:status')->assertSuccessful();
 });
 
+it('does not call the control center enabled when it is switched off', function (): void {
+    // The three-state report exists because two states were being collapsed
+    // into one: `pandora.ui.enabled` says the control center is WANTED, and
+    // `Livewire` says it can exist. A stock install without Livewire registers
+    // no /pandora route at all, and this line used to call that "enabled" —
+    // sending a first-time user to a 404 on the most visual thing we ship.
+    config()->set('pandora.ui.enabled', false);
+
+    $this->artisan('pandora:status')
+        ->expectsOutputToContain('headless')
+        ->assertSuccessful();
+});
+
+it('calls the control center enabled when it is on and Livewire is present', function (): void {
+    config()->set('pandora.ui.enabled', true);
+
+    // The third state — wanted but unavailable — cannot be asserted here.
+    // `livewire/livewire` is a dev dependency of this package, so
+    // `class_exists()` is true for the whole suite and the branch that reports
+    // it missing is unreachable by construction. It is verified by hand against
+    // a fresh application, and recorded in `docs/development/fake-boundaries.md`
+    // rather than left to look covered.
+    $this->artisan('pandora:status')
+        ->expectsOutputToContain('enabled')
+        ->assertSuccessful();
+});
+
 it('lists agents, and says so clearly when there are none', function (): void {
     $this->artisan('pandora:agent:list')->assertSuccessful();
 });

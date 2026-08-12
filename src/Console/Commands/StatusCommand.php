@@ -6,6 +6,7 @@ namespace Pandora\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
+use Livewire\Livewire;
 use Pandora\Agents\AgentRegistry;
 use Pandora\Automation\Automation;
 use Pandora\Conversations\Conversation;
@@ -43,9 +44,20 @@ final class StatusCommand extends Command
             '<fg=gray>Realtime</>',
             config('pandora.realtime.enabled') ? '<fg=green>enabled</>' : '<fg=yellow>polling fallback</>',
         );
+        // Three states, not two. The config flag says whether the control
+        // center is WANTED; `Livewire` says whether it can exist. The provider
+        // returns early without registering a single route when the class is
+        // missing, so a stock install that has not required Livewire reported
+        // "enabled" and answered /pandora with a 404 — the package's most
+        // visual feature, silently absent, on the exact path the installer
+        // tells you to open.
         $this->components->twoColumnDetail(
             '<fg=gray>Control center</>',
-            config('pandora.ui.enabled') ? '<fg=green>enabled</>' : '<fg=yellow>headless</>',
+            match (true) {
+                ! config('pandora.ui.enabled') => '<fg=yellow>headless</>',
+                ! class_exists(Livewire::class) => '<fg=red>unavailable</> <fg=gray>— needs composer require livewire/livewire</>',
+                default => '<fg=green>enabled</>',
+            },
         );
         $this->components->twoColumnDetail(
             '<fg=gray>Tenancy</>',
