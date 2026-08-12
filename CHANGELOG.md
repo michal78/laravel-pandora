@@ -5,6 +5,37 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## Unreleased — Phase 9 hardening, first pass
+
+### Fixed
+
+- **The MCP namespace separator falls back to `-`, not `.`.** The configured default was already `-`
+  after the Phase 6 fix, but `Namespacing::separator()` fell back to `.` whenever the config value was
+  an empty string or not a string — so an operator's typo silently reintroduced the exact Phase 6
+  failure: every remote tool rejected by the provider with `400 Invalid 'tools[0].function.name'`, in
+  a message naming neither MCP nor the tool. A fallback is a default nobody chose, so it is now held
+  to the same grammar as the one they did. Found by writing the test for it, not by hitting it.
+
+### Added
+
+- **`Providers/FunctionNameGrammarTest`** — every tool name, and every composed remote name, is legal
+  in OpenAI's and Anthropic's shared function-name grammar (`^[a-zA-Z0-9_-]{1,64}$`). Asserted against
+  the names directly, sending nothing anywhere, because `FakeProvider` accepts any name a tool cares
+  to have and a fake that enforced a vendor's grammar would be a vendor.
+- **`Tools/ArgumentSurvivalTest`** — every property a tool advertises is a property it validates,
+  unless it has explicitly declared that it carries undeclared arguments, which exactly one class in
+  the system may do. Reverting the Phase 6 fix fails two of its four tests.
+- **`Security/HostResolverTenancyTest`** — tenancy driven through a bound host resolver rather than
+  `TenantManager::with()`. Every other tenancy test in the suite used the override path a queued job
+  uses, so `NullTenantResolver::current()` was the only resolver that had ever run, and a green suite
+  could not distinguish *Pandora asked and got null* from *Pandora never asked*. Closes the last
+  unticked section of the Phase 7 walkthrough without needing a two-tenant host.
+- **`docs/development/fake-boundaries.md`** — every fake that stands where a real system would, what
+  it structurally cannot prove, and what closes the gap or that the gap is accepted. Six entries.
+  Three were closed only after a defect or a walkthrough pointed at them, which is the pattern the
+  inventory exists to break.
+
+
 ## Unreleased — Phase 6 walkthrough fixes
 
 Driving the MCP half of `phase-6-walkthrough.md` against real servers found that the MCP **client**

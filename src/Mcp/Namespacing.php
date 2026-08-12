@@ -56,7 +56,14 @@ final class Namespacing
     {
         $separator = config('pandora.mcp.client.namespace_separator', '-');
 
-        return is_string($separator) && $separator !== '' ? $separator : '.';
+        // The fallback is `-`, not `.`, and the difference is the whole of the
+        // Phase 6 defect. `.` is illegal in OpenAI's and Anthropic's function
+        // name grammar, so falling back to it turns an operator's typo -- an
+        // empty string in a config file -- into every remote tool being
+        // rejected by the provider with a message naming neither MCP nor the
+        // tool. A fallback is a default nobody chose, so it is held to the same
+        // grammar as the one they did.
+        return is_string($separator) && $separator !== '' ? $separator : '-';
     }
 
     public static function isValidNamespace(string $namespace): bool

@@ -1,6 +1,6 @@
 # Phase 9 — Acceptance Test Plan
 
-> **Status: 0 of 34 criteria accepted.** Nothing here is ticked by inheritance.
+> **Status: 3 of 34 criteria accepted** (19, 20, 21). Nothing here is ticked by inheritance.
 >
 > Every previous phase wrote tests and then claimed the criteria those tests were written for. Phase 9
 > is the phase that claims T1–T15, and it is the first one where the claim is about the *suite* rather
@@ -107,9 +107,9 @@ independent ways, in one session.
 | # | Criterion | Verified by |
 |---|---|---|
 | 18 ⬜ | **A published `config/pandora.php` in the Testbench skeleton fails the run** rather than shadowing the package config. `mergeConfigFrom()` merges one level deep, so a shadow silently deletes newly added keys — it has appeared four times and been diagnosed once | *new* — `Feature/NoShadowConfigTest` |
-| 19 ⬜ | **Every fake that stands in for a boundary is inventoried**, and for each, the assertion that the real boundary would have caught what the fake cannot is named — or the gap is recorded as accepted | *new* — `docs/development/fake-boundaries.md` |
-| 20 ⬜ | **A tool's advertised function name is legal in every shipped provider's grammar**, asserted against the real grammar rather than a fake that accepts anything — the exact Phase 6 defect | *new* — `Providers/FunctionNameGrammarTest` |
-| 21 ⬜ | **Every tool's arguments survive validation to `handle()`**, asserted for every registered tool including `RemoteTool`, whose arguments were silently stripped for the whole of Phase 6 | *new* — `Tools/ArgumentSurvivalTest` |
+| 19 ✅ | **Every fake that stands in for a boundary is inventoried**, and for each, the assertion that the real boundary would have caught what the fake cannot is named — or the gap is recorded as accepted | `docs/development/fake-boundaries.md` — six entries, three closed only after a defect pointed at them |
+| 20 ✅ | **A tool's advertised function name is legal in every shipped provider's grammar**, asserted against the real grammar rather than a fake that accepts anything — the exact Phase 6 defect | `Providers/FunctionNameGrammarTest` — 6 tests; **found a live bug**, see below |
+| 21 ✅ | **Every tool's arguments survive validation to `handle()`**, asserted for every registered tool including `RemoteTool`, whose arguments were silently stripped for the whole of Phase 6 | `Tools/ArgumentSurvivalTest` — 4 tests; reverting the Phase 6 fix fails two, verified |
 | 22 ⬜ | A skipped test is reported as skipped in CI output, and the count is asserted — a leg that stops running must not read as a leg that passed | *new* — CI step |
 
 ### The matrix, and surviving contact
