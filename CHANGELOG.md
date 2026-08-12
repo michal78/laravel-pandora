@@ -39,7 +39,7 @@ See `docs/development/fake-boundaries.md` for the full inventory of what the tes
 structurally cannot prove.
 
 
-## Unreleased — Phase 9 hardening, first pass
+## Phase 9 — Hardening, first pass
 
 ### Fixed
 
@@ -69,8 +69,28 @@ structurally cannot prove.
   Three were closed only after a defect or a walkthrough pointed at them, which is the pattern the
   inventory exists to break.
 
+### The matrix is green again, and it cost two real bugs to get there
 
-## Unreleased — Phase 6 walkthrough fixes
+It had not run since channels landed. Restoring it found both of the defects below, neither of which
+SQLite can express — it does not enforce a declared column width, so the two engines that do were the
+only ones that could have said so.
+
+- **A skill's slug was derived from the *unbounded* server-supplied name** and stored in a
+  `varchar(191)`. The name was truncated on the way in; the slug was not, so it inherited the full
+  length. All four real engines rejected it, which means a remote MCP server could stop skill
+  discovery for everything behind it by choosing a long name. Truncating alone would have been worse
+  in one way — two names sharing a prefix would collapse onto one slug and `updateOrCreate` would
+  overwrite one with the other, letting a server retire a skill by naming a new one after it — so a
+  truncated slug now carries a digest of the full one.
+- **`pandora.mcp.client.max_description_length` is a dial pointed at a ceiling nobody wrote down.**
+  `description` is a `text` column: 65,535 **bytes** on MySQL and MariaDB, unbounded on PostgreSQL,
+  unenforced on SQLite. The config now says so.
+- **The object-storage leg pinned `bitnami/minio`**, whose Docker Hub catalogue was retired, so the
+  tag stopped resolving and the job died before PHP was installed. MinIO now starts as a step against
+  the official image and owes nothing to a vendor's distribution policy.
+
+
+## Phase 6 — MCP walkthrough fixes
 
 Driving the MCP half of `phase-6-walkthrough.md` against real servers found that the MCP **client**
 had never worked outside the test suite. Two of the entries below are that.
