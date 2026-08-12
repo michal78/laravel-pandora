@@ -76,7 +76,18 @@ it('bounds it again at read time', function (): void {
     // The write path is not the only way a row arrives, and the cost of asking
     // twice is one mb_substr.
     $tool = ($this->publish)('short');
-    $tool->update(['description' => str_repeat('b', 100000)]);
+
+    // 10,000 rather than 100,000, and the difference is not cosmetic: this
+    // update deliberately bypasses `boundedDescription()` to simulate a row
+    // that arrived some other way, so it is also bypassing the only thing that
+    // kept the value inside the column. `description` is `text` — 65,535 BYTES
+    // on MySQL and MariaDB, unbounded on PostgreSQL and unenforced on SQLite —
+    // so 100,000 characters was a value only three of the four engines could
+    // store, and the two that could not are the two that said so.
+    //
+    // 10,000 is 200x the limit under test. Proving a 50-character bound does
+    // not need a value no database will hold.
+    $tool->update(['description' => str_repeat('b', 10000)]);
 
     config()->set('pandora.mcp.client.max_description_length', 50);
 

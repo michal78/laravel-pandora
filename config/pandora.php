@@ -698,6 +698,14 @@ return [
             // A remote description is third-party text shown to a model and to
             // an operator. Bounded on the way in, escaped on the way out, and
             // never placed where an instruction goes.
+            //
+            // Keep this well under 65,535. `pandora_mcp_tools.description` is a
+            // `text` column, which is 65,535 BYTES on MySQL and MariaDB — bytes,
+            // not characters, so multi-byte text reaches the ceiling sooner.
+            // PostgreSQL's `text` is unbounded and SQLite enforces nothing, so a
+            // value above the ceiling stores fine on two engines and throws on
+            // the other two. 2,000 is already far more third-party prose than
+            // anybody reads.
             'max_description_length' => 2000,
 
             // The separator between a server's namespace and a remote tool
