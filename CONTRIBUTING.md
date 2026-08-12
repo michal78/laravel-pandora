@@ -37,11 +37,32 @@ Every change needs a test. Security-relevant changes need a test in `tests/Secur
 Tests must never call a paid external API. Use `FakeProvider` / `FakeStreamingProvider`, or recorded
 fixtures.
 
+## Branches
+
+**`development` is the default branch and where every pull request goes.** It is published to
+Packagist as `dev-development`, so anything merged there is immediately installable by anyone who
+asks for it — which is the point, and the reason it still has to be green.
+
+**`master` is stable and releases are cut from it.** Merging to `master` publishes: the release
+workflow reads the first `## vX.Y.Z` heading in `CHANGELOG.md`, and if no tag of that name exists, it
+tags the commit and publishes a GitHub Release with that section as the body. It no-ops when the
+heading has not moved, so a documentation fix on `master` releases nothing.
+
+Cutting a release is therefore one edit — the CHANGELOG heading — and a merge. There is no other
+button, and nothing else may create a tag.
+
 ## Commits and PRs
 
-Focused commits with clear messages. PRs should state which phase and which acceptance criteria they
-affect, and must not mark a phase complete while any test, analysis check or documented acceptance
-criterion fails.
+Focused commits with clear messages, written as prose. **Conventional Commits are deliberately not
+used**: the release version comes from the CHANGELOG rather than from commit subjects, so nothing
+here needs to parse them, and a changelog written for a reader beats one assembled from prefixes.
+
+PRs should state which phase and which acceptance criteria they affect, and must not mark a phase
+complete while any test, analysis check or documented acceptance criterion fails.
+
+A new test that cannot fail proves nothing. Where a test asserts a mitigation, say in the PR how you
+verified it fails with that mitigation removed — that is the standard Phase 9 sets and it applies to
+new work now.
 
 ## Security
 

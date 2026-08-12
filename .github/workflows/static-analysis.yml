@@ -2,7 +2,7 @@ name: static analysis
 
 on:
   push:
-    branches: [master]
+    branches: [master, development]
   pull_request:
 
 jobs:

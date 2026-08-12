@@ -1,0 +1,35 @@
+version: 2
+
+updates:
+  # Composer dependencies land on `development`, never on `master`. A bot must
+  # not open a pull request against the branch whose merges cut releases.
+  - package-ecosystem: composer
+    directory: /
+    target-branch: development
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    groups:
+      # One PR for the framework rather than nine. Illuminate components move
+      # together and reviewing them apart is reviewing the same change nine
+      # times.
+      laravel:
+        patterns:
+          - 'illuminate/*'
+          - 'laravel/*'
+      dev-tooling:
+        patterns:
+          - 'pestphp/*'
+          - 'phpstan/*'
+          - 'larastan/*'
+          - 'laravel/pint'
+          - 'orchestra/testbench'
+          - 'mockery/mockery'
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: development
+    schedule:
+      interval: monthly
+    labels: [dependencies, ci]

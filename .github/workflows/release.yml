@@ -1,0 +1,150 @@
+name: release
+
+# Cutting a release is editing the top `## vX.Y.Z` heading in CHANGELOG.md and
+# merging to master. There is no other button, and that is the point: the tag,
+# the GitHub Release and the changelog cannot disagree, because one of them IS
+# the other two.
+#
+# Idempotent by construction. Every push to master runs this, and the release
+# job no-ops when a tag for the declared version already exists -- so a typo
+# fix, a doc change or a merge that does not bump the heading publishes
+# nothing.
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+concurrency:
+  # Two pushes to master must never race to cut the same tag.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: read declared version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+      released: ${{ steps.read.outputs.released }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: read
+        name: Read the version the changelog declares
+        run: |
+          set -euo pipefail
+
+          # The first `## vX.Y.Z` heading wins. Phase headings and `Unreleased`
+          # sections do not match, so history below stays inert.
+          version="$(grep -m1 -oP '^## v\K[0-9]+\.[0-9]+\.[0-9]+' CHANGELOG.md || true)"
+
+          if [ -z "$version" ]; then
+            echo "No '## vX.Y.Z' heading found in CHANGELOG.md." >&2
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          if git rev-parse "v$version" >/dev/null 2>&1; then
+            echo "v$version is already tagged — nothing to release."
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "v$version is not tagged — a release is due."
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  quality:
+    name: quality gate
+    needs: version
+    if: needs.version.outputs.released == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, sqlite3, pdo_sqlite
+          coverage: none
+      - run: composer update --prefer-dist --no-interaction --no-progress
+      - name: Pint
+        run: vendor/bin/pint --test
+      - name: PHPStan
+        run: vendor/bin/phpstan analyse --no-progress
+      - name: Tests
+        run: vendor/bin/pest --ci
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+
+      # A release must not ship a package whose own manifest cannot be
+      # resolved by somebody who wants only stable dependencies. `composer
+      # update` above runs with this package's `minimum-stability: dev`, which
+      # is root-only and therefore says nothing about what a consumer gets.
+      - name: Validate the manifest
+        run: composer validate --strict --no-check-publish
+
+  release:
+    name: tag and publish
+    needs: [version, quality]
+    if: needs.version.outputs.released == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract the changelog section for this version
+        id: notes
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          # From the version's own heading to the next `## ` heading, exclusive.
+          awk -v ver="## v$VERSION" '
+            $0 ~ "^"ver { capture = 1; next }
+            capture && /^## / { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+
+          if [ ! -s release-notes.md ]; then
+            echo "The section for v$VERSION is empty; refusing to publish an empty release." >&2
+            exit 1
+          fi
+
+          echo "Release notes:"
+          cat release-notes.md
+
+      - name: Tag
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin "v$VERSION"
+
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          # Anything below 1.0.0 is published as a pre-release, so the API
+          # promise the version number makes is the one GitHub shows.
+          prerelease=""
+          case "$VERSION" in
+            0.*) prerelease="--prerelease" ;;
+          esac
+
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --notes-file release-notes.md \
+            $prerelease

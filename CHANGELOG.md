@@ -4,6 +4,40 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **The heading below is the release trigger.** `.github/workflows/release.yml` reads the first
+> `## vX.Y.Z` heading in this file, and if no tag of that name exists, tags the commit and publishes
+> a GitHub Release with that section as the body. Cutting a release means editing this heading and
+> merging to `master` — there is no other button.
+
+
+## v0.1.0 — 2026-08-12
+
+The first published release. Nine phases of work: a durable agent kernel, tools with approvals,
+memory, automations, delegation, an MCP client and server, workspaces on object storage, channels
+with a Slack reference extension, and a Livewire control center — 1,756 tests, PHPStan level 8 with
+no baseline, Pint clean.
+
+**It is `0.x` deliberately.** The public API is usable and in use; it is not yet promised. Phase 9 —
+which proves every T1–T15 threat by removing its mitigation and watching the test fail — stands at
+3 of 34 criteria. `docs/product/support-statement.md` names what is supported, what is excluded by
+design, and what ships **known untested**. Read it before depending on this in production.
+
+Everything below this heading is the development history that produced it, kept by phase.
+
+### Known untested at 0.1.0
+
+- **Two channel identities interleaving on one account in real time** (Phase 8 §5). The sequential
+  case is driven against a real Slack workspace and holds; the concurrent one needed a second Slack
+  account that did not exist. A defect here would be a race in session resolution, not a wrong
+  isolation key.
+- **T1–T15 are not yet proved by mitigation-removal.** Each threat names passing tests, and those
+  tests have not all been audited against the bar Phase 9 sets for them.
+- **Retrieval quality with the default embedding provider.** `HashEmbeddingProvider` is lexical, not
+  semantic; the vector path is real, the semantics are not. Configure a real provider for recall.
+
+See `docs/development/fake-boundaries.md` for the full inventory of what the test suite's fakes
+structurally cannot prove.
+
 
 ## Unreleased — Phase 9 hardening, first pass
 

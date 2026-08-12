@@ -34,7 +34,7 @@
 
 ---
 
-> ### ⚠ Pre-release — Phase 8 (channels and extensions)
+> ### ⚠ v0.1.0 — first published release, and deliberately `0.x`
 >
 > **What works today:** define an agent, start a conversation, dispatch a queued run, stream it over
 > Reverb, persist an immutable trace, reload without losing anything, cancel it, and inspect it in
@@ -46,13 +46,15 @@
 > session and no seat.
 >
 > **What does not exist yet:** release hardening — the full threat-model sweep, performance tests and
-> the example application (Phase 9). See [`docs/roadmap.md`](docs/roadmap.md).
+> the example application (Phase 9, at 3 of 34 criteria). See [`docs/roadmap.md`](docs/roadmap.md).
 >
-> **Verified by** 1,698 tests across SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector and MinIO
-> · PHPStan level 8 · Pint. Three phases still carry an outstanding manual host walkthrough, two of
-> them deliberately deferred — see [`docs/development/open-questions.md`](docs/development/open-questions.md).
+> **Verified by** 1,756 tests across SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector and MinIO
+> · PHPStan level 8, no baseline · Pint.
 >
-> Not yet published to Packagist; install from source until Phase 9.
+> **Before depending on this, read
+> [`docs/product/support-statement.md`](docs/product/support-statement.md)** — it names what is
+> supported, what is excluded by design, and what ships *known untested*. The API is usable and in
+> use; it is not yet promised. `1.0.0` is defined as the day Phase 9's criteria are met, not a date.
 
 ---
 
@@ -169,6 +171,14 @@ resumes. Every step is in the trace. Every decision is in the audit log.
 composer require michal78/laravel-pandora
 php artisan pandora:install
 php artisan queue:work
+```
+
+Want the unstable branch instead? `development` is where everything lands before it is released, and
+Composer will take it without changing your `minimum-stability` — requiring a `dev-` version sets the
+stability flag for that package on its own:
+
+```bash
+composer require michal78/laravel-pandora:dev-development
 ```
 
 The installer is idempotent, publishes config and migrations, explains Reverb / queue / scheduler
