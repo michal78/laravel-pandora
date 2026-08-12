@@ -40,7 +40,7 @@ rebuilds it.
 What it does not yet do is fail on the one thing Phase 6 proved was possible: a suite that is green
 against a configuration nobody ships.
 
-## Three findings the audit has already produced
+## Four findings the audit has already produced
 
 Recorded before the phase starts, because each changes what a criterion should say.
 
@@ -57,6 +57,16 @@ gains outbound HTTP, and an honest amendment to the security model saying the al
 its URL is operator-configured, never model-influenced. That distinction is the whole mitigation and
 nothing currently asserts it.
 
+**T2's tenant never came from a resolver.** Every tenancy test in the suite reached its tenant through
+`inTenant()` → `TenantManager::with()`, the *override* path a queued job uses. A host binds
+`pandora.tenancy.resolver`, and `TenantManager::current()` consults it only when nothing has
+overridden — so `$this->resolver->current()` was a line the suite never reached, with
+`NullTenantResolver` (which returns null unconditionally) standing at the boundary. Green against that
+cannot distinguish *Pandora asked and got null* from *Pandora never asked*. Closed 2026-08-11 by
+`Security/HostResolverTenancyTest`, nine tests, eight of which fail when the resolver binding is
+removed — verified by removing it. **This is the phase's method working before the phase started**,
+and it is the third place the Phase 6 lesson has turned up.
+
 **T9's tests are somewhere else.** `Skill.php` exists; the only tests touching skills are
 `Mcp/SkillDiscoveryTest` and `UI/AgentDetailTest`. There is no test for a malicious imported skill —
 the threat that a skill body carries install instructions an agent then acts on. ADR-0008 says skills
@@ -72,7 +82,7 @@ whether or not the control is present proves the control is untested, not that i
 | # | Criterion | Claimed by |
 |---|---|---|
 | 1 ⬜ | **T1** — injected instructions in a document, web page or tool result cannot reach a destructive tool call: authorization is against the actor, `high`/`critical` require approval, untrusted content is delimited and labelled, and the approval UI shows the real arguments | `Security/ToolAuthorizationTest` · `Delegation/UntrustedResultTest` · `Channels/UntrustedInboundTest` |
-| 2 ⬜ | **T2** — no cross-tenant read or write through any model, direct-ID lookup, page, console command or API resource | `Security/TenantIsolationTest` · `Security/ToolTenantIsolationTest` · `Memory/TenancyTest` · `Automation/TenancyTest` · `Channels/TenancyTest` |
+| 2 ⬜ | **T2** — no cross-tenant read or write through any model, direct-ID lookup, page, console command or API resource, **with the tenant arriving from a bound host resolver rather than an override** | `Security/HostResolverTenancyTest` *(new, 2026-08-11)* · `Security/TenantIsolationTest` · `Security/ToolTenantIsolationTest` · `Memory/TenancyTest` · `Automation/TenancyTest` · `Channels/TenancyTest` |
 | 3 ⬜ | **T3** — no cross-session context leak, including two participants on one channel account | `Security/SessionIsolationTest` · `Channels/SessionIsolationTest` · `Channels/UnlinkedIdentityTest` · `Channels/LinkRevocationTest` |
 | 4 ⬜ | **T4** — a provider credential is not in context, a step payload, a broadcast, an API resource or a log, and cannot be extracted by a prompt that asks for one | `Security/CredentialIsolationTest` · `Security/SecretLeakTest` · `Security/SecretRedactionTest` |
 | 5 ⬜ | **T5** — workspace path traversal and symlink escape are refused at the canonicalisation layer *and* at the disk root, with the second layer proved by disabling the first | `Workspaces/ContainmentTest` · `Workspaces/RootsTest` |
@@ -144,7 +154,7 @@ independent ways, in one session.
 | Phase 6 | No MCP audit page — the audit trail exists, the surface to read it does not. Open by decision; T13 gates what does not exist yet |
 | Phase 6 | A dead-end tool result becomes a retry storm; belongs with T7's limits |
 | Phase 6 | The fake-at-a-boundary lesson, now criteria 19–21 |
-| Phase 7 | Tenancy walkthrough section, undriven — needs a two-tenant host |
+| Phase 7 | Tenancy walkthrough section ✅ **closed 2026-08-11** by `Security/HostResolverTenancyTest` — a test could supply the two-tenant host, and writing it found the resolver seam below |
 | Phase 7 | "What an unattended run may do" and `observe_only` do not share a vocabulary (`phase-7-walkthrough.md:269`) |
 | Phase 8 | Section 5, ⚠ **known untested** — two people on one channel account concurrently. Not a task; a disclosure. Criterion 33 below must name it |
 | Phase 8 | `redactText()` over string values inside `redact()`, deferred (`phase-8-walkthrough.md:584`) |

@@ -5,8 +5,11 @@
 > and all but one fixed here.
 >
 > The one left open is Defect 2, because it is a design question rather than a
-> patch. Only *Tenancy, if the host has it* is unticked — `laravel-test` has no
-> tenancy configured, so driving it would have proved nothing.
+> patch. *Tenancy, if the host has it* was the last unticked section and is now
+> closed by `tests/Security/HostResolverTenancyTest.php` — the blocker was never
+> a human, it was a host that resolves a tenant, and a test can bind one. Doing
+> so found that no test in the suite had ever exercised the host resolver path
+> at all. See the foot of this document.
 >
 > The storage half of the phase (criteria 1–16) is verified against MinIO by
 > the suite, and the surface half (17–20, 22) is covered by
@@ -191,11 +194,18 @@ first, which found Defect 1.*
       is N calls with no transaction; a partial failure leaves a half-emptied
       prefix under a row claiming it is gone.
 
-## Tenancy, if the host has it
+## Tenancy, if the host has it — ✅ covered by test, 2026-08-11
 
-- [ ] Two tenants create a workspace with the same name under the same root.
+**Closed by `tests/Security/HostResolverTenancyTest.php`, not by a browser.**
+`laravel-test` runs with a null tenant, so clicking these two boxes would have
+proved nothing; the missing ingredient was never a human, it was a host that
+resolves a tenant. A test can supply that, and this one does — it binds
+`pandora.tenancy.resolver` to a fixture resolver that answers, and whose answer
+changes between two assertions.
+
+- [x] Two tenants create a workspace with the same name under the same root.
       They get different prefixes and neither can list the other's.
-- [ ] As tenant B, hit tenant A's workspace by slug: the download URL, and a
+- [x] As tenant B, hit tenant A's workspace by slug: the download URL, and a
       forged Livewire `delete`/`recount`/`save`. All 404, and nothing changes.
       A 403 would confirm the slug exists.
 
@@ -371,3 +381,36 @@ covered by `Workspaces/TenantPrefixTest` and the page's own
 workspace when handed its slug`. Driving it for real needs a host with two
 tenants, and that is worth doing before release rather than pretending it was
 done here.
+
+**Resolved 2026-08-11, and not by finding a two-tenant host.** The question
+"could a test cover this?" turned out to be the right one, and answering it
+found something the walkthrough would not have.
+
+Every tenancy test in the suite — all ten cross-tenant page tests, the isolation
+tests, the prefix tests — reaches a tenant through `inTenant()`, which is
+`TenantManager::with()`. That is the **override** path: the one a queued job
+uses to re-enter a tenant carried in its payload. It is well covered and it is
+not the path a host uses. A host binds `pandora.tenancy.resolver`, and
+`TenantManager::current()` consults that resolver only when nothing has
+overridden it — so `$this->resolver->current()` was a line no test in the suite
+reached. The only resolver ever running was `NullTenantResolver`, which returns
+null unconditionally, and a suite green against it cannot tell *Pandora asked
+and the answer was null* from *Pandora never asked*. In a single-tenant
+application those two are indistinguishable forever.
+
+Which is the Phase 6 finding again, in a third place: a fake at a boundary makes
+the boundary untested by construction.
+
+`tests/Security/HostResolverTenancyTest.php` installs a resolver that answers.
+Nine tests: the resolver is consulted, its tenant is stamped with no override,
+a record vanishes when the resolver's answer changes, the two walkthrough boxes,
+a carried tenant still beats the resolver (the queue-worker case, which a
+browser walkthrough could not have shown at all), nesting restores correctly,
+and null is still a real answer. Deleting the one config line that binds the
+resolver fails eight of the nine — verified by doing it, which is the Phase 9
+bar and the only reason the file is worth anything.
+
+Two claims a browser would still have made better: that the 404 is a 404 in a
+real HTTP response rather than a Livewire assertion, and that a real host's
+resolver — subdomain, session, path segment — is wired where Pandora expects.
+The second is host code and was never Pandora's to prove.

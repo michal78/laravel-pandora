@@ -15,7 +15,7 @@
 | 4 | Automation | ✅ 26/26 on all four engines; host walkthrough complete |
 | 5 | Memory and context | ✅ 28/28 incl. a real pgvector CI leg; host walkthrough driven 2026-08-07 — four defects, all fixed, one of them a cross-user memory disclosure on the Memory page |
 | 6 | Multi-agent and MCP | ✅ 31/31; both walkthrough halves driven (delegation 2026-08-08 + 2026-08-10, MCP 2026-08-10 against real servers) — 15 findings, 13 fixed. Two open by decision: no audit page, and a dead-end tool result becomes a retry storm |
-| 7 | Workspaces, released and on object storage | ✅ 25/25 — walkthrough driven end to end 2026-08-10 against real MinIO; 7 defects, 6 fixed. Tenancy section needs a two-tenant host |
+| 7 | Workspaces, released and on object storage | ✅ 25/25 — walkthrough driven end to end 2026-08-10 against real MinIO; 7 defects, 6 fixed. Tenancy section closed 2026-08-11 by `Security/HostResolverTenancyTest`, which found that no test had ever exercised the host resolver path |
 | 8 | Channels and extensions | ✅ 33/33 — walkthrough driven for every section but 5, against a real Slack workspace. 16 findings. Section 5 (two people, one channel account, **concurrently**) is closed as ⚠ **known untested** — no second account, and it goes in the v1.0 support statement |
 | 9 | Hardening and release | ⬜ |
 
