@@ -78,6 +78,22 @@ final class ReadConfigTool extends Tool
             );
         }
 
+        // The allowlist is a person's judgement, and this is the case where a
+        // person's judgement is not enough. `services.stripe.secret` is an
+        // exact key somebody could reasonably add while wiring up a tool, and
+        // publishing it hands a live credential to a model that may be
+        // relaying an attacker's instructions. T4 says a credential is never in
+        // context; an allowlist entry must not be able to make that false.
+        //
+        // Refused on the key, before the value is read, so the secret is not
+        // even loaded into a variable that could end up in a stack trace.
+        if ($this->isSensitiveKey($key)) {
+            return ToolResult::failure(
+                "[{$key}] looks like a credential and is never readable, even though it is "
+                .'allowlisted. Remove it from `pandora.tools.readable_config`.',
+            );
+        }
+
         $value = config($key);
 
         if (is_array($value) || is_object($value)) {
@@ -88,6 +104,55 @@ final class ReadConfigTool extends Tool
             $key.' = '.var_export($value, true),
             ['key' => $key, 'value' => $value],
         );
+    }
+
+    /**
+     * The refusal that configuration may extend and may not weaken.
+     *
+     * Hard-coded on purpose. The first version of this method read
+     * `pandora.security.redact_keys` and nothing else, on the reasoning that
+     * "would we mask this in a log?" and "may a model read it?" have the same
+     * answer, so one list cannot drift from another.
+     *
+     * That was wrong in one direction. The redaction list is tuned for
+     * *output noise* -- an operator dropping `session` because it clutters
+     * every trace is making a reasonable call about logs, and they would have
+     * been silently re-opening credential reads in a tool. Coupling the two
+     * meant a change made for one purpose weakened the other, which is exactly
+     * the kind of action-at-a-distance a security control must not have.
+     *
+     * So: baseline below, plus whatever the deployment adds. Narrowing
+     * `redact_keys` narrows redaction and cannot touch this.
+     *
+     * @var list<string>
+     */
+    private const NEVER_READABLE = [
+        'password', 'secret', 'token', 'api_key', 'apikey', 'authorization',
+        'credential', 'private_key', 'access_key', 'refresh_token', 'bearer',
+        'passphrase', 'signature',
+    ];
+
+    /**
+     * Whether a key names something that must never be published.
+     */
+    private function isSensitiveKey(string $key): bool
+    {
+        /** @var list<string> $configured */
+        $configured = config('pandora.security.redact_keys', []);
+
+        $normalized = strtolower($key);
+
+        foreach ([...self::NEVER_READABLE, ...$configured] as $needle) {
+            if ($needle === '') {
+                continue;
+            }
+
+            if (str_contains($normalized, strtolower($needle))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

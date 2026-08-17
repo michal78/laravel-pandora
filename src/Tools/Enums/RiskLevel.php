@@ -26,13 +26,28 @@ enum RiskLevel: string
     case Critical = 'critical';
 
     /**
-     * Whether this level requires human approval by default. A policy may
-     * still demand approval for a lower level; it may never silently waive it
-     * for a higher one without an explicit `allow` outcome.
+     * Whether a deployment's configuration requires approval at this level.
+     *
+     * Reads `pandora.approvals.required_for`, which is what the gatekeeper
+     * actually consults. It previously hard-coded high and critical, matching
+     * the shipped default and nothing else -- so a deployment that narrowed
+     * the list to `critical` had `pandora:tool:list` print "required" beside
+     * high-risk tools that would run without a human. A control surface that
+     * disagrees with the control is worse than no control surface: it is read
+     * by exactly the person deciding whether the configuration is safe.
+     *
+     * Found while auditing T1, by removing a mitigation and watching nothing
+     * fail -- this method looked like the control and was never on the path.
+     *
+     * A policy may still demand approval for a lower level; it may never
+     * silently waive it for a higher one without an explicit `allow` outcome.
      */
     public function requiresApprovalByDefault(): bool
     {
-        return $this === self::High || $this === self::Critical;
+        /** @var list<string> $levels */
+        $levels = config('pandora.approvals.required_for', ['high', 'critical']);
+
+        return in_array($this->value, $levels, true);
     }
 
     /**

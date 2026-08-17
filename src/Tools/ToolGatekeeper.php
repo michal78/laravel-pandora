@@ -428,6 +428,10 @@ final class ToolGatekeeper
         /** @var list<string> $levels */
         $levels = $this->config->get('pandora.approvals.required_for', ['high', 'critical']);
 
+        // Kept here rather than delegated to RiskLevel::requiresApprovalByDefault(),
+        // because the gatekeeper reads configuration through its injected
+        // repository and the enum cannot. The two now consult the same key, and
+        // `Security/ApprovalFloorAgreementTest` fails if they ever stop.
         return in_array($tool->risk()->value, $levels, true);
     }
 }

@@ -8,6 +8,7 @@ use Pandora\Realtime\Events\AssistantDeltaReceived;
 use Pandora\Realtime\Events\AssistantMessageCompleted;
 use Pandora\Realtime\Events\RunStatusChanged;
 use Pandora\Runs\Enums\RunState;
+use Pandora\Support\Redactor;
 use Pandora\Tests\Support\MakesRuns;
 
 uses(MakesRuns::class);
@@ -60,7 +61,13 @@ it('broadcasts streamed deltas with a contiguous sequence', function (): void {
     Event::assertDispatched(AssistantMessageCompleted::class);
 });
 
-it('versions and redacts every broadcast payload', function (): void {
+it('versions and stamps every broadcast payload', function (): void {
+    // Renamed 2026-08-17, Phase 9 / T11. This was called "versions and redacts"
+    // and asserted nothing whatever about redaction -- `RunStatusChanged`
+    // carries no sensitive key, so it passed identically with the redactor
+    // deleted from the base class. Verified by deleting it. A test whose NAME
+    // claims a mitigation is worse than no test: it is the reason nobody
+    // writes the real one.
     $event = new RunStatusChanged(
         runId: '01ABC', conversationId: null, tenantId: null,
         state: RunState::Running, previousState: RunState::Starting,
@@ -72,6 +79,22 @@ it('versions and redacts every broadcast payload', function (): void {
         ->and($payload['version'])->toBe(1)
         ->and($payload['event'])->toBe('pandora.run.status_changed')
         ->and($payload['data']['state'])->toBe('running');
+});
+
+it('puts every payload through the redactor, whatever the event', function (): void {
+    // The assertion the old name promised. Rather than hunt for an event that
+    // happens to carry a sensitive key -- none of the four do today, which is
+    // itself the design working -- this points the redactor at a key the
+    // payload definitely has. If `broadcastWith()` stops redacting, `state`
+    // comes back unmasked and this fails.
+    app()->instance(Redactor::class, new Redactor(['state'], '[masked]'));
+
+    $event = new RunStatusChanged(
+        runId: '01ABC', conversationId: null, tenantId: null,
+        state: RunState::Running, previousState: RunState::Starting,
+    );
+
+    expect($event->broadcastWith()['data']['state'])->toBe('[masked]');
 });
 
 it('broadcasts only a safe error message, never internal detail', function (): void {

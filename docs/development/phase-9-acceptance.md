@@ -1,6 +1,6 @@
 # Phase 9 — Acceptance Test Plan
 
-> **Status: 7 of 34 criteria accepted** (6, 7, 10, 16, 19, 20, 21). Nothing here is ticked by inheritance.
+> **Status: 11 of 34 criteria accepted** (1, 4, 6, 7, 10, 11, 12, 16, 19, 20, 21). Nothing here is ticked by inheritance.
 >
 > Every previous phase wrote tests and then claimed the criteria those tests were written for. Phase 9
 > is the phase that claims T1–T15, and it is the first one where the claim is about the *suite* rather
@@ -81,23 +81,23 @@ whether or not the control is present proves the control is untested, not that i
 
 | # | Criterion | Claimed by |
 |---|---|---|
-| 1 ⬜ | **T1** — injected instructions in a document, web page or tool result cannot reach a destructive tool call: authorization is against the actor, `high`/`critical` require approval, untrusted content is delimited and labelled, and the approval UI shows the real arguments | `Security/ToolAuthorizationTest` · `Delegation/UntrustedResultTest` · `Channels/UntrustedInboundTest` |
+| 1 ✅ | **T1** — injected instructions in a document, web page or tool result cannot reach a destructive tool call: authorization is against the actor, `high`/`critical` require approval, untrusted content is delimited and labelled, and the approval UI shows the real arguments | `Security/ToolAuthorizationTest` · `Delegation/UntrustedResultTest` · `Channels/UntrustedInboundTest` · **new** `Security/UntrustedContextTest`, `InjectionToDestructiveCallTest`, `ApprovalArgumentFidelityTest`, `ApprovalFloorAgreementTest` — **three findings**, see below |
 | 2 ⬜ | **T2** — no cross-tenant read or write through any model, direct-ID lookup, page, console command or API resource, **with the tenant arriving from a bound host resolver rather than an override** | `Security/HostResolverTenancyTest` *(new, 2026-08-11)* · `Security/TenantIsolationTest` · `Security/ToolTenantIsolationTest` · `Memory/TenancyTest` · `Automation/TenancyTest` · `Channels/TenancyTest` |
 | 3 ⬜ | **T3** — no cross-session context leak, including two participants on one channel account | `Security/SessionIsolationTest` · `Channels/SessionIsolationTest` · `Channels/UnlinkedIdentityTest` · `Channels/LinkRevocationTest` |
-| 4 ⬜ | **T4** — a provider credential is not in context, a step payload, a broadcast, an API resource or a log, and cannot be extracted by a prompt that asks for one | `Security/CredentialIsolationTest` · `Security/SecretLeakTest` · `Security/SecretRedactionTest` |
+| 4 ✅ | **T4** — a provider credential is not in context, a step payload, a broadcast, an API resource or a log, and cannot be extracted by a prompt that asks for one | `Security/CredentialIsolationTest` · `Security/SecretLeakTest` · `Security/SecretRedactionTest` · **new** `Security/CredentialExtractionTest` — the extraction clause had no test |
 | 5 ⬜ | **T5** — workspace path traversal and symlink escape are refused at the canonicalisation layer *and* at the disk root, with the second layer proved by disabling the first | `Workspaces/ContainmentTest` · `Workspaces/RootsTest` |
 | 6 ✅ | **T6a** — **no core tool performs an outbound HTTP request**, asserted architecturally so the day one does is the day CI goes red | `Architecture/NoOutboundHttpFromToolsTest` — 4 tests; red within seconds of adding a tool that calls `Http::get()`, verified by adding one |
 | 7 ✅ | **T6b** — the MCP HTTP transport's URL is operator-configured and cannot be selected, redirected or influenced by model output or tool arguments | `Mcp/TransportUrlOriginTest` — 7 tests; **found a live SSRF**, see below |
 | 8 ⬜ | **T7** — iteration, tool-call, token, monetary, wall-clock, duplicate-call, delegation-depth and autonomy limits each independently halt a run, each proved by removing the other limits | `Feature/BudgetEnforcementTest` · `Feature/ToolLoopTest` · `Tools/DuplicateCallTest` · `Delegation/DepthTest` · `Automation/AutonomyTest` |
 | 9 ⬜ | **T8** — a child run's abilities are the intersection; delegation never widens authority, including through a cycle or a re-delegation | `Delegation/IntersectionTest` · `Delegation/CycleTest` · `Delegation/AllowlistTest` |
 | 10 ✅ | **T9** — **an imported skill is never executed**: a skill body carrying install instructions, a shell command or a tool call produces ~~instructions in context~~ **nothing in context** and no execution anywhere | `Skills/UntrustedSkillTest` — 6 tests; the criterion's own wording was wrong, see below |
-| 11 ⬜ | **T10** — a hostile MCP server cannot reach a model with an unapproved tool, an unapproved description, or a name that resolves where a core tool is expected | `Mcp/UntrustedDescriptionTest` · `Mcp/SchemaHashTest` · `Mcp/NamespaceTest` · `Mcp/ApprovalTest` |
-| 12 ⬜ | **T11** — no broadcast carries a system prompt, a secret, sensitive tool arguments or an exception dump, and a private channel refuses an unauthorised subscriber | `Security/BroadcastAuthorizationTest` · `Security/SecretRedactionTest` |
+| 11 ✅ | **T10** — a hostile MCP server cannot reach a model with an unapproved tool, an unapproved description, or a name that resolves where a core tool is expected | `Mcp/UntrustedDescriptionTest` · `Mcp/SchemaHashTest` · `Mcp/NamespaceTest` · `Mcp/ApprovalTest` — 39 tests, audited clean, all three mitigations fail on removal |
+| 12 ✅ | **T11** — no broadcast carries a system prompt, a secret, sensitive tool arguments or an exception dump, and a private channel refuses an unauthorised subscriber | `Security/BroadcastAuthorizationTest` · `Security/SecretRedactionTest` · `Realtime/BroadcastTest` *(one test renamed and one added — it claimed redaction and never checked it)* |
 | 13 ⬜ | **T12** — a forged, replayed, stale or wrong-secret webhook is refused; a valid one is processed exactly once | `Automation/WebhookTest` · `Automation/IdempotencyTest` |
 | 14 ⬜ | **T13** — every control-center page and action is behind a gate; an authenticated non-admin reaches none of them, and prompts, tool I/O, costs and audit logs gate separately | `Security/ToolIoVisibilityTest` · `UI/*` |
 | 15 ⬜ | **T14** — an approval is consumed exactly once under the run lock, and the tool call is re-validated at execution against the arguments approved | `Security/ApprovalRaceTest` · `Security/ApprovalAuthorizationTest` |
 | 16 ✅ | **T15** — no model uses `$guarded = []`; every one declares `$fillable`, asserted by reflection over `src/` so a new model cannot omit it | `Architecture/ModuleBoundaryTest` — 3 added tests over 29 models; red when one model is switched to `$guarded = []`, verified by switching one |
-| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — done for T6a, T6b, T9 and T15 (2026-08-17); the eleven inherited threats are unaudited |
+| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **8 of 15 done** (2026-08-17): T1, T4, T6a, T6b, T9, T10, T11, T15. Remaining: T2, T3, T5, T7, T8, T12, T13, T14 |
 
 ### The suite tells the truth about what it tested
 
@@ -180,6 +180,57 @@ the rule cannot start matching nothing. Two blind spots are written into the fil
 `WorkspaceTool` on an S3 disk, which does cause outbound traffic to an endpoint from `filesystems.php`
 that no model can influence. That last one is the same distinction T6b draws, which is why the test
 looks for HTTP *clients* rather than for network traffic.
+
+## What auditing T1, T4, T10 and T11 found — 2026-08-17
+
+These four were chosen first because all four sit where a fake stands in for a real boundary, which
+is where every defect of the previous three sessions had been. That prediction held for T1 and T4 and
+was wrong about T10, and being wrong about T10 is worth as much: **39 tests, three mitigations, every
+one of them red when removed, nothing to fix.** A clean audit is a result. It is also the only way
+the phase's remaining risk gets smaller rather than just better documented.
+
+**A delimiter untrusted content could write itself (T1).** The threat model says untrusted content is
+"delimited and labelled". Three providers did the labelling and none did the delimiting: `<file>`,
+`<memory>` and `<environment>` interpolated content straight between their markers, so the content
+could close the region and continue outside it — in a **system** message. Memory is the serious one,
+because it persists: a memory is written by the `remember` tool, driven by model output, which may be
+reading an attacker's page. One crafted note and every later run in that scope carried it in the
+instruction region. Fixed by `UntrustedBlock`, and the two genuinely untrusted blocks also moved out
+of the system role, where every other untrusted string in the system already is.
+
+**T1's sentence was tested nowhere, only its clauses.** Layer 5 is proved against a decision object,
+the `tool` role is proved for a delegated answer, the approval pause is proved for a high-risk tool.
+The path between them — one run, real loop, model reads a poisoned document and then demands a refund
+— was exercised by nothing. Each piece is asserted where it lives and the path is what an attacker
+walks. It now exists, with the fake provider obeying the injection completely on purpose: a real model
+usually would not, which is exactly why the test must not depend on it declining.
+
+**A console table that lied (T1).** Found by removing the risk floor and watching nothing fail.
+`RiskLevel::requiresApprovalByDefault()` hard-coded `high || critical`; the gatekeeper reads
+`pandora.approvals.required_for`. They agreed on the shipped defaults, so the divergence was
+invisible, and the method was never on the enforcement path — its one caller is `pandora:tool:list`.
+A deployment narrowing the floor to `critical` got a console table printing `required` beside tools
+that would run with nobody in the loop. **A control surface that disagrees with the control is worse
+than none**, because the person reading it is deciding whether the configuration is safe.
+
+**An allowlist entry could publish a credential (T4).** Fourteen tests prove a credential is absent
+from context, step payloads, the queue, broadcasts, logs, API resources and a logged exception, and
+all fourteen are sound. None asks whether a *tool* hands one over when asked, which is the only path
+a prompt has. `read_config` was already careful — exact-match allowlist, never a prefix — but an
+exact allowlist is a person's judgement, and `services.stripe.secret` is a key somebody could
+reasonably add while wiring up a tool. Credential-shaped keys are now refused even when allowlisted.
+
+**A test that named a mitigation and never checked it (T11).** `BroadcastTest` had one called
+"versions and redacts every broadcast payload" which asserted the version, the event name and one
+value. `RunStatusChanged` carries no sensitive key, so it passed identically with the redactor
+deleted from the base class. This is the failure criterion 17 exists to find, and it is the second
+one this phase has found — the first was in a test written earlier the same day, by the same author,
+for this same criterion. Renamed to what it does; the assertion it promised now sits beside it.
+
+The rest of T11 needed nothing, and needed nothing *structurally*, which is the good kind:
+`broadcastWith()` is final and every event routes through it, `MessageCreated` carries ids and a role
+and no content at all, no event carries tool arguments, and an unclassified exception yields a fixed
+sentence rather than its own message.
 
 ## Design decisions taken for this phase
 

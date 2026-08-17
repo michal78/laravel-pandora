@@ -10,6 +10,68 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
+## Unreleased
+
+Phase 9's threat audit continues: T1, T4, T10 and T11, chosen because all four sit where a fake
+stands in for a real boundary. Three of the four produced findings; T10 audited clean, which is a
+result rather than an absence of one.
+
+### Security
+
+- **Untrusted content could close its own delimiter.** `<file>`, `<memory>` and `<environment>`
+  interpolated their content straight between the markers, so a document, a remembered note or an
+  agent's name containing `</file>` — or `</memory>`, or `</environment>` — closed the region and
+  continued *outside* it, in a **system** message. A delimiter the content can write is not a
+  delimiter.
+
+  Memory is the one that matters, because it persists. A memory is written by the `remember` tool,
+  which is driven by model output, which may be reading an attacker's page: store one crafted note
+  and every later run in that scope carried it, in the instruction region, past a marker it had
+  closed. `UntrustedBlock` now neutralises every closing marker for its own tag, case- and
+  whitespace-insensitively, and neutralises rather than strips, so a style guide containing
+  `</file>` in a code sample still reads correctly.
+
+  **Behaviour change:** attached context files and retrieved memories now reach the model as `user`
+  messages rather than `system` ones. Both are UNTRUSTED in the trust boundary — the same line as a
+  web page and a channel message — and every other untrusted string in the system is already kept
+  out of the instruction position. No host action is needed; if you depend on the exact prompt
+  layout, the section order is unchanged.
+- **`read_config` refuses credential-shaped keys even when allowlisted.** The allowlist is exact-match
+  and never a prefix, which was already the right design, but an exact allowlist is still a person's
+  judgement and `services.stripe.secret` is a key somebody could reasonably add while wiring up a
+  tool. One config line and a live credential became a tool result, read by a model and stored in an
+  execution row the redactor would not clean, because the key it is filed under is `value`. Refused
+  on the key, before the value is read. The refusal names the config entry to remove.
+
+  The denylist is a **hard-coded baseline plus whatever the deployment adds**, not the redaction
+  list alone. `pandora.security.redact_keys` is tuned for output noise — an operator dropping
+  `session` because it clutters every trace is making a reasonable call about logs — and deriving
+  the refusal from it meant a change made for one purpose silently weakened another. Narrowing
+  `redact_keys` now narrows redaction and cannot touch this.
+
+### Fixed
+
+- **`pandora:tool:list` no longer prints `required` for tools that need no approval.**
+  `RiskLevel::requiresApprovalByDefault()` hard-coded `high || critical` while the gatekeeper reads
+  `pandora.approvals.required_for`. Both agreed on the shipped defaults, so a deployment that
+  narrowed the floor to `critical` got a console table saying a high-risk tool required a human when
+  it did not. Found by deleting a mitigation and watching nothing fail — the method was never on the
+  enforcement path.
+
+### Added
+
+- **`Security/UntrustedContextTest`, `InjectionToDestructiveCallTest`,
+  `ApprovalArgumentFidelityTest`, `ApprovalFloorAgreementTest`** (T1). The end-to-end one is the
+  sentence the threat model actually makes and nothing had ever exercised: a model reads a poisoned
+  document and then demands a refund, in one run, through the real loop. The fake provider obeys the
+  injection completely, on purpose — the mitigation has to be the layers, not the model's judgement.
+- **`Security/CredentialExtractionTest`** (T4) — the extraction clause, which had no test.
+- **A broadcast test that checks what its name claims** (T11). `BroadcastTest` had one called
+  "versions and redacts every broadcast payload" that asserted nothing about redaction and passed
+  with the redactor deleted from the base class. Renamed to what it does, with the promised
+  assertion added beside it.
+
+
 ## v0.1.2 — 2026-08-17
 
 Phase 9's threat audit begins. Four of the fifteen threats now have tests that were checked by

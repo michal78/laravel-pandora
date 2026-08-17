@@ -6,6 +6,7 @@ namespace Pandora\Context\Providers;
 
 use Pandora\Context\ContextRequest;
 use Pandora\Context\ContextSection;
+use Pandora\Context\UntrustedBlock;
 use Pandora\Contracts\ContextProvider;
 use Pandora\Memory\MemoryQuery;
 use Pandora\Memory\MemoryResult;
@@ -74,11 +75,19 @@ final class MemoryContextProvider implements ContextProvider
             $results,
         );
 
+        // A memory is UNTRUSTED and it is the worst-placed of the three,
+        // because it PERSISTS. Memory is written by the `remember` tool, which
+        // is driven by model output, which may be reading an attacker's page:
+        // get a crafted note stored once and every later run in that scope
+        // carried it. In the system position, outside a delimiter it could
+        // close, that is a durable foothold in the instruction region rather
+        // than a single poisoned turn.
         return ContextSection::of($this->key(), [
-            ChatMessage::system(
-                "<memory>\nWhat you already know that may bear on this:\n".
-                implode("\n", $lines).
-                "\n</memory>",
+            ChatMessage::user(
+                UntrustedBlock::wrap(
+                    'memory',
+                    "What you already know that may bear on this:\n".implode("\n", $lines),
+                ),
             ),
         ]);
     }

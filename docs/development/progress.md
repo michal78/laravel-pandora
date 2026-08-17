@@ -5,6 +5,69 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-17 (later) — Four audited threats, and two tests that were lying
+
+The second Phase 9 session, on branch `phase-9/audit-fake-adjacent-threats`. T1, T4, T10 and T11
+chosen because all four sit where a fake stands in for a real boundary, which is where every defect
+of the previous sessions had been. **11 of 34 criteria; the removal audit itself at 8 of 15.**
+
+```
+vendor/bin/pest        -> Tests: 1,808 passed, 85 skipped (6,046 assertions)
+vendor/bin/phpstan     -> [OK] No errors (level 8)
+vendor/bin/pint --test -> passed
+```
+
+**The prediction held for two of four and was wrong about T10, and being wrong is the useful part.**
+T10 has 39 tests over four files, and unbinding an approval from its schema hash, dropping the
+read-time description bound, and dropping the separator guard each turn tests red. Nothing to fix. A
+clean audit is a result: it is the only thing that makes the phase's remaining risk *smaller* rather
+than merely better described.
+
+**A delimiter the content could write.** T1 says untrusted content is "delimited and labelled".
+Three context providers did the labelling and none did the delimiting — `<file>`, `<memory>` and
+`<environment>` interpolated content straight between their markers, in a **system** message. Memory
+is the serious one because it persists: written by the `remember` tool, driven by model output, which
+may be reading an attacker's page. One crafted note and every later run in that scope carried it,
+past a marker it had closed, in the instruction region. `UntrustedBlock` neutralises the closing
+marker case- and whitespace-insensitively, and the two genuinely untrusted blocks moved out of the
+system role — where every other untrusted string in this system already was.
+
+**T1's sentence had never been tested, only its clauses.** Layer 5 against a decision object; the
+`tool` role for a delegated answer; the approval pause for a high-risk tool. The path between them
+was exercised by nothing, and the path is what an attacker walks. The new test has the fake provider
+obey the injection completely, on purpose: a real model usually would not, which is exactly why a
+test must not depend on it declining.
+
+**Two tests that named a mitigation and did not check it.** This is the failure criterion 17 exists
+to catch and it turned up twice in one day. The first was mine, written that morning: it counted the
+literal string `</file>`, which `</FILE>` is not, so it passed with the containment deleted. The
+second was older — `BroadcastTest`'s "versions and redacts every broadcast payload", which asserted
+the version, the event name and one value, and passed identically with the redactor removed from the
+base class. A test whose *name* claims a mitigation is worse than no test, because it is the reason
+nobody writes the real one.
+
+**Two smaller findings, both from removing something and watching nothing fail.**
+`RiskLevel::requiresApprovalByDefault()` hard-coded `high || critical` while the gatekeeper reads
+`pandora.approvals.required_for` — agreeing on the shipped defaults, so invisible, and never on the
+enforcement path at all. Its one caller is `pandora:tool:list`, so a deployment narrowing the floor
+got a console table claiming an approval requirement that did not exist. And `read_config` would
+publish `services.stripe.secret` if an operator allowlisted it, which is a line somebody could
+reasonably write while wiring up a tool.
+
+**What did not need changing, and why that is worth writing down.** T11's structure does the work:
+`broadcastWith()` is final and every event routes through it, `MessageCreated` carries ids and a role
+and no content at all, no event carries tool arguments, and an unclassified exception yields a fixed
+sentence instead of its own message. Four sub-claims, one repaired test, no code changed.
+
+**Process notes, since the audit's premise is not trusting green.** I reverted my own uncommitted
+`RiskLevel` fix with a careless `git checkout` and had to re-apply it. And a `vendor/bin/pest | tail`
+chained by `&&` to a `git commit -F -` heredoc hung for ten minutes on stdin — not a hanging test,
+which is what it looked like at first.
+
+Remaining on criterion 17: T2, T3, T5, T7, T8, T12, T13, T14.
+
+---
+
 ## 2026-08-17 — The first four threats, and the one the fakes were hiding
 
 Phase 9 opened on the four criteria that needed tests which did not exist at all — T6a, T6b, T9 and

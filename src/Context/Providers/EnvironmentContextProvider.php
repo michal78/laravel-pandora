@@ -6,6 +6,7 @@ namespace Pandora\Context\Providers;
 
 use Pandora\Context\ContextRequest;
 use Pandora\Context\ContextSection;
+use Pandora\Context\UntrustedBlock;
 use Pandora\Contracts\ContextProvider;
 use Pandora\Providers\Data\ChatMessage;
 
@@ -38,7 +39,7 @@ final class EnvironmentContextProvider implements ContextProvider
 
         return ContextSection::of(
             $this->key(),
-            [ChatMessage::system("<environment>\n".implode("\n", $lines)."\n</environment>")],
+            [ChatMessage::system(UntrustedBlock::wrap('environment', implode("\n", $lines)))],
         );
     }
 }
