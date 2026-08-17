@@ -17,7 +17,7 @@
 | 6 | Multi-agent and MCP | ✅ 31/31; both walkthrough halves driven (delegation 2026-08-08 + 2026-08-10, MCP 2026-08-10 against real servers) — 15 findings, 13 fixed. Two open by decision: no audit page, and a dead-end tool result becomes a retry storm |
 | 7 | Workspaces, released and on object storage | ✅ 25/25 — walkthrough driven end to end 2026-08-10 against real MinIO; 7 defects, 6 fixed. Tenancy section closed 2026-08-11 by `Security/HostResolverTenancyTest`, which found that no test had ever exercised the host resolver path |
 | 8 | Channels and extensions | ✅ 33/33 — walkthrough driven for every section but 5, against a real Slack workspace. 16 findings. Section 5 (two people, one channel account, **concurrently**) is closed as ⚠ **known untested** — no second account, and it goes in the v1.0 support statement |
-| 9 | Hardening and release | 🔨 7/34 — the threat audit is open. T6a, T6b, T9 and T15 accepted 2026-08-17, each verified by removing its mitigation. T6b found a live SSRF: the MCP client followed a hostile server's redirect to the cloud metadata endpoint |
+| 9 | Hardening and release | 🔨 11/34 — the threat audit is open; the removal audit itself stands at 8 of 15. T1, T4, T6a, T6b, T9, T10, T11 and T15 accepted 2026-08-17, each verified by removing its mitigation. Two live defects so far: an SSRF in the MCP client, and untrusted content able to close its own delimiter inside a system message |
 
 ---
 
@@ -423,7 +423,7 @@ automation · CHANGELOG · v1.0 checklist.
 
 **Acceptance:** every T1–T15 threat has a passing test. The matrix is green. The example application
 runs the documented quick start end to end. See `docs/development/phase-9-acceptance.md` — **34
-criteria, 7 accepted**, and deliberately none inherited.
+criteria, 11 accepted**, and deliberately none inherited.
 
 This is the first phase whose subject is the **suite** rather than the code, so a green test is
 evidence to be audited rather than a criterion already met. Phase 6 closed at 30 verified criteria

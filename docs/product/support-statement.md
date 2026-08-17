@@ -11,7 +11,7 @@ may contain breaking changes, and will say so in `CHANGELOG.md` with an upgrade 
 `1.0.0` is defined, not aspirational: it is when every criterion in
 `docs/development/phase-9-acceptance.md` is met — most importantly that **each of the fifteen threats
 in `docs/architecture/security-model.md` has a test that fails when its mitigation is removed.**
-That stands at 7 of 34 criteria today, and the removal audit itself at 4 of the 15 threats.
+That stands at 11 of 34 criteria today, and the removal audit itself at 8 of the 15 threats.
 
 ## Supported
 
@@ -68,16 +68,18 @@ different host user, no inheritance — against a real workspace. The untested c
 specific: two linked identities interleaving in real time, where a defect would be a race in session
 resolution rather than a wrong isolation key.
 
-**The threat model is not yet fully proved by removal.** T6a, T6b, T9 and T15 are — each has a test
-that was checked by deleting the mitigation and watching it fail. The other eleven threats name
-passing tests that have not all been read against the threat they claim, and a test that passes with
-its mitigation removed was never testing the mitigation. This is the single largest reason this
-release is `0.x`.
+**The threat model is not yet fully proved by removal.** T1, T4, T6a, T6b, T9, T10, T11 and T15 are
+— each has a test that was checked by deleting the mitigation and watching it fail. The remaining
+seven (T2, T3, T5, T7, T8, T12, T13, T14) name passing tests that have not all been read against the
+threat they claim, and a test that passes with its mitigation removed was never testing the
+mitigation. This is the single largest reason this release is `0.x`.
 
-Worth knowing what the first four cost: they found a live SSRF in the MCP HTTP transport (fixed in
-0.1.2), a criterion describing behaviour the package does not have, and a rule enforced nowhere. The
-audit is not a formality, and the eleven outstanding threats should be read as unproved rather than
-as probably fine.
+Worth knowing what the audited eight cost. They found a live SSRF in the MCP HTTP transport, untrusted
+content able to close its own delimiter inside a system message, a console command reporting an
+approval requirement that did not exist, a config allowlist that could publish a credential, a
+criterion describing behaviour the package does not have, and two tests that passed with their own
+mitigation deleted. The audit is not a formality, and the seven outstanding threats should be read as
+unproved rather than as probably fine.
 
 **Retrieval quality on the default embedding provider.** `HashEmbeddingProvider` hashes tokens into
 buckets. The vector path — contract, store, cache, scope re-filter, pgvector adapter — is real and
