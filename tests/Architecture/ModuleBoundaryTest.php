@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Database\Eloquent\Model;
 use Pandora\Contracts\ContextProvider;
 use Pandora\Contracts\Provider;
 use Pandora\Exceptions\PandoraException;
@@ -23,45 +24,11 @@ use Pandora\Tools\ToolGatekeeper;
  * arch plugin: that plugin cannot build its file index in this package's
  * nested-vendor layout (see docs/development/open-questions.md, Q1). Reflection
  * checks the same properties and works everywhere.
- */
-
-/**
- * Every PHP file under src/, as [class => path].
  *
- * @return array<class-string, string>
+ * `pandoraSourceClasses()` moved to `tests/Pest.php` when a second
+ * architecture file needed it -- see the note there for why a helper defined
+ * in a test file is a load-order accident waiting to happen.
  */
-function pandoraSourceClasses(): array
-{
-    static $classes = null;
-
-    if ($classes !== null) {
-        return $classes;
-    }
-
-    $root = dirname(__DIR__, 2).'/src';
-    $classes = [];
-
-    /** @var iterable<SplFileInfo> $files */
-    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
-
-    foreach ($files as $file) {
-        if ($file->getExtension() !== 'php') {
-            continue;
-        }
-
-        $relative = substr($file->getPathname(), strlen($root) + 1, -4);
-        $class = 'Pandora\\'.str_replace('/', '\\', $relative);
-
-        if (class_exists($class) || interface_exists($class) || enum_exists($class) || trait_exists($class)) {
-            $classes[$class] = $file->getPathname();
-        }
-    }
-
-    ksort($classes);
-
-    return $classes;
-}
-
 it('finds the source tree', function (): void {
     expect(pandoraSourceClasses())->not->toBeEmpty();
 });
@@ -382,6 +349,72 @@ it('reads a credential secret in exactly the places that send one', function ():
         }
 
         if (str_contains((string) file_get_contents($path), '->secret()')) {
+            $offenders[] = $class;
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('declares an explicit fillable on every model', function (): void {
+    // Phase 9, criterion 16 -- T15, mass assignment.
+    //
+    // `$guarded = []` is the one line that turns every row in this package
+    // into a mass-assignment target, and the rows here decide things: an
+    // agent's `tool_policy`, an approval's `scope`, a run's `state`. The
+    // threat model says "no `$guarded = []`, explicit fillable" and until now
+    // that was a sentence in a document -- two models say so in a comment,
+    // which is the same sentence in a second place.
+    //
+    // Reflection over the whole source tree instead, so a model added next
+    // week cannot omit it. Eloquent's default is `$guarded = ['*']`, which is
+    // safe; the failure is a model that opens everything, or one that opens
+    // nothing explicitly and relies on the default while never being
+    // mass-assigned -- an empty `$fillable` means `create()` silently drops
+    // every attribute, which is its own bug.
+    $offenders = [];
+
+    foreach (array_keys(pandoraSourceClasses()) as $class) {
+        if (! is_subclass_of($class, Model::class)) {
+            continue;
+        }
+
+        /** @var Model $model */
+        $model = new $class;
+
+        if ($model->getGuarded() === []) {
+            $offenders[] = "{$class} sets \$guarded = []";
+        }
+
+        if ($model->getFillable() === []) {
+            $offenders[] = "{$class} declares no \$fillable";
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('finds models to check', function (): void {
+    // The guard on the guard. A rule that iterates a collection proves nothing
+    // when the collection is empty, and the way this file selects models --
+    // `is_subclass_of` over a reflected source tree -- is exactly the kind of
+    // predicate that can quietly start matching nothing.
+    $models = array_filter(
+        array_keys(pandoraSourceClasses()),
+        static fn (string $class): bool => is_subclass_of($class, Model::class),
+    );
+
+    expect(count($models))->toBeGreaterThanOrEqual(25);
+});
+
+it('deserialises nothing that a user or a model could have influenced', function (): void {
+    // T15's second half. Stored payloads are JSON of scalars; `unserialize()`
+    // over a column an agent can write is object instantiation chosen by the
+    // thing being defended against.
+    $offenders = [];
+
+    foreach (pandoraSourceClasses() as $class => $path) {
+        if (preg_match('/(?<![\w>:$])unserialize\s*\(/', (string) file_get_contents($path)) === 1) {
             $offenders[] = $class;
         }
     }

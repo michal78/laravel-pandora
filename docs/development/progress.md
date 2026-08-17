@@ -5,6 +5,198 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-17 — The first four threats, and the one the fakes were hiding
+
+Phase 9 opened on the four criteria that needed tests which did not exist at all — T6a, T6b, T9 and
+T15 — rather than on the audit of the eleven that inherit a passing test. **7 of 34 criteria now
+accepted** (6, 7, 10, 16, plus 19–21 from before).
+
+```
+vendor/bin/pest        -> Tests: 1,779 passed, 85 skipped (5,957 assertions)
+                          no PANDORA_TEST_S3_ENDPOINT and no pgvector locally,
+                          so the object-storage and vector legs skipped rather
+                          than passed — which is the point of them skipping
+vendor/bin/phpstan     -> [OK] No errors (level 8)
+vendor/bin/pint --test -> passed
+```
+
+Every one of the four was verified the way the phase demands: **remove the mitigation, watch the
+test go red, put it back.** A fetch tool calling `Http::get()` added to `src/Tools/BuiltIn/` (T6a).
+One model switched to `$guarded = []` (T15). `'enabled' => false` flipped in `SkillDiscovery`, and
+separately skills wired into `composedInstructions()` (T9, two different tests). `allow_redirects`
+restored (T6b). All red, all restored, `git status` clean between each.
+
+**One live vulnerability.** The MCP HTTP transport followed redirects, because Guzzle does by
+default and nobody had said otherwise. A hostile or compromised server answering `302 Location:
+http://169.254.169.254/latest/meta-data/` had this application re-send its authenticated POST to the
+cloud metadata endpoint — HTTPS downgraded to HTTP, into the link-local range — and the response body
+came back to the model as tool output. This is the *only* outbound surface the package has, and its
+entire mitigation is that an operator chose the URL; a `Location` header was a way around that.
+Fixed: `allow_redirects` off, and a 3xx refused with its own `redirected` reason rather than folded
+into `server_unavailable`, which an operator would have read as an outage.
+
+**Where it lived is the transferable part, and it is the same place as last time.** Every MCP test
+binds `FakeMcpServer` in place of `HttpTransport`, so the suite had no HTTP client, no URL and no
+response headers anywhere in it — **a fake that never had a URL cannot lose one.** This is the fourth
+defect to sit exactly at a fake standing in for a boundary, and the second one `FakeMcpServer` has
+cost. The new entry in `fake-boundaries.md` names a blind spot of a different kind from the others:
+not "the fake models the far end imperfectly" but "the fake removes a whole layer from the test, and
+that layer has its own security properties."
+
+**One criterion was wrong.** T9 asked that a hostile skill produce "instructions in context and no
+execution anywhere". The execution half holds completely — no mechanism, no column that could carry
+one, no `eval`/`exec`/`proc_open` in `src/` outside the stdio transport, and an import lands
+`enabled = false`. The context half is false: **nothing in `src/` reads `Skill::$instructions`.** A
+skill is imported, attached, listed on the agent detail page, and read by nobody. ADR-0008's final
+consequence claimed the opposite and has been struck through and amended rather than quietly
+corrected. `Skills/UntrustedSkillTest` asserts the current state, so the day skills reach the context
+pipeline it goes red and forces the untrusted-content handling to be written then.
+
+**One rule had never been enforced.** T15 lived in the threat model and in comments on two of the
+twenty-nine models. All twenty-nine were correct; nothing was keeping them that way. Three tests now
+do, by reflection, including a floor on how many models the selector actually matched — a rule that
+iterates an empty collection is green for the wrong reason, and that failure mode now has a guard in
+both new architecture files.
+
+`pandoraSourceClasses()` moved from `ModuleBoundaryTest` to `tests/Pest.php` on the way through. A
+helper defined in one test file exists only once that file has loaded, so the second architecture
+file to use it would have passed or fataled on Pest's ordering.
+
+**Left undone, and named rather than left implied.** Criterion 17 is 4/15 — the eleven inherited
+threats are still unaudited, and that is most of the phase's remaining risk.
+
+The two entries below this one were backfilled in this session and are marked as such: the log had
+stopped on 2026-08-10 and thirteen commits across two days had gone unrecorded, including both
+releases.
+
+---
+
+## 2026-08-12 — Two phases closed, the matrix restored, and the first two releases
+
+> **Backfilled 2026-08-17.** Reconstructed from the commits, the CHANGELOG and the documents each
+> commit changed, not written at the time. Test counts and outcomes quoted here are the ones those
+> sources record; no command output is quoted, because none was captured on the day. Everything below
+> is verifiable against `git log 2dad02f..4f70086`.
+
+Ten commits, and they fall into three jobs: finish what Phases 7 and 8 had left open, get the CI
+matrix green again, and publish.
+
+**Phase 7's last open walkthrough section, closed by a test.** The tenancy section had been blocked
+on "a two-tenant host", which nobody was going to build. The blocker was never a human at a browser —
+it was a host that resolves a tenant, and a test can bind one. Writing it found the seam underneath:
+every tenancy test in the suite reached its tenant through `inTenant()`, which is
+`TenantManager::with()` — the *override* path a queued job uses to re-enter a tenant it carries. A
+host binds a resolver instead, and `current()` consults that resolver only when nothing has
+overridden it, so `$this->resolver->current()` was a line no test had ever reached, with
+`NullTenantResolver` standing at the boundary returning null unconditionally. A suite green against
+that cannot distinguish *Pandora asked and the answer was null* from *Pandora never asked*.
+`Security/HostResolverTenancyTest`, nine tests; deleting the binding fails eight, verified by
+deleting it — the Phase 9 bar, met before Phase 9 started.
+
+**Phase 9's criteria 19–21, which are the Phase 6 lesson turned into tests.** Both Phase 6 defects
+lived where a fake stood in for a boundary, so both got a test that does not involve the fake at all.
+`Providers/FunctionNameGrammarTest` asserts tool names against the grammar OpenAI and Anthropic
+share, sending nothing anywhere — and **found a live one**: `Namespacing::separator()` still fell
+back to `.` when the configured value was an empty string or not a string, so an operator's typo
+silently restored the exact defect Phase 6 had fixed. `Tools/ArgumentSurvivalTest` asserts
+structurally that a tool validates every property it advertises, which is the *shape* of the second
+defect rather than an instance of it; reverting the fix fails two of its four tests.
+`fake-boundaries.md` was written the same day — six entries, three of which had been closed only
+after something else pointed at them.
+
+**Phase 8 §5 had already been closed as untested on the 11th**, and the v1.0 support statement
+landed here to give that disclosure a home.
+
+**The matrix had not run since channels landed, and came back red on all four engines for one
+reason.** `SkillDiscovery` derived a skill's slug from the *unbounded* server-supplied name and
+stored it in a `varchar(191)`. The name was truncated on the way in; the slug, derived from the
+original, was not. SQLite does not enforce declared widths, so the suite was green and MySQL, MariaDB
+and PostgreSQL each answered "value too long" — meaning a remote MCP server could stop skill
+discovery for everything behind it by choosing a long name. Truncating alone would have traded the
+error for something quieter: two names sharing a long prefix would collapse onto one slug and
+`updateOrCreate` would overwrite one with the other, letting a server retire a skill by naming a new
+one after it. So a truncated slug carries a digest of the full one, the idiom `WorkspaceRoots`
+already used for a tenant id that is not path-safe.
+
+A second engine-dependent defect came out of the same run: `Mcp/UntrustedDescriptionTest` proved a
+read-time bound by writing 100,000 characters straight to the column, bypassing the write path — and
+therefore the only thing keeping the value inside the column. `description` is `text`: 65,535 **bytes**
+on MySQL and MariaDB, unbounded on PostgreSQL, unenforced on SQLite. The test now writes 10,000, still
+200× the 50-character bound it asserts, and `config/pandora.php` records the ceiling in writing
+because `max_description_length` is an operator's dial pointed straight at it.
+
+The MinIO leg failed for an unrelated reason worth remembering: Bitnami retired their Docker Hub
+catalogue and the tag stopped resolving, killing the job before PHP existed. MinIO now starts as a
+step against the official image, which owes nothing to a vendor's distribution policy.
+
+**Then the matrix became infrastructure rather than a report.** One aggregate check, `tests complete`,
+because a branch ruleset names the checks it requires and a matrix expands into one per leg — so
+requiring them individually means editing the ruleset every time a database is added, and a leg added
+but not required is a leg nobody has to pass. The aggregator uses `if: always()` and an explicit
+result check rather than bare `needs:`, because a skipped or cancelled job does not fail its
+dependents: the naive version reports success when a leg never ran, which is the same
+green-but-untested shape this repository keeps finding. And `composer update` retries three times,
+because one `curl error 60` fetching a single zipball had turned the whole matrix red with nothing
+wrong in the package — cosmetic that morning, a release blocker by the afternoon.
+
+**Releasing is one edit plus a merge.** `development` is default and publishes as `dev-development`;
+`master` is stable and merging to it publishes. `release.yml` reads the first `## vX.Y.Z` heading in
+the CHANGELOG and no-ops when a tag of that name exists, so the tag, the GitHub Release and the
+changelog cannot disagree — one of them *is* the other two. Conventional Commits were rejected on
+purpose: nothing needs to parse commit subjects when the version comes from the changelog, and a
+hand-written changelog beats one assembled from prefixes. **v0.1.0 published**, 1,756 tests, PHPStan
+level 8 with no baseline.
+
+**And then installing it found the thing the suite structurally could not.** v0.1.0 from Packagist
+into a fresh Laravel application — which nobody had done, because every test runs against the source
+tree through Testbench — and the package's most visual feature was silently absent.
+`pandora.ui.enabled` says the control center is *wanted*; Livewire says it can *exist*. The provider
+returns early and registers no `/pandora` route when the class is missing, but `pandora:status` read
+only the config flag and said "enabled", and the installer closed with "Then open /pandora" without
+mentioning Livewire. Follow the documented path on a stock install and you get a 404 on the thing the
+README leads with. Three states now — `headless`, `unavailable`, `enabled` — the installer names
+Livewire as its own step, and the README says plainly that the bare install is headless.
+
+The absent-Livewire branch **cannot** be asserted here: `livewire/livewire` is a dev dependency, so
+`class_exists()` is true for every test that will ever run and the handling code is unreachable by
+construction — untestable by layout rather than untested by oversight. `fake-boundaries.md` gained a
+sixth entry for the suite's own dependencies, which is the same lesson as the two Phase 6 defects in
+a place nobody had thought to look. **v0.1.1 published.**
+
+---
+
+## 2026-08-11 — Three documents, and two phases that stopped pretending
+
+> **Backfilled 2026-08-17**, from the commits and the documents they changed. No code shipped on this
+> day; all three commits are documentation, and two of them change what a phase *claims* rather than
+> what it does.
+
+**Phase 6 written up and closed at 31/31.** The 2026-08-10 entry at the bottom of this log was
+written here, not on the day it describes — which is how the log came to stop where it did. Q10 paid.
+The documents say plainly what driving the walkthrough found: the MCP client had never worked once
+outside the test suite, and both defects sat exactly where a fake stood in for a boundary.
+
+**Phase 8 §5 closed as ⚠ known untested rather than left pending, and Phase 8 closes at 33/33.** It
+needed a second Slack account that did not exist and was not going to. An open box implies a plan;
+there was no plan, so for two phases it read as work in progress. It is now a *disclosure*, with a
+named home in the v1.0 support statement. The docs also narrowed what is actually unknown: two linked
+identities interleaving **in real time**, where a defect would be a race in session resolution rather
+than a wrong isolation key. The sequential case was driven against the real workspace and held.
+
+**Phase 9 planned, 34 criteria, none inherited.** Every previous phase wrote tests and then claimed
+the criteria those tests were written for; this one claims T1–T15, so a green test is evidence to be
+audited rather than a box already ticked, and the bar is that a threat's test fails when its
+mitigation is removed. Writing the plan found three things before any of it was built: the CI matrix
+already exists and is not a deliverable; T6's SSRF controls do not exist in `src/` and neither does
+the HTTP tool they guard, so the threat is mitigated by absence and the honest control is a test that
+goes red the day the surface appears; and T9 has no test at all.
+
+All three of those were closed on 2026-08-17, and the middle one turned out to be half right — the
+absence is real for core tools, and the MCP transport was an outbound surface the plan had noticed
+but nobody had pointed a test at.
+
+---
+
 ## 2026-08-10 (later) — Phase 6's MCP half, and a feature that had never run
 
 Phase 6 closed, 31/31, both walkthrough halves driven. Q10 paid. Every box in

@@ -46,10 +46,11 @@
 > session and no seat.
 >
 > **What does not exist yet:** release hardening — the full threat-model sweep, performance tests and
-> the example application (Phase 9, at 3 of 34 criteria). See [`docs/roadmap.md`](docs/roadmap.md).
+> the example application (Phase 9, at 7 of 34 criteria). See [`docs/roadmap.md`](docs/roadmap.md).
 >
-> **Verified by** 1,756 tests across SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector and MinIO
-> · PHPStan level 8, no baseline · Pint.
+> **Verified by** 1,864 tests across SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector and MinIO
+> — 1,779 in the default leg, the rest **skipping** rather than passing without object storage or
+> pgvector · PHPStan level 8, no baseline · Pint.
 >
 > **Before depending on this, read
 > [`docs/product/support-statement.md`](docs/product/support-statement.md)** — it names what is

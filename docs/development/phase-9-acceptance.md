@@ -1,6 +1,6 @@
 # Phase 9 — Acceptance Test Plan
 
-> **Status: 3 of 34 criteria accepted** (19, 20, 21). Nothing here is ticked by inheritance.
+> **Status: 7 of 34 criteria accepted** (6, 7, 10, 16, 19, 20, 21). Nothing here is ticked by inheritance.
 >
 > Every previous phase wrote tests and then claimed the criteria those tests were written for. Phase 9
 > is the phase that claims T1–T15, and it is the first one where the claim is about the *suite* rather
@@ -86,18 +86,18 @@ whether or not the control is present proves the control is untested, not that i
 | 3 ⬜ | **T3** — no cross-session context leak, including two participants on one channel account | `Security/SessionIsolationTest` · `Channels/SessionIsolationTest` · `Channels/UnlinkedIdentityTest` · `Channels/LinkRevocationTest` |
 | 4 ⬜ | **T4** — a provider credential is not in context, a step payload, a broadcast, an API resource or a log, and cannot be extracted by a prompt that asks for one | `Security/CredentialIsolationTest` · `Security/SecretLeakTest` · `Security/SecretRedactionTest` |
 | 5 ⬜ | **T5** — workspace path traversal and symlink escape are refused at the canonicalisation layer *and* at the disk root, with the second layer proved by disabling the first | `Workspaces/ContainmentTest` · `Workspaces/RootsTest` |
-| 6 ⬜ | **T6a** — **no core tool performs an outbound HTTP request**, asserted architecturally so the day one does is the day CI goes red | *new* — `Architecture/NoOutboundHttpFromToolsTest` |
-| 7 ⬜ | **T6b** — the MCP HTTP transport's URL is operator-configured and cannot be selected, redirected or influenced by model output or tool arguments | *new* — `Mcp/TransportUrlOriginTest` |
+| 6 ✅ | **T6a** — **no core tool performs an outbound HTTP request**, asserted architecturally so the day one does is the day CI goes red | `Architecture/NoOutboundHttpFromToolsTest` — 4 tests; red within seconds of adding a tool that calls `Http::get()`, verified by adding one |
+| 7 ✅ | **T6b** — the MCP HTTP transport's URL is operator-configured and cannot be selected, redirected or influenced by model output or tool arguments | `Mcp/TransportUrlOriginTest` — 7 tests; **found a live SSRF**, see below |
 | 8 ⬜ | **T7** — iteration, tool-call, token, monetary, wall-clock, duplicate-call, delegation-depth and autonomy limits each independently halt a run, each proved by removing the other limits | `Feature/BudgetEnforcementTest` · `Feature/ToolLoopTest` · `Tools/DuplicateCallTest` · `Delegation/DepthTest` · `Automation/AutonomyTest` |
 | 9 ⬜ | **T8** — a child run's abilities are the intersection; delegation never widens authority, including through a cycle or a re-delegation | `Delegation/IntersectionTest` · `Delegation/CycleTest` · `Delegation/AllowlistTest` |
-| 10 ⬜ | **T9** — **an imported skill is never executed**: a skill body carrying install instructions, a shell command or a tool call produces instructions in context and no execution anywhere | *new* — `Skills/UntrustedSkillTest` |
+| 10 ✅ | **T9** — **an imported skill is never executed**: a skill body carrying install instructions, a shell command or a tool call produces ~~instructions in context~~ **nothing in context** and no execution anywhere | `Skills/UntrustedSkillTest` — 6 tests; the criterion's own wording was wrong, see below |
 | 11 ⬜ | **T10** — a hostile MCP server cannot reach a model with an unapproved tool, an unapproved description, or a name that resolves where a core tool is expected | `Mcp/UntrustedDescriptionTest` · `Mcp/SchemaHashTest` · `Mcp/NamespaceTest` · `Mcp/ApprovalTest` |
 | 12 ⬜ | **T11** — no broadcast carries a system prompt, a secret, sensitive tool arguments or an exception dump, and a private channel refuses an unauthorised subscriber | `Security/BroadcastAuthorizationTest` · `Security/SecretRedactionTest` |
 | 13 ⬜ | **T12** — a forged, replayed, stale or wrong-secret webhook is refused; a valid one is processed exactly once | `Automation/WebhookTest` · `Automation/IdempotencyTest` |
 | 14 ⬜ | **T13** — every control-center page and action is behind a gate; an authenticated non-admin reaches none of them, and prompts, tool I/O, costs and audit logs gate separately | `Security/ToolIoVisibilityTest` · `UI/*` |
 | 15 ⬜ | **T14** — an approval is consumed exactly once under the run lock, and the tool call is re-validated at execution against the arguments approved | `Security/ApprovalRaceTest` · `Security/ApprovalAuthorizationTest` |
-| 16 ⬜ | **T15** — no model uses `$guarded = []`; every one declares `$fillable`, asserted by reflection over `src/` so a new model cannot omit it | `Architecture/ModuleBoundaryTest` *(extend)* |
-| 17 ⬜ | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* |
+| 16 ✅ | **T15** — no model uses `$guarded = []`; every one declares `$fillable`, asserted by reflection over `src/` so a new model cannot omit it | `Architecture/ModuleBoundaryTest` — 3 added tests over 29 models; red when one model is switched to `$guarded = []`, verified by switching one |
+| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — done for T6a, T6b, T9 and T15 (2026-08-17); the eleven inherited threats are unaudited |
 
 ### The suite tells the truth about what it tested
 
@@ -133,6 +133,53 @@ independent ways, in one session.
 | 32 ⬜ | The CHANGELOG covers every phase, and every breaking change carries an upgrade instruction — the namespace-separator change from Phase 6 is the test case, since it revokes every MCP approval | `CHANGELOG.md` |
 | 33 ⬜ | **A v1.0 support statement exists** naming what is supported, what is explicitly excluded (marketplace installs, remote extension updates), what is single-operator only, and **what is shipped untested** — including Phase 8 §5, two identities interleaving on one channel account in real time | *new* — `docs/product/support-statement.md` |
 | 34 ⬜ | A human drives `phase-9-walkthrough.md` | a person |
+
+## What the first four threat tests found — 2026-08-17
+
+Three findings, and the pattern in them is the phase's own thesis: **each sat where the acceptance
+plan had already noticed something was thin, and each was worse than the plan guessed.**
+
+**A live SSRF in the MCP HTTP transport (T6b).** Guzzle follows redirects by default and nothing had
+turned that off, so a hostile or compromised MCP server answering `302 Location:
+http://169.254.169.254/latest/meta-data/` had this application re-send its POST to the cloud metadata
+endpoint — across an HTTPS-to-HTTP downgrade, into the link-local range — and hand the response body
+back to the model as tool output. The destination was the far end's to choose, which is precisely
+what the criterion said must be impossible. `allow_redirects` is now off, a 3xx is refused with its
+own `redirected` reason rather than folded into `server_unavailable`, and both halves are asserted:
+the call fails, **and** the second request was never made. A test asserting only the first would pass
+against a client that followed the redirect and then errored.
+
+Worth naming *why* the suite could not see it. Every other MCP test binds `FakeMcpServer` in place of
+`HttpTransport`, which is right for testing what the client does with an answer and useless for
+testing where the question was sent — **a fake that never had a URL cannot lose one.** That is the
+Phase 6 lesson for the fourth time, in the fourth place. `TransportUrlOriginTest` drives the real
+transport against `Http::fake()` for exactly this reason, and `docs/development/fake-boundaries.md`
+gains the entry.
+
+**T9's criterion described behaviour that does not exist.** It required a hostile skill body to
+produce "instructions in context and no execution anywhere". The second half holds completely and
+then some — no execution mechanism, no column that could carry one, no `eval`/`exec`/`proc_open` in
+`src/` outside the stdio transport, and an imported skill lands `enabled = false`. The first half is
+false: **nothing in `src/` reads `Skill::$instructions` at all.** A skill can be imported, attached to
+an agent, and listed on its detail page, and its text never reaches a prompt because nothing composes
+it into one. So a skill is inert rather than untrusted-but-included, ADR-0008's final consequence was
+describing a feature that never shipped, and the ADR is amended rather than quietly left. The test
+asserts the *current* state, so wiring skills into the context pipeline goes red and forces the
+untrusted-content handling to be built at the same time.
+
+**T15 was a sentence, twice.** The threat model said "no `$guarded = []`, explicit fillable" and two
+of the twenty-nine models repeated it in a comment. Nothing checked. All twenty-nine were in fact
+correct — the finding is not a defect but the absence of the thing that keeps them correct, which is
+what an architectural criterion is for.
+
+**And T6a is now the honest control it was planned to be.** Sixteen core tools, none of which makes
+an outbound request, asserted four ways: no HTTP client named in the source, no stream wrapper opened,
+no client injected through the constructor, and a floor on how many tools were actually scanned so
+the rule cannot start matching nothing. Two blind spots are written into the file rather than implied
+— a tool calling a Pandora service that itself makes a request (the scan is one level deep), and
+`WorkspaceTool` on an S3 disk, which does cause outbound traffic to an endpoint from `filesystems.php`
+that no model can influence. That last one is the same distinction T6b draws, which is why the test
+looks for HTTP *clients* rather than for network traffic.
 
 ## Design decisions taken for this phase
 
