@@ -5,6 +5,70 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-17 — The first four threats, and the one the fakes were hiding
+
+Phase 9 opened on the four criteria that needed tests which did not exist at all — T6a, T6b, T9 and
+T15 — rather than on the audit of the eleven that inherit a passing test. **7 of 34 criteria now
+accepted** (6, 7, 10, 16, plus 19–21 from before).
+
+```
+vendor/bin/pest        -> Tests: 1,779 passed, 85 skipped (5,957 assertions)
+                          no PANDORA_TEST_S3_ENDPOINT and no pgvector locally,
+                          so the object-storage and vector legs skipped rather
+                          than passed — which is the point of them skipping
+vendor/bin/phpstan     -> [OK] No errors (level 8)
+vendor/bin/pint --test -> passed
+```
+
+Every one of the four was verified the way the phase demands: **remove the mitigation, watch the
+test go red, put it back.** A fetch tool calling `Http::get()` added to `src/Tools/BuiltIn/` (T6a).
+One model switched to `$guarded = []` (T15). `'enabled' => false` flipped in `SkillDiscovery`, and
+separately skills wired into `composedInstructions()` (T9, two different tests). `allow_redirects`
+restored (T6b). All red, all restored, `git status` clean between each.
+
+**One live vulnerability.** The MCP HTTP transport followed redirects, because Guzzle does by
+default and nobody had said otherwise. A hostile or compromised server answering `302 Location:
+http://169.254.169.254/latest/meta-data/` had this application re-send its authenticated POST to the
+cloud metadata endpoint — HTTPS downgraded to HTTP, into the link-local range — and the response body
+came back to the model as tool output. This is the *only* outbound surface the package has, and its
+entire mitigation is that an operator chose the URL; a `Location` header was a way around that.
+Fixed: `allow_redirects` off, and a 3xx refused with its own `redirected` reason rather than folded
+into `server_unavailable`, which an operator would have read as an outage.
+
+**Where it lived is the transferable part, and it is the same place as last time.** Every MCP test
+binds `FakeMcpServer` in place of `HttpTransport`, so the suite had no HTTP client, no URL and no
+response headers anywhere in it — **a fake that never had a URL cannot lose one.** This is the fourth
+defect to sit exactly at a fake standing in for a boundary, and the second one `FakeMcpServer` has
+cost. The new entry in `fake-boundaries.md` names a blind spot of a different kind from the others:
+not "the fake models the far end imperfectly" but "the fake removes a whole layer from the test, and
+that layer has its own security properties."
+
+**One criterion was wrong.** T9 asked that a hostile skill produce "instructions in context and no
+execution anywhere". The execution half holds completely — no mechanism, no column that could carry
+one, no `eval`/`exec`/`proc_open` in `src/` outside the stdio transport, and an import lands
+`enabled = false`. The context half is false: **nothing in `src/` reads `Skill::$instructions`.** A
+skill is imported, attached, listed on the agent detail page, and read by nobody. ADR-0008's final
+consequence claimed the opposite and has been struck through and amended rather than quietly
+corrected. `Skills/UntrustedSkillTest` asserts the current state, so the day skills reach the context
+pipeline it goes red and forces the untrusted-content handling to be written then.
+
+**One rule had never been enforced.** T15 lived in the threat model and in comments on two of the
+twenty-nine models. All twenty-nine were correct; nothing was keeping them that way. Three tests now
+do, by reflection, including a floor on how many models the selector actually matched — a rule that
+iterates an empty collection is green for the wrong reason, and that failure mode now has a guard in
+both new architecture files.
+
+`pandoraSourceClasses()` moved from `ModuleBoundaryTest` to `tests/Pest.php` on the way through. A
+helper defined in one test file exists only once that file has loaded, so the second architecture
+file to use it would have passed or fataled on Pest's ordering.
+
+**Left undone, and named rather than left implied.** Criterion 17 is 4/15 — the eleven inherited
+threats are still unaudited, and that is most of the phase's remaining risk. This log also has no
+entries for 2026-08-11 or 2026-08-12: the Phase 7 tenancy closure, v0.1.0 and v0.1.1 are recorded in
+the CHANGELOG and in commits, and not here.
+
+---
+
 ## 2026-08-10 (later) — Phase 6's MCP half, and a feature that had never run
 
 Phase 6 closed, 31/31, both walkthrough halves driven. Q10 paid. Every box in

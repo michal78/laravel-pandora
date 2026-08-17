@@ -12,6 +12,11 @@ All notable changes to this project are documented here. The format follows
 
 ## Unreleased
 
+Phase 9's threat audit begins. Four of the fifteen threats now have tests that were checked by
+removing the mitigation and watching them go red — and the first four found one live vulnerability,
+one criterion that described behaviour the package does not have, and one rule that had never been
+enforced anywhere.
+
 ### Security
 
 - **The MCP HTTP client no longer follows redirects (SSRF).** Guzzle follows them by default, so a
