@@ -12,6 +12,25 @@ All notable changes to this project are documented here. The format follows
 
 ## Unreleased
 
+### Security
+
+- **The MCP HTTP client no longer follows redirects (SSRF).** Guzzle follows them by default, so a
+  hostile or compromised MCP server could answer `302 Location:
+  http://169.254.169.254/latest/meta-data/` and have Pandora re-send its POST to the cloud metadata
+  endpoint — across an HTTPS-to-HTTP downgrade, into the link-local range — then return the response
+  body to the model as tool output. An MCP endpoint is operator-configured precisely so that nothing
+  on the far side chooses where this application connects; a `Location` header was a way around
+  that. Redirects are now disabled at the client and a 3xx is refused with a new `redirected` reason
+  rather than reported as `server_unavailable`, which would have read to an operator as an outage.
+
+  **No action needed on upgrade.** A legitimate MCP server does not redirect its JSON-RPC endpoint;
+  if one in your deployment does, point `endpoint` at the final URL. The refusal names the location
+  it declined to follow.
+
+  Hidden until now because every MCP test binds `FakeMcpServer` in place of the HTTP transport — a
+  fake that never had a URL cannot lose one. `Mcp/TransportUrlOriginTest` drives the real transport
+  against `Http::fake()` and asserts the URL requested, not merely the answer received.
+
 ### Added
 
 - **`Architecture/NoOutboundHttpFromToolsTest` (T6a).** No core tool makes an outbound request, and

@@ -145,7 +145,17 @@ Every one of these is an ordinary tool failure. The run continues.
 | Unreachable | Refused; the server degrades, and goes unhealthy on a second failure |
 | Returns a huge body | Refused on size **before** decoding |
 | Returns a JSON-RPC error | Refused |
+| **Answers with a redirect** | **Refused, and not followed.** The location is named in the refusal |
 | Unhealthy server | Its tools are not offered at all — unavailable rather than slow |
+
+The redirect row is the one worth pausing on. Your `endpoint` is the whole of the
+mitigation against Pandora connecting somewhere you did not choose: it comes from
+a row you wrote, never from a tool argument and never from model output. A
+`Location` header would hand that choice back to the server — a `302` pointing at
+`http://169.254.169.254/` is an authenticated POST to your cloud's metadata
+endpoint, with the response returned to a model as tool output. Redirects are
+therefore disabled at the client rather than validated. **If a server in your
+deployment legitimately redirects, point `endpoint` at the final URL.**
 
 The model is told less than you are. `password authentication failed for user
 "ledger"` is an operator fact being handed to something that may be relaying an

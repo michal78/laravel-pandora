@@ -105,6 +105,25 @@ final class McpDenied extends PandoraException
         );
     }
 
+    /**
+     * The server tried to send the call somewhere else.
+     *
+     * Its own reason, and a loud one. Every other transport failure is the far
+     * end being broken; this one is the far end choosing a destination, which
+     * is the whole of the SSRF threat in a single response header. An operator
+     * reading `server_unavailable` in the audit log would conclude the server
+     * was down.
+     */
+    public static function redirected(string $server, string $location): self
+    {
+        return new self(
+            "The MCP server [{$server}] answered with a redirect to [{$location}] and the call was "
+                .'refused. An endpoint is operator-configured; a server that could redirect it '
+                .'would be choosing where this application connects.',
+            'redirected',
+        );
+    }
+
     public static function notExposed(string $tool): self
     {
         return new self(

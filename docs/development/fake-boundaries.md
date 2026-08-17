@@ -56,6 +56,18 @@ tool advertises is a property it validates — the exact defect — and round-tr
 arguments through `validate()` rather than around it. Verified by reverting the fix: two of its four
 tests fail.
 
+**Also cannot prove:** anything about *where the request went*. The fake is bound in place of
+`HttpTransport`, so every MCP test but one runs with no HTTP client, no URL and no response headers
+anywhere in the picture — **a fake that never had a URL cannot lose one.** That blind spot hid a live
+SSRF for the whole of Phases 6 to 8: Guzzle follows redirects by default, so a server answering `302
+Location: http://169.254.169.254/` had our POST re-sent to the cloud metadata endpoint and its body
+returned to the model as tool output. Found 2026-08-17 by T6b, which was the first test to point the
+real transport at anything.
+
+**Closed by:** `Mcp/TransportUrlOriginTest` (criterion 7) drives the real `HttpTransport` against
+`Http::fake()` and asserts the URL requested, not just the answer received. Verified by restoring
+`allow_redirects`: two of its seven tests fail.
+
 **Still open, accepted:** protocol-level divergence between the fake and a real server's framing.
 Mitigated by the Phase 6 walkthrough having driven a real HTTP server and a real stdio one; not
 mitigated continuously, because CI has no MCP server to talk to.
@@ -157,5 +169,9 @@ and it still cost a phase. The question is **what class of defect can no longer 
 where that class gets caught instead. If the answer is "nowhere", that is a decision, and it belongs
 in this file where somebody can disagree with it.
 
-Three of the five entries above were closed only after a defect or a walkthrough pointed at them.
-That is the pattern the inventory exists to break.
+Four of the seven entries above were closed only after a defect or a walkthrough pointed at them, and
+`FakeMcpServer` has now cost two: one argument-stripping bug and one SSRF. That is the pattern the
+inventory exists to break. The second `FakeMcpServer` entry is the more useful of the two, because it
+names a blind spot of a *different kind* — not "the fake models the far end imperfectly" but "the
+fake removes an entire layer from the test, and the layer it removes has its own security
+properties."

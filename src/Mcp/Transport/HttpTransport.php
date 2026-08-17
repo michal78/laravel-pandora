@@ -12,8 +12,12 @@ use Pandora\Providers\Credentials\CredentialManager;
 /**
  * MCP over HTTP, speaking JSON-RPC 2.0.
  *
- * Three things this class owes the layers above, and they are all about what
+ * Four things this class owes the layers above, and they are all about what
  * happens when the other end misbehaves rather than when it works:
+ *
+ * **A fixed destination.** The endpoint comes from the server row an operator
+ * wrote and from nowhere else — not from a tool argument, not from model
+ * output, and not from a `Location` header the far end sent back.
  *
  * **A timeout.** A remote server that hangs must cost one tool call, not one
  * worker. The bound comes from the server row, falling back to configuration.
@@ -76,6 +80,16 @@ final readonly class HttpTransport implements McpTransportContract
         try {
             $response = $this->http
                 ->timeout(max(1, $server->timeout_seconds))
+                // The destination is the operator's, and it stays the
+                // operator's. Guzzle follows redirects by default, so before
+                // this line a server answering `302 Location:
+                // http://169.254.169.254/` had our POST re-sent to the cloud
+                // metadata endpoint and its body returned to the model as tool
+                // output — an HTTPS-to-HTTP downgrade into the private range,
+                // chosen entirely by the far end. This is the one outbound
+                // surface the package has, and T6b is the reason it now has a
+                // fixed destination.
+                ->withOptions(['allow_redirects' => false])
                 ->withHeaders($this->headers($server))
                 ->asJson()
                 ->acceptJson()
@@ -89,6 +103,17 @@ final readonly class HttpTransport implements McpTransportContract
             // A timeout, a DNS failure, a reset connection. All the same thing
             // from here: the server did not answer.
             throw McpDenied::serverUnavailable($server->slug, $e->getMessage());
+        }
+
+        // Refused rather than followed, and named rather than folded into the
+        // failure below: with redirects off a 3xx is a well-formed answer with
+        // an empty body, which would otherwise arrive as "malformed response"
+        // and read like a broken server instead of a server steering us.
+        if ($response->redirect()) {
+            throw McpDenied::redirected(
+                $server->slug,
+                mb_substr($response->header('Location'), 0, 200),
+            );
         }
 
         if ($response->failed()) {
