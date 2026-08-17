@@ -10,7 +10,7 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
-## Unreleased
+## v0.1.2 — 2026-08-17
 
 Phase 9's threat audit begins. Four of the fifteen threats now have tests that were checked by
 removing the mitigation and watching them go red — and the first four found one live vulnerability,
