@@ -103,12 +103,31 @@ it('does not tell the model the value exists at all', function (): void {
         ->and(strlen($result))->toBeLessThan(300);
 });
 
-it('reads every list it is given from the same place the redactor does', function (): void {
-    // Two lists would drift until one of them was wrong about a key the other
-    // had. Narrowing the redaction list narrows this refusal too -- which is
-    // the correct coupling, and is asserted so that decoupling them is a
-    // deliberate act rather than an accident.
-    config()->set('pandora.security.redact_keys', ['nothing_matches_this']);
+it('still refuses when the redaction list has been narrowed to nothing', function (): void {
+    // This assertion used to say the opposite, and the opposite was wrong.
+    //
+    // The first version derived the refusal entirely from
+    // `pandora.security.redact_keys`, reasoning that one list cannot drift
+    // from another. But that list is tuned for OUTPUT NOISE: an operator
+    // dropping `session` because it clutters every trace is making a
+    // reasonable call about logs, and they would have been silently re-opening
+    // credential reads in a tool. A change made for one purpose weakened
+    // another, at a distance, invisibly -- and the test baked that in as
+    // intended behaviour, which is how an insecure fallback becomes a
+    // requirement nobody meant to write. Raised in review on PR #3.
+    config()->set('pandora.security.redact_keys', []);
 
-    expect(readConfig('services.stripe.secret'))->toContain('sk_live_51H8xExtractMePlease');
+    expect(readConfig('services.stripe.secret'))
+        ->not->toContain('sk_live_51H8xExtractMePlease')
+        ->and(readConfig('pandora.providers.openai.api_key'))
+        ->not->toContain('sk-proj-abcdef1234567890');
+});
+
+it('lets a deployment add to the refusal but never subtract from it', function (): void {
+    // Additive, so a host with its own naming convention is covered.
+    config()->set('pandora.tools.readable_config', ['app.house_style_handle']);
+    config()->set('pandora.security.redact_keys', ['house_style']);
+    config()->set('app.house_style_handle', 'not-really-a-secret-but-treated-as-one');
+
+    expect(readConfig('app.house_style_handle'))->toContain('looks like a credential');
 });

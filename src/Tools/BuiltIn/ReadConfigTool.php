@@ -107,21 +107,46 @@ final class ReadConfigTool extends Tool
     }
 
     /**
-     * Whether a key names something that must never be published.
+     * The refusal that configuration may extend and may not weaken.
      *
-     * Reuses `pandora.security.redact_keys` rather than keeping a second list.
-     * The two questions -- "would we mask this in a log?" and "may a model read
-     * it?" -- have the same answer, and two lists would drift until one of them
-     * was wrong about a key the other had.
+     * Hard-coded on purpose. The first version of this method read
+     * `pandora.security.redact_keys` and nothing else, on the reasoning that
+     * "would we mask this in a log?" and "may a model read it?" have the same
+     * answer, so one list cannot drift from another.
+     *
+     * That was wrong in one direction. The redaction list is tuned for
+     * *output noise* -- an operator dropping `session` because it clutters
+     * every trace is making a reasonable call about logs, and they would have
+     * been silently re-opening credential reads in a tool. Coupling the two
+     * meant a change made for one purpose weakened the other, which is exactly
+     * the kind of action-at-a-distance a security control must not have.
+     *
+     * So: baseline below, plus whatever the deployment adds. Narrowing
+     * `redact_keys` narrows redaction and cannot touch this.
+     *
+     * @var list<string>
+     */
+    private const NEVER_READABLE = [
+        'password', 'secret', 'token', 'api_key', 'apikey', 'authorization',
+        'credential', 'private_key', 'access_key', 'refresh_token', 'bearer',
+        'passphrase', 'signature',
+    ];
+
+    /**
+     * Whether a key names something that must never be published.
      */
     private function isSensitiveKey(string $key): bool
     {
-        /** @var list<string> $sensitive */
-        $sensitive = config('pandora.security.redact_keys', []);
+        /** @var list<string> $configured */
+        $configured = config('pandora.security.redact_keys', []);
 
         $normalized = strtolower($key);
 
-        foreach ($sensitive as $needle) {
+        foreach ([...self::NEVER_READABLE, ...$configured] as $needle) {
+            if ($needle === '') {
+                continue;
+            }
+
             if (str_contains($normalized, strtolower($needle))) {
                 return true;
             }

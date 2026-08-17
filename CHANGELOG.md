@@ -43,6 +43,12 @@ result rather than an absence of one.
   execution row the redactor would not clean, because the key it is filed under is `value`. Refused
   on the key, before the value is read. The refusal names the config entry to remove.
 
+  The denylist is a **hard-coded baseline plus whatever the deployment adds**, not the redaction
+  list alone. `pandora.security.redact_keys` is tuned for output noise — an operator dropping
+  `session` because it clutters every trace is making a reasonable call about logs — and deriving
+  the refusal from it meant a change made for one purpose silently weakened another. Narrowing
+  `redact_keys` now narrows redaction and cannot touch this.
+
 ### Fixed
 
 - **`pandora:tool:list` no longer prints `required` for tools that need no approval.**

@@ -114,9 +114,19 @@ it('tells the approver the call was changed at all', function (): void {
     // Showing the effective value alone is not enough. "Refund 1000" reads as
     // a call somebody meant to make; the diff is what tells the approver a
     // rule intervened and that the model wanted something else.
-    expect($this->approval->proposed_modifications)->toBe([
-        ['field' => 'amount_minor', 'from' => 90000, 'to' => 1000],
-    ]);
+    //
+    // Asserted field by field rather than as one array, because the key ORDER
+    // of a JSON column is not a property any database guarantees. The first
+    // version compared the whole structure with `toBe()` and was green on
+    // SQLite and red on MySQL, which stores a JSON object with its keys sorted
+    // by length -- `to`, `from`, `field`. Nothing about this criterion depends
+    // on the order, so nothing about the test should either.
+    $changes = $this->approval->proposed_modifications;
+
+    expect($changes)->toHaveCount(1)
+        ->and($changes[0]['field'])->toBe('amount_minor')
+        ->and($changes[0]['from'])->toBe(90000)
+        ->and($changes[0]['to'])->toBe(1000);
 });
 
 it('executes exactly what the card showed once it is approved', function (): void {
