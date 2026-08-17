@@ -14,6 +14,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`Architecture/NoOutboundHttpFromToolsTest` (T6a).** No core tool makes an outbound request, and
+  now nothing can add one quietly: the source, the stream wrappers and the constructor wiring of
+  every shipped tool are all checked. The threat model's SSRF allowlist is documented as a
+  *specification for a tool that does not exist* rather than a control that is running, and this test
+  is what goes red on the day it needs to be built.
 - **`Architecture/ModuleBoundaryTest` asserts T15 over every model.** No `$guarded = []`, an explicit
   `$fillable` on all twenty-nine, and no `unserialize()` anywhere in `src/`.
 
