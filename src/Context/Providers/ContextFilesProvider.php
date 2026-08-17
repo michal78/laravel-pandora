@@ -7,6 +7,7 @@ namespace Pandora\Context\Providers;
 use Pandora\Context\ContextFiles;
 use Pandora\Context\ContextRequest;
 use Pandora\Context\ContextSection;
+use Pandora\Context\UntrustedBlock;
 use Pandora\Contracts\ContextProvider;
 use Pandora\Providers\Data\ChatMessage;
 
@@ -46,11 +47,15 @@ final class ContextFilesProvider implements ContextProvider
         $blocks = [];
 
         foreach ($files as $path => $contents) {
-            $blocks[] = '<file path="'.basename($path).'">'.PHP_EOL.$contents.PHP_EOL.'</file>';
+            $blocks[] = UntrustedBlock::wrap('file', $contents, ['path' => basename($path)]);
         }
 
+        // Not a system message. An attached document is UNTRUSTED in the trust
+        // boundary -- it is on the same line as a web page and a channel
+        // message -- and every other untrusted string in this system is kept
+        // out of the instruction position on purpose. This one was in it.
         return ContextSection::of($this->key(), [
-            ChatMessage::system("<context_files>\n".implode("\n", $blocks)."\n</context_files>"),
+            ChatMessage::user(UntrustedBlock::wrap('context_files', implode("\n", $blocks))),
         ]);
     }
 
