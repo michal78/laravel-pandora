@@ -78,6 +78,22 @@ final class ReadConfigTool extends Tool
             );
         }
 
+        // The allowlist is a person's judgement, and this is the case where a
+        // person's judgement is not enough. `services.stripe.secret` is an
+        // exact key somebody could reasonably add while wiring up a tool, and
+        // publishing it hands a live credential to a model that may be
+        // relaying an attacker's instructions. T4 says a credential is never in
+        // context; an allowlist entry must not be able to make that false.
+        //
+        // Refused on the key, before the value is read, so the secret is not
+        // even loaded into a variable that could end up in a stack trace.
+        if ($this->isSensitiveKey($key)) {
+            return ToolResult::failure(
+                "[{$key}] looks like a credential and is never readable, even though it is "
+                .'allowlisted. Remove it from `pandora.tools.readable_config`.',
+            );
+        }
+
         $value = config($key);
 
         if (is_array($value) || is_object($value)) {
@@ -88,6 +104,30 @@ final class ReadConfigTool extends Tool
             $key.' = '.var_export($value, true),
             ['key' => $key, 'value' => $value],
         );
+    }
+
+    /**
+     * Whether a key names something that must never be published.
+     *
+     * Reuses `pandora.security.redact_keys` rather than keeping a second list.
+     * The two questions -- "would we mask this in a log?" and "may a model read
+     * it?" -- have the same answer, and two lists would drift until one of them
+     * was wrong about a key the other had.
+     */
+    private function isSensitiveKey(string $key): bool
+    {
+        /** @var list<string> $sensitive */
+        $sensitive = config('pandora.security.redact_keys', []);
+
+        $normalized = strtolower($key);
+
+        foreach ($sensitive as $needle) {
+            if (str_contains($normalized, strtolower($needle))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
