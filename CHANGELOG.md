@@ -38,8 +38,19 @@ All notable changes to this project are documented here. The format follows
   every shipped tool are all checked. The threat model's SSRF allowlist is documented as a
   *specification for a tool that does not exist* rather than a control that is running, and this test
   is what goes red on the day it needs to be built.
+- **`Skills/UntrustedSkillTest` (T9).** A hostile skill body — install instructions, a shell command,
+  an embedded tool call, a prompt-injection payload — is stored verbatim, lands disabled, grants
+  nothing by declaring `required_tools`, and executes nowhere.
 - **`Architecture/ModuleBoundaryTest` asserts T15 over every model.** No `$guarded = []`, an explicit
   `$fillable` on all twenty-nine, and no `unserialize()` anywhere in `src/`.
+
+### Fixed
+
+- **ADR-0008's last consequence was wrong, and is amended.** It said skill instructions still reach
+  the prompt. Nothing in `src/` reads them: a skill can be imported, attached to an agent and shown
+  on its detail page, and its text reaches no prompt because nothing composes it into one. Skills are
+  inert, not merely unprivileged. The test asserts the current state, so wiring them into context
+  turns it red and the untrusted-content handling gets built at the same time rather than assumed.
 
 
 ## v0.1.1 — 2026-08-12
