@@ -29,6 +29,52 @@ uses(TestCase::class)->in(
 );
 
 /**
+ * Every PHP file under src/, as [class => path].
+ *
+ * Lives here rather than in the file that first needed it, because two
+ * architecture files now reflect over the source tree and PHP function names
+ * are global. A helper defined inside a test file exists only once that file
+ * has been loaded, so the second file passed or fataled depending on the order
+ * Pest happened to run them in -- which is a green suite that means nothing.
+ *
+ * Reflection rather than Pest's arch plugin: that plugin cannot build its file
+ * index in this package's nested-vendor layout (docs/development/open-questions.md, Q1).
+ *
+ * @return array<class-string, string>
+ */
+function pandoraSourceClasses(): array
+{
+    static $classes = null;
+
+    if ($classes !== null) {
+        return $classes;
+    }
+
+    $root = dirname(__DIR__).'/src';
+    $classes = [];
+
+    /** @var iterable<SplFileInfo> $files */
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
+
+    foreach ($files as $file) {
+        if ($file->getExtension() !== 'php') {
+            continue;
+        }
+
+        $relative = substr($file->getPathname(), strlen($root) + 1, -4);
+        $class = 'Pandora\\'.str_replace('/', '\\', $relative);
+
+        if (class_exists($class) || interface_exists($class) || enum_exists($class) || trait_exists($class)) {
+            $classes[$class] = $file->getPathname();
+        }
+    }
+
+    ksort($classes);
+
+    return $classes;
+}
+
+/**
  * Run a callback as a given tenant.
  *
  * Shared rather than redeclared per file: three test files needed it, PHP

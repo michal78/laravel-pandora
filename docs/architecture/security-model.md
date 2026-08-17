@@ -63,7 +63,7 @@ unauthenticated HTTP request from the internet — because in effect it did.
 | T12 | Webhook forgery / replay | HMAC signature, timestamp window, nonce store, per-endpoint secret, idempotency key. |
 | T13 | Unauthorized control-center access | Every page and action behind a gate. No implicit "authenticated ⇒ admin". Separate abilities for prompts, tool I/O, costs and audit logs. |
 | T14 | Approval bypass via a race | Approval resolution and run resumption are transactional under the run lock. An approval is consumed exactly once; the tool call is re-validated at execution time. |
-| T15 | Mass assignment / unsafe deserialisation | No `$guarded = []`. Explicit fillable. Payloads stored as JSON of scalars; no PHP serialisation of user-influenced data. |
+| T15 | Mass assignment / unsafe deserialisation | No `$guarded = []`. Explicit fillable. Payloads stored as JSON of scalars; no PHP serialisation of user-influenced data. Asserted by reflection over every model in `src/` in `Architecture/ModuleBoundaryTest`, so a model added later cannot omit it — until 2026-08-17 the rule was a sentence here and a comment on two of the twenty-nine models. |
 
 ## 4. Authorization model
 

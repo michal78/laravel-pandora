@@ -10,6 +10,14 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
+## Unreleased
+
+### Added
+
+- **`Architecture/ModuleBoundaryTest` asserts T15 over every model.** No `$guarded = []`, an explicit
+  `$fillable` on all twenty-nine, and no `unserialize()` anywhere in `src/`.
+
+
 ## v0.1.1 — 2026-08-12
 
 Installing v0.1.0 from Packagist into a fresh Laravel application — which nobody had done, because
