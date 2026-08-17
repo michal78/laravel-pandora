@@ -5,6 +5,71 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-17 (later still) — The MySQL leg, and what a delimiter costs in DDL
+
+Not a phase task. The MySQL leg of the matrix took **604 seconds against MariaDB's 232** on identical
+tests, and it is the leg the `tests complete` gate waits for, so it sat on the feedback loop of every
+PR.
+
+The shape said what it was before any theory did: the *median test* was 0.300s on MySQL and 0.110s on
+MariaDB, with p90 0.410 against 0.190. A flat penalty across 1,830 tests, not a handful of slow ones
+— 0.19s x 1,830 is 348s, and the gap was 372s. A fixed per-test cost, which meant the harness rather
+than any test.
+
+`TestCase` cannot wrap tests in a transaction, for a good and documented reason: Pandora catches
+unique-key violations as normal control flow and on PostgreSQL a failed statement poisons the
+enclosing transaction. So it empties every table between tests — ~35 tables x ~1,830 tests, about
+**64,000 statements per run** — and it used `TRUNCATE`.
+
+`TRUNCATE` is DDL. InnoDB drops and recreates the tablespace, MySQL 8 routes that through its
+transactional data dictionary, and it fsyncs, because **MySQL 8 ships the binary log on where MariaDB
+ships it off**. Verified rather than assumed, by starting both images and asking them:
+
+```
+mysql:8.4    -> log_bin = 1, sync_binlog = 1, innodb_flush_log_at_trx_commit = 1
+mariadb:11   -> log_bin = 0
+```
+
+Benchmarked a 35-table cleanup cycle on each, baseline subtracted:
+
+```
+MySQL 8.4  TRUNCATE, default          ~885 ms
+MariaDB 11 TRUNCATE, default          ~127 ms
+MySQL 8.4  TRUNCATE, tmpfs + no binlog ~70 ms
+MySQL 8.4  DELETE,   default            ~5 ms
+```
+
+So the cheapest fix was also the most portable one, and it needed no CI change at all: `DELETE` is
+ordinary DML. The table listing is now cached per process too — `Schema::getTables()` ran once per
+test, which on MySQL 8 is a data-dictionary query, to answer a question that changes only when the
+migrations do.
+
+Verified on a real MySQL 8.4 rather than by argument. Same 260 tests, same machine:
+
+```
+before (TRUNCATE) -> 260 passed (583 assertions), 395.77s
+after  (DELETE)   -> 260 passed (583 assertions),  31.34s
+full suite after  -> 1,809 passed, 85 skipped (6,051 assertions), 147.10s
+```
+
+`DELETE` does not reset `AUTO_INCREMENT`. Checked before relying on it: Pandora's keys are ULIDs, and
+the two auto-increment tables in play are Testbench's `users` and `jobs`, which no test asserts an id
+value against. A test that did would be asserting something no database guarantees — which is the
+same class of mistake as the JSON key ordering that made this leg red earlier the same day.
+
+**Rejected: subsetting the matrix.** Running the full suite on SQLite and one server engine, with
+only "engine-sensitive" tests elsewhere, would have been the obvious way to buy time. The argument
+against it is this repository's own history — the bug that made this leg red was MySQL's JSON key
+ordering, caught by an *approval UI* test nobody would ever have tagged engine-sensitive, and the
+`text` column width and skill-slug length before it were the same. The value of the matrix is
+catching things in tests you would not have thought to mark.
+
+Left on the table, in order: a real health check (`--health-cmd="exit 0"` declares every database
+container healthy instantly, which is a lie shared by all four legs), and `pest --parallel` with a
+database per worker, which `TestCase` already anticipates and warns about.
+
+---
+
 ## 2026-08-17 (later) — Four audited threats, and two tests that were lying
 
 The second Phase 9 session, on branch `phase-9/audit-fake-adjacent-threats`. T1, T4, T10 and T11

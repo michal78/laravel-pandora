@@ -72,6 +72,31 @@ result rather than an absence of one.
   assertion added beside it.
 
 
+## Unreleased
+
+### Changed
+
+- **The MySQL leg of the matrix runs in a fraction of the time.** It took 604 seconds against
+  MariaDB's 232 on identical tests, and the cause was the test harness meeting MySQL 8's DDL path.
+  With no wrapping transaction available — Pandora catches unique-key violations as normal control
+  flow, and on PostgreSQL a failed statement poisons the enclosing transaction — the harness empties
+  every table between tests: ~35 tables times ~1,830 tests, or roughly 64,000 statements per run.
+
+  `TRUNCATE` is DDL. InnoDB drops and recreates the tablespace, MySQL 8 routes that through its
+  transactional data dictionary, and it fsyncs, because MySQL 8 ships the binary log **on** where
+  MariaDB ships it off (verified: `mysql:8.4` reports `log_bin=1`, `mariadb:11` reports `0`). The
+  cleanup is now `DELETE`, which is ordinary DML — no tablespace churn, no dictionary write, no
+  implicit commit — and it is faster on every engine rather than only the slow one.
+
+  Measured on a real MySQL 8.4: the same 260 tests went from **395.77s to 31.34s**.
+
+  `DELETE` does not reset `AUTO_INCREMENT`, and nothing here depends on that — Pandora's keys are
+  ULIDs, and no test asserts an id value against the two auto-increment tables in play.
+- **The table listing is cached for the life of the process.** `Schema::getTables()` ran once per
+  test, which on MySQL 8 is a data-dictionary query, to answer a question whose answer changes only
+  when the migrations do. Invalidated in the one place the schema is rebuilt.
+
+
 ## v0.1.2 — 2026-08-17
 
 Phase 9's threat audit begins. Four of the fifteen threats now have tests that were checked by

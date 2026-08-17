@@ -37,6 +37,19 @@ abstract class TestCase extends Orchestra
      */
     private static bool $serverSchemaReady = false;
 
+    /**
+     * The table listing for each database, cached for this process.
+     *
+     * `Schema::getTables()` ran once per test, and on MySQL 8 that is a query
+     * against the data dictionary rather than a cheap lookup -- ~1,830 of them
+     * per run to answer a question whose answer changes only when the
+     * migrations do. Invalidated in the one place the schema is rebuilt, which
+     * is also where `$serverSchemaReady` is set, so the two cannot disagree.
+     *
+     * @var array<string, list<string>>
+     */
+    private static array $tableNames = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -53,12 +66,12 @@ abstract class TestCase extends Orchestra
     /**
      * Give this test an empty schema, by whichever route is cheap.
      *
-     * Truncation rather than a wrapping transaction on server engines. A
-     * transaction would be faster, but Pandora's own code catches unique-key
-     * violations as a normal control-flow outcome -- the automation occurrence
-     * claim does exactly that -- and on PostgreSQL a failed statement poisons
-     * the surrounding transaction. Tests would then fail for a reason that
-     * exists only in the harness.
+     * Emptying the tables rather than a wrapping transaction on server
+     * engines. A transaction would be faster, but Pandora's own code catches
+     * unique-key violations as a normal control-flow outcome -- the automation
+     * occurrence claim does exactly that -- and on PostgreSQL a failed
+     * statement poisons the surrounding transaction. Tests would then fail for
+     * a reason that exists only in the harness.
      */
     private function prepareDatabase(): void
     {
@@ -73,7 +86,7 @@ abstract class TestCase extends Orchestra
         }
 
         if (self::$serverSchemaReady && $this->schemaStillExists()) {
-            $this->truncateAllTables();
+            $this->emptyAllTables();
 
             return;
         }
@@ -92,6 +105,7 @@ abstract class TestCase extends Orchestra
         }
 
         self::$serverSchemaReady = true;
+        self::$tableNames = [];
     }
 
     /**
@@ -115,13 +129,36 @@ abstract class TestCase extends Orchestra
         return Schema::hasTable($prefix.'runs');
     }
 
-    private function truncateAllTables(): void
+    /**
+     * Empty every table, with `DELETE` rather than `TRUNCATE`.
+     *
+     * The difference is not stylistic. `TRUNCATE` is DDL: InnoDB drops and
+     * recreates the tablespace, MySQL 8 routes that through its transactional
+     * data dictionary, and -- because MySQL 8 ships the binary log ON where
+     * MariaDB ships it off -- fsyncs it. Around 35 tables times ~1,830 tests
+     * is roughly 64,000 DDL statements per run, and that one difference was
+     * the whole of why the MySQL leg took 604 seconds against MariaDB's 232
+     * on identical tests. Measured: a 35-table cleanup cycle costs ~885ms on
+     * MySQL 8.4 and ~5ms with `DELETE`.
+     *
+     * `DELETE` is ordinary DML. No tablespace churn, no dictionary write, no
+     * implicit commit, and it is faster on every engine rather than only the
+     * slow one.
+     *
+     * What it does not do is reset `AUTO_INCREMENT`. Nothing here depends on
+     * that: Pandora's own keys are ULIDs, and the two auto-increment tables in
+     * play are Testbench's `users` and `jobs`, which no test asserts an id
+     * value against. A test that did would be asserting something no database
+     * guarantees -- the same class of mistake as the JSON key order that made
+     * this leg red in the first place.
+     */
+    private function emptyAllTables(): void
     {
         $connection = DB::connection();
         $connection->statement($this->disableForeignKeys());
 
         foreach ($this->tablesInThisDatabase() as $table) {
-            $connection->table($table)->truncate();
+            $connection->table($table)->delete();
         }
 
         $connection->statement($this->enableForeignKeys());
@@ -142,7 +179,11 @@ abstract class TestCase extends Orchestra
     {
         $database = DB::connection()->getDatabaseName();
 
-        return array_values(array_filter(
+        if (isset(self::$tableNames[$database])) {
+            return self::$tableNames[$database];
+        }
+
+        return self::$tableNames[$database] = array_values(array_filter(
             array_map(
                 static fn (array $table): string => (string) $table['name'],
                 array_filter(
