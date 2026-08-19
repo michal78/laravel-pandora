@@ -2,11 +2,15 @@
 
 declare(strict_types=1);
 
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Testing\TestResponse;
 use Pandora\Audit\AuditLog;
+use Pandora\Automation\AutomationDispatcher;
+use Pandora\Automation\AutomationRun;
 use Pandora\Automation\Enums\AutomationTrigger;
 use Pandora\Automation\WebhookDelivery;
+use Pandora\Automation\Webhooks\WebhookReceiver;
 use Pandora\Automation\Webhooks\WebhookSignature;
 use Pandora\Runs\Enums\TriggerType;
 use Pandora\Runs\Run;
@@ -305,3 +309,74 @@ it('signs and verifies a round trip', function (): void {
 
     expect($signature->hash)->toHaveLength(64);
 });
+
+// ------------------------------------------- criterion 17 audit, 2026-08-19
+
+/**
+ * A broken database must not be reported as a delivery already handled.
+ *
+ * Replay protection is a unique INSERT, so `WebhookReceiver` has to catch a
+ * constraint violation as a normal outcome. `DetectsUniqueViolations` exists
+ * to keep that catch narrow, and its docblock names the cost of getting it
+ * wrong exactly: treating any query error as "already claimed" makes Pandora
+ * answer "this webhook was already processed" to a delivery it in fact dropped
+ * on the floor — silent loss, reported months later as "some webhooks don't
+ * arrive".
+ *
+ * Nothing tested it. Widening the catch to every `QueryException` left all 28
+ * webhook and idempotency tests green (verified 2026-08-19), because every one
+ * of them reaches a healthy database. The failure only shows when the insert
+ * fails for some *other* reason, which is what this simulates: a deadlock, a
+ * lock-wait timeout and an over-long value all arrive as this same class.
+ */
+it('does not report a delivery as a replay when the insert fails for another reason', function (): void {
+    WebhookDelivery::creating(function (): void {
+        throw new QueryException(
+            'testing',
+            'insert into pandora_webhook_deliveries ...',
+            [],
+            new PDOException('SQLSTATE[HY000]: General error: 1205 Lock wait timeout exceeded'),
+        );
+    });
+
+    $body = json_encode(['order' => 'ORD-9']);
+
+    // The receiver directly rather than the route: a fault has to come back
+    // OUT of it as a fault. What the HTTP layer then does with a 500 is the
+    // framework's business, and going through it would only prove the error
+    // handler catches things.
+    app(WebhookReceiver::class)->receive(
+        'inbound',
+        $body,
+        WebhookSignature::sign(WEBHOOK_SECRET, $body),
+    );
+})->throws(QueryException::class);
+
+/**
+ * The same narrowing on the other side of it, for the same reason.
+ *
+ * `AutomationDispatcher` claims an occurrence with the identical
+ * insert-or-lose pattern, and `IdempotencyTest` proves the claim works against
+ * a healthy database. A widened catch there answers `null` — "somebody else
+ * has this occurrence" — to a scheduler tick that simply failed, and the
+ * occurrence is then never run by anybody.
+ */
+it('does not report an occurrence as claimed when the claim fails for another reason', function (): void {
+    AutomationRun::creating(function (): void {
+        throw new QueryException(
+            'testing',
+            'insert into pandora_automation_runs ...',
+            [],
+            new PDOException('SQLSTATE[40001]: Serialization failure: 1213 Deadlock found'),
+        );
+    });
+
+    $occurrence = Carbon::parse('2026-07-01 09:00:00', 'UTC');
+
+    app(AutomationDispatcher::class)->dispatch(
+        automation: $this->automation,
+        occurrence: $occurrence,
+        payload: [],
+        idempotencyKey: AutomationRun::keyFor((string) $this->automation->getKey(), $occurrence),
+    );
+})->throws(QueryException::class);

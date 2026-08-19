@@ -10,6 +10,8 @@ use Pandora\Exceptions\ApprovalNotPending;
 use Pandora\Jobs\ExecuteToolCall;
 use Pandora\Jobs\ResumeApprovedRun;
 use Pandora\Providers\Data\ToolCall;
+use Pandora\Runs\Run;
+use Pandora\Runs\RunCanceller;
 use Pandora\Tests\Fixtures\Tools\RefundOrderTool;
 use Pandora\Tests\Support\MakesTools;
 use Pandora\Tools\ToolExecution;
@@ -86,10 +88,39 @@ it('executes the tool once even when the resume job is delivered twice', functio
 
     // A duplicate delivery of the same job, the way an at-least-once queue
     // will eventually give you.
-    ResumeApprovedRun::dispatchSync((string) $this->approval->getKey());
+    ResumeApprovedRun::dispatchSync(
+        (string) $this->approval->getKey(),
+        $this->pausedRun->tenant_id,
+        $this->pausedRun->actor_type,
+        $this->pausedRun->actor_id,
+    );
 
     expect(RefundOrderTool::$refunds)->toHaveCount(1);
 });
+
+/**
+ * A redelivery has to carry what the queue would have carried.
+ *
+ * `ExecuteToolCall` restores the tenant and the actor from its own payload
+ * before it does anything, and a real at-least-once redelivery brings both.
+ * Dispatching without them was the whole reason this test used to pass: the
+ * actor came back null, `RefundOrderTool::authorize()` refuses when there is
+ * no user, and the gatekeeper denied the second call. It was proving that a
+ * job stripped of its actor is denied — true, and nothing to do with
+ * idempotency. Every guard in `ExecuteToolCall` could be deleted and it stayed
+ * green (verified 2026-08-19); dispatched faithfully, the same removal refunds
+ * the customer twice.
+ */
+function redeliver(ToolExecution $execution, Run $run): void
+{
+    ExecuteToolCall::dispatchSync(
+        (string) $execution->getKey(),
+        $run->tenant_id,
+        true,
+        $run->actor_type,
+        $run->actor_id,
+    );
+}
 
 it('does not re-apply a tool when its own job is retried', function (): void {
     app(ApprovalManager::class)->approve($this->approval, null, authorize: false);
@@ -97,8 +128,59 @@ it('does not re-apply a tool when its own job is retried', function (): void {
     /** @var ToolExecution $execution */
     $execution = ToolExecution::query()->where('run_id', $this->pausedRun->getKey())->firstOrFail();
 
-    ExecuteToolCall::dispatchSync((string) $execution->getKey());
-    ExecuteToolCall::dispatchSync((string) $execution->getKey());
+    redeliver($execution, $this->pausedRun);
+    redeliver($execution, $this->pausedRun);
+
+    expect(RefundOrderTool::$refunds)->toHaveCount(1);
+});
+
+/**
+ * The redelivery that arrives while the run is still going.
+ *
+ * Two guards stop a repeated execution — the terminal execution row at the top
+ * of `ExecuteToolCall::handle()`, and the terminal run below it — and in the
+ * test above they cover for each other, so removing either one alone leaves it
+ * green. Neither is thereby proved.
+ *
+ * This is the case where only the first of them stands: a run with two parked
+ * calls, one approved and finished, the other still waiting on a human. The
+ * run is `waiting_for_tool` rather than terminal, so a duplicate delivery of
+ * the finished call gets past the run check and the execution row is the only
+ * thing between an at-least-once queue and a second refund. It is also the
+ * ordinary shape of the problem: a queue redelivers while work is in flight,
+ * not after everything has settled.
+ */
+it('does not re-apply a finished call when the run is still waiting on another', function (): void {
+    RefundOrderTool::$refunds = [];
+
+    // The paused run from `beforeEach` left the script mid-way, on the reply
+    // it never reached. Appending to it would hand this run that reply instead
+    // of the tool calls it is about.
+    $this->fakeProvider()
+        ->reset()
+        ->willRequestTools([
+            new ToolCall('call_a', 'refund_order', ['reference' => 'ORD-A', 'amount_minor' => 100]),
+            new ToolCall('call_b', 'refund_order', ['reference' => 'ORD-B', 'amount_minor' => 200]),
+        ])
+        ->willRespondWith('Done.');
+
+    $run = $this->runToolAgent('Refund both orders.');
+
+    $approvals = Approval::query()->where('run_id', $run->getKey())->orderBy('id')->get();
+    expect($approvals)->toHaveCount(2);
+
+    // One approved, one still parked.
+    app(ApprovalManager::class)->approve($approvals[0], null, authorize: false);
+
+    /** @var ToolExecution $finished */
+    $finished = ToolExecution::query()->findOrFail($approvals[0]->tool_execution_id);
+
+    expect(RefundOrderTool::$refunds)->toHaveCount(1)
+        ->and($finished->status->isTerminal())->toBeTrue()
+        // The run has not ended: the second call is still waiting on a human.
+        ->and($run->fresh()->state->isTerminal())->toBeFalse();
+
+    redeliver($finished, $run);
 
     expect(RefundOrderTool::$refunds)->toHaveCount(1);
 });
@@ -149,4 +231,37 @@ it('re-validates at execution time, so tampered arguments cannot slip through', 
     expect(RefundOrderTool::$refunds)->toBe([])
         ->and(ToolExecution::query()->findOrFail($execution->getKey())->status->value)
         ->toBe('denied');
+});
+
+/**
+ * A cancelled run stays cancelled, whatever the approvals page still shows.
+ *
+ * The stale-button case: an operator stops a run, and someone who still had
+ * the approvals page open presses Approve on the request it was parked on.
+ * `ResumeApprovedRun` checks the run is not terminal before it does anything,
+ * and nothing in the suite reached that check — removing it left every
+ * cancellation and approval test green (verified 2026-08-19).
+ *
+ * `ExecuteToolCall` would still refuse to run the tool, so no refund is issued
+ * either way and asserting only that proves nothing. What the guard actually
+ * decides is whether the resume touches the run at all: without it the parked
+ * call is dragged back to `pending`, dispatched, and closed again as cancelled
+ * — three writes and a trace entry on a run that ended, describing work that
+ * never happened.
+ */
+it('does nothing when the run was cancelled before the approval was answered', function (): void {
+    /** @var ToolExecution $execution */
+    $execution = ToolExecution::query()->where('run_id', $this->pausedRun->getKey())->firstOrFail();
+
+    $cancelled = app(RunCanceller::class)->cancel($this->pausedRun, 'Operator pressed stop.');
+    expect($cancelled->state->isTerminal())->toBeTrue();
+
+    app(ApprovalManager::class)->approve($this->approval->fresh(), null, authorize: false);
+
+    expect(RefundOrderTool::$refunds)->toBe([])
+        // Untouched: still parked exactly as the cancellation left it.
+        ->and(ToolExecution::query()->findOrFail($execution->getKey())->status)
+        ->toBe($execution->status)
+        ->and(Run::query()->findOrFail($this->pausedRun->getKey())->state->isTerminal())
+        ->toBeTrue();
 });
