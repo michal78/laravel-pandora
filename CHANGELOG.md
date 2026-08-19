@@ -10,7 +10,12 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
-## Unreleased
+## v0.1.3 — 2026-08-19
+
+**This release carries two security fixes.** Untrusted content could close its own delimiter and
+continue outside it in a `system` message — a memory is the one that matters, because it persists —
+and `read_config` could publish an allowlisted credential-shaped key into a tool result. Both are
+detailed below. Hosts should upgrade; no host action is required beyond doing so.
 
 Phase 9's threat audit continues. First T1, T4, T10 and T11, chosen because all four sit where a
 fake stands in for a real boundary; then T12 and T14, chosen because a concurrency test that never
