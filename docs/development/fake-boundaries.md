@@ -158,6 +158,12 @@ because there is no class called `FakeConcurrency` — the fake is the *shape of
 It is also, unlike the others, a fake standing at the boundary of a mitigation that exists purely
 *for* the boundary. A row lock does nothing whatsoever in a serial test. It cannot fail one either.
 
+**Also cannot prove:** anything a job is supposed to carry with it. `QUEUE_CONNECTION=sync` in
+`phpunit.xml.dist` runs every job inline, in the caller's process, inside whatever context the caller
+had already entered. A real worker starts with none of that: no request, no session, no ambient
+tenant, no actor. So any context a job re-establishes for itself is, in this suite, being handed to
+it anyway by the process that dispatched it.
+
 **Found 2026-08-19.** `Security/ApprovalRaceTest`'s "consumes an approval exactly once when two
 approvers race" is two `approve()` calls in a row, which proves `resolve()`'s `isPending()` status
 check and nothing else. Deleting `lockForUpdate()` from `ApprovalManager::resolve()` left all 1,809
@@ -176,6 +182,24 @@ tests; removing either lock fails exactly the one that names it, verified by rem
 `Security/ApprovalRaceTest`'s redeliveries now carry tenant and actor, and a new case redelivers
 while the run is still waiting on another call — the only scenario where the execution-row guard
 stands alone rather than being covered by the terminal-run check beside it.
+
+**Found again 2026-08-19, in T2 — the same fake, the other facet.** `ResolvesPandoraContext`
+re-enters the tenant a job carries, with a docblock naming the stake: "Forgetting this is the classic
+way a queued job silently reads across every tenant." Removing the re-entry — both by nulling the
+carried tenant and by dropping the `with()` wrapper so the job inherits the worker's context — left
+all 1,818 tests passing, twice. Under `sync` the ambient tenant stands in for the carried one, so the
+carried one was never load-bearing.
+
+A second reason it survived is worth stating separately, because it is not about the runner at all:
+**losing a tenant does not make a read fail, it makes it wider.** With no tenant resolved the global
+scope is inert, so the job finds its own run, does its work, and succeeds. Every assertion that the
+job *worked* passes with the control removed. This mitigation's failure mode is a leak rather than an
+error, and a suite written in "it worked" assertions is structurally unable to see one.
+
+**Closed by:** `Security/QueuedJobTenancyTest` dispatches from outside any tenant — the way a worker
+actually starts — and asserts the leak rather than the success: an audit row must carry the tenant
+the job was handed, and a job given another tenant's run id must leave that run in `queued`. Both
+tests fail under both ablations.
 
 **Still open, accepted:** SQLite. `lockForUpdate()` compiles to nothing there, because SQLite has no
 row locking — what stands in its place is the database-wide write lock a transaction takes, which is

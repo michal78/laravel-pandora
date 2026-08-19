@@ -14,12 +14,19 @@ All notable changes to this project are documented here. The format follows
 
 Phase 9's threat audit continues. First T1, T4, T10 and T11, chosen because all four sit where a
 fake stands in for a real boundary; then T12 and T14, chosen because a concurrency test that never
-actually contends passes trivially and nothing about reading it says so. T10 and most of T12 audited
-clean, which is a result rather than an absence of one.
+actually contends passes trivially and nothing about reading it says so; then T2, expected to be the
+dull one. T10 and most of T12 audited clean, which is a result rather than an absence of one.
 
 The T12/T14 findings are all in the **suite** rather than in shipped behaviour — no security fix was
 needed — and the root cause of four of the five is that the suite runs serially, so every row lock in
 the codebase was untestable and therefore untested.
+
+T2's are the same: no shipped behaviour was wrong, and both findings are about what the suite could
+not see. Tenancy has more tests than any other threat in the model and all three of its controls held
+under removal — but nothing checked that any given *model* had opted into the scope, and nothing
+checked that a queued job re-enters the tenant it carries. The second one shares a root cause with
+T12/T14: jobs run inline under `QUEUE_CONNECTION=sync`, so the dispatching process hands a job the
+context a real worker would have had to re-establish for itself.
 
 ### Security
 
@@ -109,6 +116,29 @@ the codebase was untestable and therefore untested.
   production it would answer *this webhook was already processed* to a delivery that was in fact
   dropped. The insert now fails for a reason that is not uniqueness, and the fault has to come back
   out as a fault.
+- **`Security/TenantScopeCoverageTest`** (T2) — the tenant scope's *opt-in*, which was a convention
+  rather than a control. Removing `use BelongsToTenant;` from each of the 26 models that carry it,
+  one at a time, found six that left the whole suite green: `Approval`, `AuditLog`, `Observation`,
+  `WebhookDelivery`, `ChannelDelivery` and `ChannelLinkCode` — the first two being the record of who
+  authorised a destructive tool call and the record that it happened. It hid because the write side
+  never depended on the trait (`ApprovalManager::request()` and `AuditLogger::record()` set
+  `tenant_id` explicitly) and because no test ever performed a cross-tenant *read* of those models —
+  a deleted scope is invisible to a same-tenant read. The new test asks the migrated schema which
+  tables carry a `tenant_id` column and requires the trait on every model mapping to one, so the
+  model this is really about — the one added next month — cannot omit it. `ProviderCredential` is the
+  single exemption, pinned by a test of its own.
+- **`Security/QueuedJobTenancyTest`** (T2) — the tenant a queued job carries.
+  `ResolvesPandoraContext` re-enters it, with a docblock naming the stake: "Forgetting this is the
+  classic way a queued job silently reads across every tenant." Removing the re-entry left all 1,818
+  tests passing, twice — once by nulling the carried tenant, once by dropping the wrapper so the job
+  inherits the worker's context. Under `sync` the ambient tenant stands in for the carried one; and
+  losing a tenant does not make a read fail, it makes it *wider*, so the job finds its run and
+  succeeds and every "it worked" assertion passes. The new tests dispatch from outside any tenant,
+  the way a worker actually starts, and assert the leak: an audit row must carry the tenant the job
+  was handed, and a job given another tenant's run id must leave that run in `queued`.
+- **Two tests naming `Approval` and `AuditLog` in `TenantIsolationTest`** (T2). The two objects with
+  real authority deserve an assertion a reader can find by name; the approval case asserts
+  unreachability *by id* through `ApprovalManager::approve()`, not merely absence from a list.
 - **`Security/UntrustedContextTest`, `InjectionToDestructiveCallTest`,
   `ApprovalArgumentFidelityTest`, `ApprovalFloorAgreementTest`** (T1). The end-to-end one is the
   sentence the threat model actually makes and nothing had ever exercised: a model reads a poisoned

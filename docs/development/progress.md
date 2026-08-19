@@ -5,6 +5,83 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-19 — The scope nobody opted into
+
+The fourth Phase 9 audit session, same branch. T2 next, and picked partly because it looked safe:
+tenancy has more tests than any other threat in the model — six files, forty-two tests — and its one
+known structural gap was closed back in August. **14 of 34 criteria; the removal audit at 11 of 15.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,820 passed, 90 skipped (6,081 assertions)
+vendor/bin/pest (mysql)   -> 1,825 passed, 85 skipped (6,089 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+**Recorded rather than resolved: one MySQL run out of six was not clean.** The first full run against
+MySQL 8.4 reported 2 failed, 1,823 passed; the names were not captured, and the five runs since —
+one immediately after, then three consecutively to hunt it — have all been 1,825 passed. So this is
+logged as an intermittent of unknown identity rather than a clean leg. It is not obviously related to
+this session's work: the new tests were run against MySQL on their own and passed, and nothing here
+touches production code. The honest statement is that the MySQL leg passes and something in it is
+occasionally flaky, which is a thing to catch the next time it appears rather than to assert away
+now.
+
+**The three controls held.** Delete the `where` clause from `BelongsToTenant`'s global scope: 17
+tests red. Delete the `creating` hook that stamps `tenant_id`: 13 red. Stop `TenantManager::current()`
+consulting the host resolver: 8 red — the same eight as 2026-08-11, which is a satisfying thing to be
+able to reproduce.
+
+**Then the same question one level down.** Those ablations prove the scope works; none proves any
+particular model asked for it. So the trait came off each of the 26 models carrying it, one at a
+time, full suite against each — 26 runs, about 45 minutes. **Twenty are load-bearing. Six are not.**
+`Approval`, `AuditLog`, `Observation`, `WebhookDelivery`, `ChannelDelivery`, `ChannelLinkCode`, each
+leaving all 1,813 tests green with its tenant scope deleted. The first two are the permission and the
+receipt: the object that authorises a destructive tool call, and the record that it happened.
+
+It hid for two reasons worth keeping. The write side never depended on the trait —
+`ApprovalManager::request()` and `AuditLogger::record()` set `tenant_id` explicitly — so every
+stamping assertion passes with the scope gone. And no test ever performed a cross-tenant *read* of
+those six: each is created and read back inside one tenant, and a scope that has been deleted is
+invisible to a same-tenant read. The suite exercised these models heavily while saying nothing about
+whether they were scoped.
+
+`Security/TenantScopeCoverageTest` closes it by not testing the six at all. It asks the migrated
+schema which tables carry a `tenant_id` column and requires the trait on every model mapping to one,
+because the model this is really about is the one added next month, and a table that does not exist
+yet has no test to go red. `ProviderCredential` is the one exemption — deployment-wide credentials
+have a null `tenant_id` on purpose — pinned by a test so widening the list is an argument in a diff.
+
+**The second finding is bigger and it is in the queue.** `ResolvesPandoraContext` re-enters the
+tenant a job carries, and its docblock says plainly: "Forgetting this is the classic way a queued job
+silently reads across every tenant." Removing the re-entry left **all 1,818 tests passing, twice** —
+once nulling the carried tenant, once dropping the `with()` wrapper so the job inherits the worker's
+context.
+
+`QUEUE_CONNECTION=sync` is half of why: jobs run inline, inside whatever tenant the caller had
+entered, so the ambient tenant stands in for the carried one. **That is the serial-runner finding
+from T12 and T14 wearing a second costume** — the runner is the fake, and this is the second control
+it has been caught disarming.
+
+The other half generalises past tenancy and is the part worth remembering. **Losing a tenant does not
+make a read fail; it makes it wider.** With no tenant resolved the global scope is inert, so the job
+finds its run, does its work, and succeeds. Every assertion that the job *worked* passes with the
+control removed. This mitigation's failure mode is a leak rather than an error, and a suite written
+in "it worked" assertions is structurally unable to see one — which is a fair description of how it
+survived eight phases.
+
+`Security/QueuedJobTenancyTest` dispatches from outside any tenant, the way a worker with no request
+and no session actually starts, and asserts the leak instead of the success: the audit row a job
+writes must carry the tenant the job was handed, and a job given another tenant's run id must leave
+that run sitting in `queued`. Both fail under both ablations.
+
+**Nothing shipped was wrong.** Both findings are about what the suite could not see, and no
+production line changed — the same result as T12/T14, for the fourth threat running.
+
+**Next.** Criterion 17 has T3, T5, T7, T8 and T13 left.
+
+---
+
 ## 2026-08-19 — The locks nobody could have broken
 
 The third Phase 9 audit session, on branch `phase-9/audit-exactly-once`. T12 and T14 chosen because
