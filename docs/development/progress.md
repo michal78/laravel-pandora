@@ -5,6 +5,95 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-19 — The locks nobody could have broken
+
+The third Phase 9 audit session, on branch `phase-9/audit-exactly-once`. T12 and T14 chosen because
+concurrency tests are the easiest kind to write green-and-wrong, and because both are about a
+property — exactly once — that only fails when two things happen at the same moment. **13 of 34
+criteria; the removal audit at 10 of 15.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,813 passed, 90 skipped (6,062 assertions)
+vendor/bin/pest (mysql)   -> 1,818 passed, 85 skipped (6,070 assertions)
+vendor/bin/pest (mariadb) -> the audited files, 45 passed (99 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+**Four of the five findings are one root cause, and nobody wrote it.** The suite runs serially on one
+connection. Every "race" in it is two sequential calls. A row lock does nothing in a serial test, and
+— this is the part that matters — it cannot fail one either.
+
+So: `lockForUpdate()` deleted from `ApprovalManager::resolve()`, all 1,809 tests green. Deleted from
+`ExecuteToolCall::fanIn()`, all 1,809 tests green. Both carry docblocks explaining that the lock is
+exactly what makes the guarantee "impossible rather than merely unlikely", and the suite had no way
+to check either sentence. `ApprovalRaceTest`'s "two approvers race" is two `approve()` calls in a row,
+which proves the `isPending()` status check and nothing else.
+
+This is a fake standing at a boundary, and it is the first one in the inventory with no object to
+point at — no `FakeConcurrency` class, nothing named, nothing chosen. The fake is the shape of the
+runner. `fake-boundaries.md` gains it as the eighth entry.
+
+**Proving a lock takes some care, because the obvious test passes either way.** Hold a row lock on a
+rival connection, ask the manager to resolve, and it throws — with the lock, blocked at the read;
+without it, blocked a moment later at the UPDATE. Same exception, same test, no information. The
+distinguishing move is to resolve an approval that is *already resolved*: with the lock the read
+never gets far enough to learn that, and a `QueryException` comes back; without it the read sails
+past and `ApprovalNotPending` does. `ExactlyOnceUnderLockTest` is five tests including a control that
+locks a different row, and removing either lock fails exactly the one that names it.
+
+It **skips on SQLite**, where `lockForUpdate()` compiles to nothing at all — SQLite has no row
+locking, and the database-wide write lock that stands in its place is a different mitigation needing
+a different proof. Passing vacuously on the leg where the control does not exist is the failure this
+phase is named for. Four server-engine legs run it. PostgreSQL is verified by CI rather than locally:
+`pdo_pgsql` is not installed on this machine, and MySQL 8.4 and MariaDB 11 were both run for real.
+
+**A test that measured the wrong thing entirely.** "Does not re-apply a tool when its own job is
+retried" dispatched the redelivery without the tenant and actor a real at-least-once queue carries.
+The actor came back null, the tool's own `authorize()` refuses when there is no user, and the
+gatekeeper denied the second call. It was proving that a job stripped of its actor is denied. Every
+idempotency guard in `ExecuteToolCall` could be deleted and it stayed green; dispatched faithfully,
+the same removal **refunds the customer twice** — verified both ways, which is the only reason to
+believe either.
+
+Fixing the dispatch was still not enough. Two guards stop a repeated execution, the terminal
+execution row and the terminal run below it, and in a finished run they cover for each other. The new
+case puts the redelivery where only the first stands: a run with two parked calls, one approved and
+done, the other still waiting on a human. Which is also the ordinary shape of the thing — a queue
+redelivers while work is in flight, not after everything has settled.
+
+**T12 audited clean on every rejection**, and that is most of T12. Forged, unsigned, malformed,
+stale, future-dated, wrong-secret, disabled, secretless, oversized and replayed each fail when their
+own check is removed. Dropping the timestamp out of the signed string fails one too, which is the
+clause that stops a captured request being re-dated.
+
+**The one T12 finding is in the definition of a replay.** `DetectsUniqueViolations` exists to keep
+the catch around a claiming INSERT narrow, and its docblock spells out the cost of getting it wrong:
+answer "already processed" to a delivery that was in fact dropped, and it surfaces months later as
+"some webhooks don't arrive". Nothing tested it — widening either catch to every `QueryException`
+left all 28 webhook and idempotency tests green, because they all reach a healthy database. Two tests
+now fail the insert for a reason that is not uniqueness (a lock-wait timeout, a deadlock — the same
+exception class on MySQL) and assert the fault comes back out as a fault.
+
+**One thing recorded rather than fixed.** `ExecuteToolCall::execute()` re-authorizes and acts only on
+`isDenied()`, so a decision of *requires approval* is treated as permission to proceed — and on the
+resume path that is always the decision, since a `once`-scoped approval covers nothing by the time
+the call runs. It never checks that the execution's own approval is approved. No path reaches it:
+everything that dispatches `ExecuteToolCall` goes through the coordinator's gatekeeping or through
+`ResumeApprovedRun`, which proceeds only on `Approved`. Adding the guard would be unverifiable code
+guarding nothing, which is the argument T6a already settled here. So it is written down, in the
+acceptance plan and here, as a latent gap in what T14's sentence actually asserts — the arguments and
+the gates, but not the approval.
+
+`hash_equals()` gets the same treatment for a different reason: no assertion about outcomes can tell
+it from `!==`, only timing can, and a timing test on shared CI is a test that gets deleted.
+
+**Still open, and now named.** Every test here proves a lock is taken and contends on the right row.
+None runs two processes at the same instant. Criterion 27 — fifty concurrent runs against one agent —
+is where that belongs, and it is untouched.
+
+---
+
 ## 2026-08-17 (later still) — The MySQL leg, and what a delimiter costs in DDL
 
 Not a phase task. The MySQL leg of the matrix took **604 seconds against MariaDB's 232** on identical

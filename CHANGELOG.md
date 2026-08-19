@@ -12,9 +12,14 @@ All notable changes to this project are documented here. The format follows
 
 ## Unreleased
 
-Phase 9's threat audit continues: T1, T4, T10 and T11, chosen because all four sit where a fake
-stands in for a real boundary. Three of the four produced findings; T10 audited clean, which is a
-result rather than an absence of one.
+Phase 9's threat audit continues. First T1, T4, T10 and T11, chosen because all four sit where a
+fake stands in for a real boundary; then T12 and T14, chosen because a concurrency test that never
+actually contends passes trivially and nothing about reading it says so. T10 and most of T12 audited
+clean, which is a result rather than an absence of one.
+
+The T12/T14 findings are all in the **suite** rather than in shipped behaviour — no security fix was
+needed — and the root cause of four of the five is that the suite runs serially, so every row lock in
+the codebase was untestable and therefore untested.
 
 ### Security
 
@@ -58,22 +63,6 @@ result rather than an absence of one.
   it did not. Found by deleting a mitigation and watching nothing fail — the method was never on the
   enforcement path.
 
-### Added
-
-- **`Security/UntrustedContextTest`, `InjectionToDestructiveCallTest`,
-  `ApprovalArgumentFidelityTest`, `ApprovalFloorAgreementTest`** (T1). The end-to-end one is the
-  sentence the threat model actually makes and nothing had ever exercised: a model reads a poisoned
-  document and then demands a refund, in one run, through the real loop. The fake provider obeys the
-  injection completely, on purpose — the mitigation has to be the layers, not the model's judgement.
-- **`Security/CredentialExtractionTest`** (T4) — the extraction clause, which had no test.
-- **A broadcast test that checks what its name claims** (T11). `BroadcastTest` had one called
-  "versions and redacts every broadcast payload" that asserted nothing about redaction and passed
-  with the redactor deleted from the base class. Renamed to what it does, with the promised
-  assertion added beside it.
-
-
-## Unreleased
-
 ### Changed
 
 - **The MySQL leg of the matrix runs in a fraction of the time.** It took 604 seconds against
@@ -95,6 +84,41 @@ result rather than an absence of one.
 - **The table listing is cached for the life of the process.** `Schema::getTables()` ran once per
   test, which on MySQL 8 is a data-dictionary query, to answer a question whose answer changes only
   when the migrations do. Invalidated in the one place the schema is rebuilt.
+
+### Added
+
+- **`Security/ExactlyOnceUnderLockTest`** (T14) — the two row locks that carry "exactly once", which
+  nothing had ever exercised. Deleting `lockForUpdate()` from `ApprovalManager::resolve()` left all
+  1,809 tests green, and deleting it from `ExecuteToolCall::fanIn()` did too: a lock does nothing in
+  a serial test and cannot fail one. The new tests open a second connection to the same database and
+  hold a real row lock on it. They **skip on SQLite**, where `lockForUpdate()` compiles to nothing
+  because SQLite has no row locking, and run on the four server-engine legs of the matrix.
+- **Two idempotency tests that now dispatch what a queue would dispatch** (T14). The retry cases sent
+  `ExecuteToolCall` without the tenant and actor a real at-least-once redelivery carries, so the
+  actor came back null and the tool's own `authorize()` refused the second call — they were proving
+  that a job stripped of its actor is denied. Every guard in `ExecuteToolCall` could be deleted and
+  they stayed green; dispatched faithfully, the same removal refunds the customer twice. A further
+  case redelivers while the run is still waiting on another call, which is the only scenario where
+  the execution-row guard stands alone rather than being covered by the terminal-run check beside it.
+- **A test for the stale Approve button on a cancelled run** (T14). `ResumeApprovedRun` refuses to
+  act on a terminal run, and nothing reached that check.
+- **Two tests for what counts as a replay** (T12). Replay protection is a unique INSERT, so both
+  `WebhookReceiver` and `AutomationDispatcher` catch a constraint violation as a normal outcome, and
+  `DetectsUniqueViolations` keeps that catch narrow. Widening either to every `QueryException` left
+  all 28 webhook and idempotency tests green — they all reach a healthy database — while in
+  production it would answer *this webhook was already processed* to a delivery that was in fact
+  dropped. The insert now fails for a reason that is not uniqueness, and the fault has to come back
+  out as a fault.
+- **`Security/UntrustedContextTest`, `InjectionToDestructiveCallTest`,
+  `ApprovalArgumentFidelityTest`, `ApprovalFloorAgreementTest`** (T1). The end-to-end one is the
+  sentence the threat model actually makes and nothing had ever exercised: a model reads a poisoned
+  document and then demands a refund, in one run, through the real loop. The fake provider obeys the
+  injection completely, on purpose — the mitigation has to be the layers, not the model's judgement.
+- **`Security/CredentialExtractionTest`** (T4) — the extraction clause, which had no test.
+- **A broadcast test that checks what its name claims** (T11). `BroadcastTest` had one called
+  "versions and redacts every broadcast payload" that asserted nothing about redaction and passed
+  with the redactor deleted from the base class. Renamed to what it does, with the promised
+  assertion added beside it.
 
 
 ## v0.1.2 — 2026-08-17

@@ -1,6 +1,6 @@
 # Phase 9 — Acceptance Test Plan
 
-> **Status: 11 of 34 criteria accepted** (1, 4, 6, 7, 10, 11, 12, 16, 19, 20, 21). Nothing here is ticked by inheritance.
+> **Status: 13 of 34 criteria accepted** (1, 4, 6, 7, 10, 11, 12, 13, 15, 16, 19, 20, 21). Nothing here is ticked by inheritance.
 >
 > Every previous phase wrote tests and then claimed the criteria those tests were written for. Phase 9
 > is the phase that claims T1–T15, and it is the first one where the claim is about the *suite* rather
@@ -93,11 +93,11 @@ whether or not the control is present proves the control is untested, not that i
 | 10 ✅ | **T9** — **an imported skill is never executed**: a skill body carrying install instructions, a shell command or a tool call produces ~~instructions in context~~ **nothing in context** and no execution anywhere | `Skills/UntrustedSkillTest` — 6 tests; the criterion's own wording was wrong, see below |
 | 11 ✅ | **T10** — a hostile MCP server cannot reach a model with an unapproved tool, an unapproved description, or a name that resolves where a core tool is expected | `Mcp/UntrustedDescriptionTest` · `Mcp/SchemaHashTest` · `Mcp/NamespaceTest` · `Mcp/ApprovalTest` — 39 tests, audited clean, all three mitigations fail on removal |
 | 12 ✅ | **T11** — no broadcast carries a system prompt, a secret, sensitive tool arguments or an exception dump, and a private channel refuses an unauthorised subscriber | `Security/BroadcastAuthorizationTest` · `Security/SecretRedactionTest` · `Realtime/BroadcastTest` *(one test renamed and one added — it claimed redaction and never checked it)* |
-| 13 ⬜ | **T12** — a forged, replayed, stale or wrong-secret webhook is refused; a valid one is processed exactly once | `Automation/WebhookTest` · `Automation/IdempotencyTest` |
+| 13 ✅ | **T12** — a forged, replayed, stale or wrong-secret webhook is refused; a valid one is processed exactly once | `Automation/WebhookTest` · `Automation/IdempotencyTest` — audited clean on all four rejections; **one finding** in the narrowing that decides what counts as a replay, see below |
 | 14 ⬜ | **T13** — every control-center page and action is behind a gate; an authenticated non-admin reaches none of them, and prompts, tool I/O, costs and audit logs gate separately | `Security/ToolIoVisibilityTest` · `UI/*` |
-| 15 ⬜ | **T14** — an approval is consumed exactly once under the run lock, and the tool call is re-validated at execution against the arguments approved | `Security/ApprovalRaceTest` · `Security/ApprovalAuthorizationTest` |
+| 15 ✅ | **T14** — an approval is consumed exactly once under the run lock, and the tool call is re-validated at execution against the arguments approved | `Security/ApprovalRaceTest` · `Security/ApprovalAuthorizationTest` · `Approvals/ApprovalResolutionTest` · **new** `Security/ExactlyOnceUnderLockTest` — **three findings**, see below |
 | 16 ✅ | **T15** — no model uses `$guarded = []`; every one declares `$fillable`, asserted by reflection over `src/` so a new model cannot omit it | `Architecture/ModuleBoundaryTest` — 3 added tests over 29 models; red when one model is switched to `$guarded = []`, verified by switching one |
-| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **8 of 15 done** (2026-08-17): T1, T4, T6a, T6b, T9, T10, T11, T15. Remaining: T2, T3, T5, T7, T8, T12, T13, T14 |
+| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **10 of 15 done** (2026-08-19): T1, T4, T6a, T6b, T9, T10, T11, T12, T14, T15. Remaining: T2, T3, T5, T7, T8, T13 |
 
 ### The suite tells the truth about what it tested
 
@@ -231,6 +231,90 @@ The rest of T11 needed nothing, and needed nothing *structurally*, which is the 
 `broadcastWith()` is final and every event routes through it, `MessageCreated` carries ids and a role
 and no content at all, no event carries tool arguments, and an unclassified exception yields a fixed
 sentence rather than its own message.
+
+## What auditing T12 and T14 found — 2026-08-19
+
+These two were chosen because concurrency tests are the easiest kind to write green-and-wrong: a race
+test that never actually contends passes trivially, and nothing about reading it says so. That
+prediction held, and harder than expected. **Four of the five findings are one root cause, and it is
+not a class anybody wrote.**
+
+**The suite runs serially, so every lock in the codebase was disarmed.** `ApprovalRaceTest`'s
+"consumes an approval exactly once when two approvers race" calls `approve()` twice in a row on one
+connection. That proves `resolve()`'s `isPending()` status check, and a check-then-write with no lock
+at all passes it identically. Deleting `lockForUpdate()` from `ApprovalManager::resolve()` left **all
+1,809 tests green**. Deleting it from `ExecuteToolCall::fanIn()` did too. Both methods carry docblocks
+saying the lock is precisely what makes the guarantee "impossible rather than merely unlikely" — and
+the suite had no way to check either sentence, because a row lock does nothing in a serial test and
+cannot fail one.
+
+This is a fake at a boundary with no object to point at: the fake is the shape of the runner. It is
+now the eighth entry in `fake-boundaries.md` and the only one nobody chose.
+
+**Closed by `Security/ExactlyOnceUnderLockTest`**, which opens a second connection to the same
+database and holds a real row lock on it. Telling the two outcomes apart needed care: with the lock
+present the manager's read blocks and times out, and without it the read sails through — but *both*
+end in an exception, because without the lock the manager blocks a moment later on the UPDATE
+instead. Asserting "it throws" would have passed either way. The test resolves an approval that is
+already resolved, so the answers separate cleanly — a `QueryException` when the decisive read is
+locked, `ApprovalNotPending` when it is not. Five tests; removing either lock fails exactly the one
+that names it. It **skips on SQLite**, where `lockForUpdate()` compiles to nothing, rather than
+passing vacuously on the leg where the control does not exist.
+
+**The idempotency tests never reached the guards they were named after.** "Does not re-apply a tool
+when its own job is retried" dispatched `ExecuteToolCall` without the tenant and actor a real
+at-least-once redelivery carries. The actor came back null, `RefundOrderTool::authorize()` refuses
+when there is no user, and the gatekeeper denied the second call. The test was proving that a job
+stripped of its actor is denied — true, and nothing whatsoever to do with idempotency. **Every guard
+in `ExecuteToolCall` could be deleted and it stayed green; dispatched faithfully, the same removal
+refunds the customer twice.** Verified both ways.
+
+Fixing the dispatch was not sufficient on its own. Two guards stop a repeated execution — the terminal
+execution row, and the terminal run below it — and in a run that has finished they cover for each
+other, so removing either alone still left the test green. The new case is the one where only the
+first stands: a run with two parked calls, one approved and finished, the other still waiting on a
+human, so the run is `waiting_for_tool` rather than terminal. That is also the ordinary shape of the
+problem — a queue redelivers while work is in flight, not after everything has settled.
+
+**A cancelled run's stale Approve button.** `ResumeApprovedRun` checks the run is not terminal before
+it does anything, and nothing in the suite reached that check; removing it left every cancellation and
+approval test green. No refund is issued either way, since `ExecuteToolCall` refuses independently —
+which is why asserting the refund count proves nothing here. What the guard decides is whether the
+resume touches the run at all: without it a parked call on a stopped run is dragged back to `pending`,
+dispatched, and closed again, with a trace entry describing work that never happened.
+
+**T12 audited clean on every rejection.** Forged, unsigned, malformed, stale, future-dated, wrong-
+secret, disabled, secretless, oversized and replayed all fail when their check is removed, one at a
+time. Dropping the timestamp from the signed string — the clause that stops an attacker rewriting `t`
+on a captured request — fails a test too. That is a good result and it is most of T12.
+
+**The one T12 finding is in what counts as a replay.** Replay protection is a unique INSERT, so both
+`WebhookReceiver` and `AutomationDispatcher` catch a constraint violation as a normal outcome, and
+`DetectsUniqueViolations` exists to keep that catch narrow. Its docblock names the cost of getting it
+wrong exactly: treating any query error as "already claimed" makes Pandora answer *this webhook was
+already processed* to a delivery it in fact dropped on the floor. **Nothing tested it.** Widening
+either catch to every `QueryException` left all 28 webhook and idempotency tests green, because every
+one of them reaches a healthy database. Two tests now make the insert fail for a reason that is not a
+uniqueness clash — a lock-wait timeout and a deadlock, which on MySQL arrive as the same class — and
+assert the fault comes back out as a fault.
+
+**Recorded, not fixed: re-authorization treats "requires approval" as permission to proceed.**
+`ExecuteToolCall::execute()` re-runs the gatekeeper and acts only on `isDenied()`. On the resume path
+the gatekeeper always answers *requires approval* — the approval had `once` scope, so it covers
+nothing by the time the call runs — and the job proceeds without checking that the execution's own
+approval is in fact approved. Every path that dispatches `ExecuteToolCall` today goes through either
+the coordinator's gatekeeping or `ResumeApprovedRun`, which only proceeds on `Approved`, so there is
+no reachable case: the guard would be unverifiable code guarding nothing, which is the reasoning T6a
+already settled for this repository. It is written down here because it is a *latent* gap in the
+sentence T14 makes — the re-validation asserts the arguments and the gates, and not the approval —
+and because the day a new dispatch path appears is the day it stops being latent.
+
+**Also recorded: two mitigations that cannot be tested behaviourally.** `hash_equals()` in
+`WebhookSignature::verify()` is indistinguishable from `!==` by any assertion about outcomes; only
+the timing differs, and a timing test on shared CI is a flaky test. And `Approvals/ApprovalResolutionTest`
+covers the expiry coercion — an approval whose window closed while it sat in the queue resolves as
+expired, not approved — which is a T14 clause the acceptance plan's *Claimed by* column did not name.
+That column is now correct.
 
 ## Design decisions taken for this phase
 

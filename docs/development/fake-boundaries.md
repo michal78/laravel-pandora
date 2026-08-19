@@ -145,6 +145,50 @@ are asserted in `Feature/InstallationTest`; the third is verified by hand.
 second CI leg with a deliberately minimal dependency set, or indirection in a status line that does
 not deserve it. Phase 9's example-application criterion (29) is the honest home for this.
 
+### The single test process — `tests/TestCase.php`
+
+**Stands for:** an application running several queue workers, several web processes, and more than
+one operator with the approvals page open.
+
+**Cannot prove:** anything that is only wrong when two things happen at once. The suite runs serially
+on one connection, so every "race" in it is two sequential calls, and a check-then-write with no lock
+around it passes identically to one held under `lockForUpdate()`. This is the fake nobody notices,
+because there is no class called `FakeConcurrency` — the fake is the *shape of the runner*.
+
+It is also, unlike the others, a fake standing at the boundary of a mitigation that exists purely
+*for* the boundary. A row lock does nothing whatsoever in a serial test. It cannot fail one either.
+
+**Found 2026-08-19.** `Security/ApprovalRaceTest`'s "consumes an approval exactly once when two
+approvers race" is two `approve()` calls in a row, which proves `resolve()`'s `isPending()` status
+check and nothing else. Deleting `lockForUpdate()` from `ApprovalManager::resolve()` left all 1,809
+tests green; deleting it from `ExecuteToolCall::fanIn()` did too. Both had docblocks explaining that
+the lock is what makes double resolution "impossible rather than merely unlikely" — a sentence the
+suite had no way to check.
+
+The same shape hid a second thing. `ExecuteToolCall`'s idempotency guards were never reached by the
+retry tests at all: those dispatched the redelivery without the actor a real queue would have
+carried, so the tool's own `authorize()` refused the second call and the count stayed at one.
+Dispatched faithfully, with every guard removed, the customer is refunded twice.
+
+**Closed by:** `Security/ExactlyOnceUnderLockTest` opens a **second connection** to the same database
+and holds a real row lock on it, so the contention is the engine's rather than the test's. Five
+tests; removing either lock fails exactly the one that names it, verified by removing each in turn.
+`Security/ApprovalRaceTest`'s redeliveries now carry tenant and actor, and a new case redelivers
+while the run is still waiting on another call — the only scenario where the execution-row guard
+stands alone rather than being covered by the terminal-run check beside it.
+
+**Still open, accepted:** SQLite. `lockForUpdate()` compiles to nothing there, because SQLite has no
+row locking — what stands in its place is the database-wide write lock a transaction takes, which is
+a different mitigation and would need a different proof. Rather than pass vacuously on the leg where
+the control does not exist, `ExactlyOnceUnderLockTest` **skips** on SQLite and runs on the four
+server-engine legs. A host deploying Pandora on SQLite has the guarantee by a route this suite does
+not assert.
+
+**Still open, accepted:** true simultaneity. Every test above proves the lock is *taken* and that it
+contends on the right row. None runs two processes at the same instant, because a test that depends
+on two workers interleaving is a test that goes flaky on a loaded runner and gets deleted. Criterion
+27 — fifty concurrent runs against one agent — is the honest home for that, and it is still open.
+
 ### Fixture packages — `tests/Extensions/`
 
 **Stands for:** Composer-installed extension packages, via a temporary `installed.json`.
@@ -169,9 +213,13 @@ and it still cost a phase. The question is **what class of defect can no longer 
 where that class gets caught instead. If the answer is "nowhere", that is a decision, and it belongs
 in this file where somebody can disagree with it.
 
-Four of the seven entries above were closed only after a defect or a walkthrough pointed at them, and
+Five of the eight entries above were closed only after a defect or a walkthrough pointed at them, and
 `FakeMcpServer` has now cost two: one argument-stripping bug and one SSRF. That is the pattern the
 inventory exists to break. The second `FakeMcpServer` entry is the more useful of the two, because it
 names a blind spot of a *different kind* — not "the fake models the far end imperfectly" but "the
 fake removes an entire layer from the test, and the layer it removes has its own security
 properties."
+
+The single-process entry is a third kind again, and the most uncomfortable: there is no object to
+point at. Nobody chose it, nothing is named after it, and it silently disarmed every lock in the
+codebase. When looking for fakes, the runner counts as one.
