@@ -5,6 +5,300 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-19 — The scope nobody opted into
+
+The fourth Phase 9 audit session, same branch. T2 next, and picked partly because it looked safe:
+tenancy has more tests than any other threat in the model — six files, forty-two tests — and its one
+known structural gap was closed back in August. **14 of 34 criteria; the removal audit at 11 of 15.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,820 passed, 90 skipped (6,081 assertions)
+vendor/bin/pest (mysql)   -> 1,825 passed, 85 skipped (6,089 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+**Recorded rather than resolved: one MySQL run out of six was not clean.** The first full run against
+MySQL 8.4 reported 2 failed, 1,823 passed; the names were not captured, and the five runs since —
+one immediately after, then three consecutively to hunt it — have all been 1,825 passed. So this is
+logged as an intermittent of unknown identity rather than a clean leg. It is not obviously related to
+this session's work: the new tests were run against MySQL on their own and passed, and nothing here
+touches production code. The honest statement is that the MySQL leg passes and something in it is
+occasionally flaky, which is a thing to catch the next time it appears rather than to assert away
+now.
+
+**The three controls held.** Delete the `where` clause from `BelongsToTenant`'s global scope: 17
+tests red. Delete the `creating` hook that stamps `tenant_id`: 13 red. Stop `TenantManager::current()`
+consulting the host resolver: 8 red — the same eight as 2026-08-11, which is a satisfying thing to be
+able to reproduce.
+
+**Then the same question one level down.** Those ablations prove the scope works; none proves any
+particular model asked for it. So the trait came off each of the 26 models carrying it, one at a
+time, full suite against each — 26 runs, about 45 minutes. **Twenty are load-bearing. Six are not.**
+`Approval`, `AuditLog`, `Observation`, `WebhookDelivery`, `ChannelDelivery`, `ChannelLinkCode`, each
+leaving all 1,813 tests green with its tenant scope deleted. The first two are the permission and the
+receipt: the object that authorises a destructive tool call, and the record that it happened.
+
+It hid for two reasons worth keeping. The write side never depended on the trait —
+`ApprovalManager::request()` and `AuditLogger::record()` set `tenant_id` explicitly — so every
+stamping assertion passes with the scope gone. And no test ever performed a cross-tenant *read* of
+those six: each is created and read back inside one tenant, and a scope that has been deleted is
+invisible to a same-tenant read. The suite exercised these models heavily while saying nothing about
+whether they were scoped.
+
+`Security/TenantScopeCoverageTest` closes it by not testing the six at all. It asks the migrated
+schema which tables carry a `tenant_id` column and requires the trait on every model mapping to one,
+because the model this is really about is the one added next month, and a table that does not exist
+yet has no test to go red. `ProviderCredential` is the one exemption — deployment-wide credentials
+have a null `tenant_id` on purpose — pinned by a test so widening the list is an argument in a diff.
+
+**The second finding is bigger and it is in the queue.** `ResolvesPandoraContext` re-enters the
+tenant a job carries, and its docblock says plainly: "Forgetting this is the classic way a queued job
+silently reads across every tenant." Removing the re-entry left **all 1,818 tests passing, twice** —
+once nulling the carried tenant, once dropping the `with()` wrapper so the job inherits the worker's
+context.
+
+`QUEUE_CONNECTION=sync` is half of why: jobs run inline, inside whatever tenant the caller had
+entered, so the ambient tenant stands in for the carried one. **That is the serial-runner finding
+from T12 and T14 wearing a second costume** — the runner is the fake, and this is the second control
+it has been caught disarming.
+
+The other half generalises past tenancy and is the part worth remembering. **Losing a tenant does not
+make a read fail; it makes it wider.** With no tenant resolved the global scope is inert, so the job
+finds its run, does its work, and succeeds. Every assertion that the job *worked* passes with the
+control removed. This mitigation's failure mode is a leak rather than an error, and a suite written
+in "it worked" assertions is structurally unable to see one — which is a fair description of how it
+survived eight phases.
+
+`Security/QueuedJobTenancyTest` dispatches from outside any tenant, the way a worker with no request
+and no session actually starts, and asserts the leak instead of the success: the audit row a job
+writes must carry the tenant the job was handed, and a job given another tenant's run id must leave
+that run sitting in `queued`. Both fail under both ablations.
+
+**Nothing shipped was wrong.** Both findings are about what the suite could not see, and no
+production line changed — the same result as T12/T14, for the fourth threat running.
+
+**Next.** Criterion 17 has T3, T5, T7, T8 and T13 left.
+
+---
+
+## 2026-08-19 — The locks nobody could have broken
+
+The third Phase 9 audit session, on branch `phase-9/audit-exactly-once`. T12 and T14 chosen because
+concurrency tests are the easiest kind to write green-and-wrong, and because both are about a
+property — exactly once — that only fails when two things happen at the same moment. **13 of 34
+criteria; the removal audit at 10 of 15.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,813 passed, 90 skipped (6,062 assertions)
+vendor/bin/pest (mysql)   -> 1,818 passed, 85 skipped (6,070 assertions)
+vendor/bin/pest (mariadb) -> the audited files, 45 passed (99 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+**Four of the five findings are one root cause, and nobody wrote it.** The suite runs serially on one
+connection. Every "race" in it is two sequential calls. A row lock does nothing in a serial test, and
+— this is the part that matters — it cannot fail one either.
+
+So: `lockForUpdate()` deleted from `ApprovalManager::resolve()`, all 1,809 tests green. Deleted from
+`ExecuteToolCall::fanIn()`, all 1,809 tests green. Both carry docblocks explaining that the lock is
+exactly what makes the guarantee "impossible rather than merely unlikely", and the suite had no way
+to check either sentence. `ApprovalRaceTest`'s "two approvers race" is two `approve()` calls in a row,
+which proves the `isPending()` status check and nothing else.
+
+This is a fake standing at a boundary, and it is the first one in the inventory with no object to
+point at — no `FakeConcurrency` class, nothing named, nothing chosen. The fake is the shape of the
+runner. `fake-boundaries.md` gains it as the eighth entry.
+
+**Proving a lock takes some care, because the obvious test passes either way.** Hold a row lock on a
+rival connection, ask the manager to resolve, and it throws — with the lock, blocked at the read;
+without it, blocked a moment later at the UPDATE. Same exception, same test, no information. The
+distinguishing move is to resolve an approval that is *already resolved*: with the lock the read
+never gets far enough to learn that, and a `QueryException` comes back; without it the read sails
+past and `ApprovalNotPending` does. `ExactlyOnceUnderLockTest` is five tests including a control that
+locks a different row, and removing either lock fails exactly the one that names it.
+
+It **skips on SQLite**, where `lockForUpdate()` compiles to nothing at all — SQLite has no row
+locking, and the database-wide write lock that stands in its place is a different mitigation needing
+a different proof. Passing vacuously on the leg where the control does not exist is the failure this
+phase is named for. Four server-engine legs run it. PostgreSQL is verified by CI rather than locally:
+`pdo_pgsql` is not installed on this machine, and MySQL 8.4 and MariaDB 11 were both run for real.
+
+**A test that measured the wrong thing entirely.** "Does not re-apply a tool when its own job is
+retried" dispatched the redelivery without the tenant and actor a real at-least-once queue carries.
+The actor came back null, the tool's own `authorize()` refuses when there is no user, and the
+gatekeeper denied the second call. It was proving that a job stripped of its actor is denied. Every
+idempotency guard in `ExecuteToolCall` could be deleted and it stayed green; dispatched faithfully,
+the same removal **refunds the customer twice** — verified both ways, which is the only reason to
+believe either.
+
+Fixing the dispatch was still not enough. Two guards stop a repeated execution, the terminal
+execution row and the terminal run below it, and in a finished run they cover for each other. The new
+case puts the redelivery where only the first stands: a run with two parked calls, one approved and
+done, the other still waiting on a human. Which is also the ordinary shape of the thing — a queue
+redelivers while work is in flight, not after everything has settled.
+
+**T12 audited clean on every rejection**, and that is most of T12. Forged, unsigned, malformed,
+stale, future-dated, wrong-secret, disabled, secretless, oversized and replayed each fail when their
+own check is removed. Dropping the timestamp out of the signed string fails one too, which is the
+clause that stops a captured request being re-dated.
+
+**The one T12 finding is in the definition of a replay.** `DetectsUniqueViolations` exists to keep
+the catch around a claiming INSERT narrow, and its docblock spells out the cost of getting it wrong:
+answer "already processed" to a delivery that was in fact dropped, and it surfaces months later as
+"some webhooks don't arrive". Nothing tested it — widening either catch to every `QueryException`
+left all 28 webhook and idempotency tests green, because they all reach a healthy database. Two tests
+now fail the insert for a reason that is not uniqueness (a lock-wait timeout, a deadlock — the same
+exception class on MySQL) and assert the fault comes back out as a fault.
+
+**One thing recorded rather than fixed.** `ExecuteToolCall::execute()` re-authorizes and acts only on
+`isDenied()`, so a decision of *requires approval* is treated as permission to proceed — and on the
+resume path that is always the decision, since a `once`-scoped approval covers nothing by the time
+the call runs. It never checks that the execution's own approval is approved. No path reaches it:
+everything that dispatches `ExecuteToolCall` goes through the coordinator's gatekeeping or through
+`ResumeApprovedRun`, which proceeds only on `Approved`. Adding the guard would be unverifiable code
+guarding nothing, which is the argument T6a already settled here. So it is written down, in the
+acceptance plan and here, as a latent gap in what T14's sentence actually asserts — the arguments and
+the gates, but not the approval.
+
+`hash_equals()` gets the same treatment for a different reason: no assertion about outcomes can tell
+it from `!==`, only timing can, and a timing test on shared CI is a test that gets deleted.
+
+**Still open, and now named.** Every test here proves a lock is taken and contends on the right row.
+None runs two processes at the same instant. Criterion 27 — fifty concurrent runs against one agent —
+is where that belongs, and it is untouched.
+
+---
+
+## 2026-08-17 (later still) — The MySQL leg, and what a delimiter costs in DDL
+
+Not a phase task. The MySQL leg of the matrix took **604 seconds against MariaDB's 232** on identical
+tests, and it is the leg the `tests complete` gate waits for, so it sat on the feedback loop of every
+PR.
+
+The shape said what it was before any theory did: the *median test* was 0.300s on MySQL and 0.110s on
+MariaDB, with p90 0.410 against 0.190. A flat penalty across 1,830 tests, not a handful of slow ones
+— 0.19s x 1,830 is 348s, and the gap was 372s. A fixed per-test cost, which meant the harness rather
+than any test.
+
+`TestCase` cannot wrap tests in a transaction, for a good and documented reason: Pandora catches
+unique-key violations as normal control flow and on PostgreSQL a failed statement poisons the
+enclosing transaction. So it empties every table between tests — ~35 tables x ~1,830 tests, about
+**64,000 statements per run** — and it used `TRUNCATE`.
+
+`TRUNCATE` is DDL. InnoDB drops and recreates the tablespace, MySQL 8 routes that through its
+transactional data dictionary, and it fsyncs, because **MySQL 8 ships the binary log on where MariaDB
+ships it off**. Verified rather than assumed, by starting both images and asking them:
+
+```
+mysql:8.4    -> log_bin = 1, sync_binlog = 1, innodb_flush_log_at_trx_commit = 1
+mariadb:11   -> log_bin = 0
+```
+
+Benchmarked a 35-table cleanup cycle on each, baseline subtracted:
+
+```
+MySQL 8.4  TRUNCATE, default          ~885 ms
+MariaDB 11 TRUNCATE, default          ~127 ms
+MySQL 8.4  TRUNCATE, tmpfs + no binlog ~70 ms
+MySQL 8.4  DELETE,   default            ~5 ms
+```
+
+So the cheapest fix was also the most portable one, and it needed no CI change at all: `DELETE` is
+ordinary DML. The table listing is now cached per process too — `Schema::getTables()` ran once per
+test, which on MySQL 8 is a data-dictionary query, to answer a question that changes only when the
+migrations do.
+
+Verified on a real MySQL 8.4 rather than by argument. Same 260 tests, same machine:
+
+```
+before (TRUNCATE) -> 260 passed (583 assertions), 395.77s
+after  (DELETE)   -> 260 passed (583 assertions),  31.34s
+full suite after  -> 1,809 passed, 85 skipped (6,051 assertions), 147.10s
+```
+
+`DELETE` does not reset `AUTO_INCREMENT`. Checked before relying on it: Pandora's keys are ULIDs, and
+the two auto-increment tables in play are Testbench's `users` and `jobs`, which no test asserts an id
+value against. A test that did would be asserting something no database guarantees — which is the
+same class of mistake as the JSON key ordering that made this leg red earlier the same day.
+
+**Rejected: subsetting the matrix.** Running the full suite on SQLite and one server engine, with
+only "engine-sensitive" tests elsewhere, would have been the obvious way to buy time. The argument
+against it is this repository's own history — the bug that made this leg red was MySQL's JSON key
+ordering, caught by an *approval UI* test nobody would ever have tagged engine-sensitive, and the
+`text` column width and skill-slug length before it were the same. The value of the matrix is
+catching things in tests you would not have thought to mark.
+
+Left on the table, in order: a real health check (`--health-cmd="exit 0"` declares every database
+container healthy instantly, which is a lie shared by all four legs), and `pest --parallel` with a
+database per worker, which `TestCase` already anticipates and warns about.
+
+---
+
+## 2026-08-17 (later) — Four audited threats, and two tests that were lying
+
+The second Phase 9 session, on branch `phase-9/audit-fake-adjacent-threats`. T1, T4, T10 and T11
+chosen because all four sit where a fake stands in for a real boundary, which is where every defect
+of the previous sessions had been. **11 of 34 criteria; the removal audit itself at 8 of 15.**
+
+```
+vendor/bin/pest        -> Tests: 1,808 passed, 85 skipped (6,046 assertions)
+vendor/bin/phpstan     -> [OK] No errors (level 8)
+vendor/bin/pint --test -> passed
+```
+
+**The prediction held for two of four and was wrong about T10, and being wrong is the useful part.**
+T10 has 39 tests over four files, and unbinding an approval from its schema hash, dropping the
+read-time description bound, and dropping the separator guard each turn tests red. Nothing to fix. A
+clean audit is a result: it is the only thing that makes the phase's remaining risk *smaller* rather
+than merely better described.
+
+**A delimiter the content could write.** T1 says untrusted content is "delimited and labelled".
+Three context providers did the labelling and none did the delimiting — `<file>`, `<memory>` and
+`<environment>` interpolated content straight between their markers, in a **system** message. Memory
+is the serious one because it persists: written by the `remember` tool, driven by model output, which
+may be reading an attacker's page. One crafted note and every later run in that scope carried it,
+past a marker it had closed, in the instruction region. `UntrustedBlock` neutralises the closing
+marker case- and whitespace-insensitively, and the two genuinely untrusted blocks moved out of the
+system role — where every other untrusted string in this system already was.
+
+**T1's sentence had never been tested, only its clauses.** Layer 5 against a decision object; the
+`tool` role for a delegated answer; the approval pause for a high-risk tool. The path between them
+was exercised by nothing, and the path is what an attacker walks. The new test has the fake provider
+obey the injection completely, on purpose: a real model usually would not, which is exactly why a
+test must not depend on it declining.
+
+**Two tests that named a mitigation and did not check it.** This is the failure criterion 17 exists
+to catch and it turned up twice in one day. The first was mine, written that morning: it counted the
+literal string `</file>`, which `</FILE>` is not, so it passed with the containment deleted. The
+second was older — `BroadcastTest`'s "versions and redacts every broadcast payload", which asserted
+the version, the event name and one value, and passed identically with the redactor removed from the
+base class. A test whose *name* claims a mitigation is worse than no test, because it is the reason
+nobody writes the real one.
+
+**Two smaller findings, both from removing something and watching nothing fail.**
+`RiskLevel::requiresApprovalByDefault()` hard-coded `high || critical` while the gatekeeper reads
+`pandora.approvals.required_for` — agreeing on the shipped defaults, so invisible, and never on the
+enforcement path at all. Its one caller is `pandora:tool:list`, so a deployment narrowing the floor
+got a console table claiming an approval requirement that did not exist. And `read_config` would
+publish `services.stripe.secret` if an operator allowlisted it, which is a line somebody could
+reasonably write while wiring up a tool.
+
+**What did not need changing, and why that is worth writing down.** T11's structure does the work:
+`broadcastWith()` is final and every event routes through it, `MessageCreated` carries ids and a role
+and no content at all, no event carries tool arguments, and an unclassified exception yields a fixed
+sentence instead of its own message. Four sub-claims, one repaired test, no code changed.
+
+**Process notes, since the audit's premise is not trusting green.** I reverted my own uncommitted
+`RiskLevel` fix with a careless `git checkout` and had to re-apply it. And a `vendor/bin/pest | tail`
+chained by `&&` to a `git commit -F -` heredoc hung for ten minutes on stdin — not a hanging test,
+which is what it looked like at first.
+
+Remaining on criterion 17: T2, T3, T5, T7, T8, T12, T13, T14.
+
+---
+
 ## 2026-08-17 — The first four threats, and the one the fakes were hiding
 
 Phase 9 opened on the four criteria that needed tests which did not exist at all — T6a, T6b, T9 and

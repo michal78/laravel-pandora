@@ -1,6 +1,6 @@
 # Phase 9 — Acceptance Test Plan
 
-> **Status: 7 of 34 criteria accepted** (6, 7, 10, 16, 19, 20, 21). Nothing here is ticked by inheritance.
+> **Status: 14 of 34 criteria accepted** (1, 2, 4, 6, 7, 10, 11, 12, 13, 15, 16, 19, 20, 21). Nothing here is ticked by inheritance.
 >
 > Every previous phase wrote tests and then claimed the criteria those tests were written for. Phase 9
 > is the phase that claims T1–T15, and it is the first one where the claim is about the *suite* rather
@@ -81,23 +81,23 @@ whether or not the control is present proves the control is untested, not that i
 
 | # | Criterion | Claimed by |
 |---|---|---|
-| 1 ⬜ | **T1** — injected instructions in a document, web page or tool result cannot reach a destructive tool call: authorization is against the actor, `high`/`critical` require approval, untrusted content is delimited and labelled, and the approval UI shows the real arguments | `Security/ToolAuthorizationTest` · `Delegation/UntrustedResultTest` · `Channels/UntrustedInboundTest` |
-| 2 ⬜ | **T2** — no cross-tenant read or write through any model, direct-ID lookup, page, console command or API resource, **with the tenant arriving from a bound host resolver rather than an override** | `Security/HostResolverTenancyTest` *(new, 2026-08-11)* · `Security/TenantIsolationTest` · `Security/ToolTenantIsolationTest` · `Memory/TenancyTest` · `Automation/TenancyTest` · `Channels/TenancyTest` |
+| 1 ✅ | **T1** — injected instructions in a document, web page or tool result cannot reach a destructive tool call: authorization is against the actor, `high`/`critical` require approval, untrusted content is delimited and labelled, and the approval UI shows the real arguments | `Security/ToolAuthorizationTest` · `Delegation/UntrustedResultTest` · `Channels/UntrustedInboundTest` · **new** `Security/UntrustedContextTest`, `InjectionToDestructiveCallTest`, `ApprovalArgumentFidelityTest`, `ApprovalFloorAgreementTest` — **three findings**, see below |
+| 2 ✅ | **T2** — no cross-tenant read or write through any model, direct-ID lookup, page, console command or API resource, **with the tenant arriving from a bound host resolver rather than an override** | `Security/HostResolverTenancyTest` *(new, 2026-08-11)* · `Security/TenantIsolationTest` · `Security/ToolTenantIsolationTest` · `Memory/TenancyTest` · `Automation/TenancyTest` · `Channels/TenancyTest` · `McpServer/TenancyTest` · **new** `Security/TenantScopeCoverageTest`, `Security/QueuedJobTenancyTest` — **two findings**, see below |
 | 3 ⬜ | **T3** — no cross-session context leak, including two participants on one channel account | `Security/SessionIsolationTest` · `Channels/SessionIsolationTest` · `Channels/UnlinkedIdentityTest` · `Channels/LinkRevocationTest` |
-| 4 ⬜ | **T4** — a provider credential is not in context, a step payload, a broadcast, an API resource or a log, and cannot be extracted by a prompt that asks for one | `Security/CredentialIsolationTest` · `Security/SecretLeakTest` · `Security/SecretRedactionTest` |
+| 4 ✅ | **T4** — a provider credential is not in context, a step payload, a broadcast, an API resource or a log, and cannot be extracted by a prompt that asks for one | `Security/CredentialIsolationTest` · `Security/SecretLeakTest` · `Security/SecretRedactionTest` · **new** `Security/CredentialExtractionTest` — the extraction clause had no test |
 | 5 ⬜ | **T5** — workspace path traversal and symlink escape are refused at the canonicalisation layer *and* at the disk root, with the second layer proved by disabling the first | `Workspaces/ContainmentTest` · `Workspaces/RootsTest` |
 | 6 ✅ | **T6a** — **no core tool performs an outbound HTTP request**, asserted architecturally so the day one does is the day CI goes red | `Architecture/NoOutboundHttpFromToolsTest` — 4 tests; red within seconds of adding a tool that calls `Http::get()`, verified by adding one |
 | 7 ✅ | **T6b** — the MCP HTTP transport's URL is operator-configured and cannot be selected, redirected or influenced by model output or tool arguments | `Mcp/TransportUrlOriginTest` — 7 tests; **found a live SSRF**, see below |
 | 8 ⬜ | **T7** — iteration, tool-call, token, monetary, wall-clock, duplicate-call, delegation-depth and autonomy limits each independently halt a run, each proved by removing the other limits | `Feature/BudgetEnforcementTest` · `Feature/ToolLoopTest` · `Tools/DuplicateCallTest` · `Delegation/DepthTest` · `Automation/AutonomyTest` |
 | 9 ⬜ | **T8** — a child run's abilities are the intersection; delegation never widens authority, including through a cycle or a re-delegation | `Delegation/IntersectionTest` · `Delegation/CycleTest` · `Delegation/AllowlistTest` |
 | 10 ✅ | **T9** — **an imported skill is never executed**: a skill body carrying install instructions, a shell command or a tool call produces ~~instructions in context~~ **nothing in context** and no execution anywhere | `Skills/UntrustedSkillTest` — 6 tests; the criterion's own wording was wrong, see below |
-| 11 ⬜ | **T10** — a hostile MCP server cannot reach a model with an unapproved tool, an unapproved description, or a name that resolves where a core tool is expected | `Mcp/UntrustedDescriptionTest` · `Mcp/SchemaHashTest` · `Mcp/NamespaceTest` · `Mcp/ApprovalTest` |
-| 12 ⬜ | **T11** — no broadcast carries a system prompt, a secret, sensitive tool arguments or an exception dump, and a private channel refuses an unauthorised subscriber | `Security/BroadcastAuthorizationTest` · `Security/SecretRedactionTest` |
-| 13 ⬜ | **T12** — a forged, replayed, stale or wrong-secret webhook is refused; a valid one is processed exactly once | `Automation/WebhookTest` · `Automation/IdempotencyTest` |
+| 11 ✅ | **T10** — a hostile MCP server cannot reach a model with an unapproved tool, an unapproved description, or a name that resolves where a core tool is expected | `Mcp/UntrustedDescriptionTest` · `Mcp/SchemaHashTest` · `Mcp/NamespaceTest` · `Mcp/ApprovalTest` — 39 tests, audited clean, all three mitigations fail on removal |
+| 12 ✅ | **T11** — no broadcast carries a system prompt, a secret, sensitive tool arguments or an exception dump, and a private channel refuses an unauthorised subscriber | `Security/BroadcastAuthorizationTest` · `Security/SecretRedactionTest` · `Realtime/BroadcastTest` *(one test renamed and one added — it claimed redaction and never checked it)* |
+| 13 ✅ | **T12** — a forged, replayed, stale or wrong-secret webhook is refused; a valid one is processed exactly once | `Automation/WebhookTest` · `Automation/IdempotencyTest` — audited clean on all four rejections; **one finding** in the narrowing that decides what counts as a replay, see below |
 | 14 ⬜ | **T13** — every control-center page and action is behind a gate; an authenticated non-admin reaches none of them, and prompts, tool I/O, costs and audit logs gate separately | `Security/ToolIoVisibilityTest` · `UI/*` |
-| 15 ⬜ | **T14** — an approval is consumed exactly once under the run lock, and the tool call is re-validated at execution against the arguments approved | `Security/ApprovalRaceTest` · `Security/ApprovalAuthorizationTest` |
+| 15 ✅ | **T14** — an approval is consumed exactly once under the run lock, and the tool call is re-validated at execution against the arguments approved | `Security/ApprovalRaceTest` · `Security/ApprovalAuthorizationTest` · `Approvals/ApprovalResolutionTest` · **new** `Security/ExactlyOnceUnderLockTest` — **three findings**, see below |
 | 16 ✅ | **T15** — no model uses `$guarded = []`; every one declares `$fillable`, asserted by reflection over `src/` so a new model cannot omit it | `Architecture/ModuleBoundaryTest` — 3 added tests over 29 models; red when one model is switched to `$guarded = []`, verified by switching one |
-| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — done for T6a, T6b, T9 and T15 (2026-08-17); the eleven inherited threats are unaudited |
+| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **11 of 15 done** (2026-08-19): T1, T2, T4, T6a, T6b, T9, T10, T11, T12, T14, T15. Remaining: T3, T5, T7, T8, T13 |
 
 ### The suite tells the truth about what it tested
 
@@ -180,6 +180,230 @@ the rule cannot start matching nothing. Two blind spots are written into the fil
 `WorkspaceTool` on an S3 disk, which does cause outbound traffic to an endpoint from `filesystems.php`
 that no model can influence. That last one is the same distinction T6b draws, which is why the test
 looks for HTTP *clients* rather than for network traffic.
+
+## What auditing T1, T4, T10 and T11 found — 2026-08-17
+
+These four were chosen first because all four sit where a fake stands in for a real boundary, which
+is where every defect of the previous three sessions had been. That prediction held for T1 and T4 and
+was wrong about T10, and being wrong about T10 is worth as much: **39 tests, three mitigations, every
+one of them red when removed, nothing to fix.** A clean audit is a result. It is also the only way
+the phase's remaining risk gets smaller rather than just better documented.
+
+**A delimiter untrusted content could write itself (T1).** The threat model says untrusted content is
+"delimited and labelled". Three providers did the labelling and none did the delimiting: `<file>`,
+`<memory>` and `<environment>` interpolated content straight between their markers, so the content
+could close the region and continue outside it — in a **system** message. Memory is the serious one,
+because it persists: a memory is written by the `remember` tool, driven by model output, which may be
+reading an attacker's page. One crafted note and every later run in that scope carried it in the
+instruction region. Fixed by `UntrustedBlock`, and the two genuinely untrusted blocks also moved out
+of the system role, where every other untrusted string in the system already is.
+
+**T1's sentence was tested nowhere, only its clauses.** Layer 5 is proved against a decision object,
+the `tool` role is proved for a delegated answer, the approval pause is proved for a high-risk tool.
+The path between them — one run, real loop, model reads a poisoned document and then demands a refund
+— was exercised by nothing. Each piece is asserted where it lives and the path is what an attacker
+walks. It now exists, with the fake provider obeying the injection completely on purpose: a real model
+usually would not, which is exactly why the test must not depend on it declining.
+
+**A console table that lied (T1).** Found by removing the risk floor and watching nothing fail.
+`RiskLevel::requiresApprovalByDefault()` hard-coded `high || critical`; the gatekeeper reads
+`pandora.approvals.required_for`. They agreed on the shipped defaults, so the divergence was
+invisible, and the method was never on the enforcement path — its one caller is `pandora:tool:list`.
+A deployment narrowing the floor to `critical` got a console table printing `required` beside tools
+that would run with nobody in the loop. **A control surface that disagrees with the control is worse
+than none**, because the person reading it is deciding whether the configuration is safe.
+
+**An allowlist entry could publish a credential (T4).** Fourteen tests prove a credential is absent
+from context, step payloads, the queue, broadcasts, logs, API resources and a logged exception, and
+all fourteen are sound. None asks whether a *tool* hands one over when asked, which is the only path
+a prompt has. `read_config` was already careful — exact-match allowlist, never a prefix — but an
+exact allowlist is a person's judgement, and `services.stripe.secret` is a key somebody could
+reasonably add while wiring up a tool. Credential-shaped keys are now refused even when allowlisted.
+
+**A test that named a mitigation and never checked it (T11).** `BroadcastTest` had one called
+"versions and redacts every broadcast payload" which asserted the version, the event name and one
+value. `RunStatusChanged` carries no sensitive key, so it passed identically with the redactor
+deleted from the base class. This is the failure criterion 17 exists to find, and it is the second
+one this phase has found — the first was in a test written earlier the same day, by the same author,
+for this same criterion. Renamed to what it does; the assertion it promised now sits beside it.
+
+The rest of T11 needed nothing, and needed nothing *structurally*, which is the good kind:
+`broadcastWith()` is final and every event routes through it, `MessageCreated` carries ids and a role
+and no content at all, no event carries tool arguments, and an unclassified exception yields a fixed
+sentence rather than its own message.
+
+## What auditing T12 and T14 found — 2026-08-19
+
+These two were chosen because concurrency tests are the easiest kind to write green-and-wrong: a race
+test that never actually contends passes trivially, and nothing about reading it says so. That
+prediction held, and harder than expected. **Four of the five findings are one root cause, and it is
+not a class anybody wrote.**
+
+**The suite runs serially, so every lock in the codebase was disarmed.** `ApprovalRaceTest`'s
+"consumes an approval exactly once when two approvers race" calls `approve()` twice in a row on one
+connection. That proves `resolve()`'s `isPending()` status check, and a check-then-write with no lock
+at all passes it identically. Deleting `lockForUpdate()` from `ApprovalManager::resolve()` left **all
+1,809 tests green**. Deleting it from `ExecuteToolCall::fanIn()` did too. Both methods carry docblocks
+saying the lock is precisely what makes the guarantee "impossible rather than merely unlikely" — and
+the suite had no way to check either sentence, because a row lock does nothing in a serial test and
+cannot fail one.
+
+This is a fake at a boundary with no object to point at: the fake is the shape of the runner. It is
+now the eighth entry in `fake-boundaries.md` and the only one nobody chose.
+
+**Closed by `Security/ExactlyOnceUnderLockTest`**, which opens a second connection to the same
+database and holds a real row lock on it. Telling the two outcomes apart needed care: with the lock
+present the manager's read blocks and times out, and without it the read sails through — but *both*
+end in an exception, because without the lock the manager blocks a moment later on the UPDATE
+instead. Asserting "it throws" would have passed either way. The test resolves an approval that is
+already resolved, so the answers separate cleanly — a `QueryException` when the decisive read is
+locked, `ApprovalNotPending` when it is not. Five tests; removing either lock fails exactly the one
+that names it. It **skips on SQLite**, where `lockForUpdate()` compiles to nothing, rather than
+passing vacuously on the leg where the control does not exist.
+
+**The idempotency tests never reached the guards they were named after.** "Does not re-apply a tool
+when its own job is retried" dispatched `ExecuteToolCall` without the tenant and actor a real
+at-least-once redelivery carries. The actor came back null, `RefundOrderTool::authorize()` refuses
+when there is no user, and the gatekeeper denied the second call. The test was proving that a job
+stripped of its actor is denied — true, and nothing whatsoever to do with idempotency. **Every guard
+in `ExecuteToolCall` could be deleted and it stayed green; dispatched faithfully, the same removal
+refunds the customer twice.** Verified both ways.
+
+Fixing the dispatch was not sufficient on its own. Two guards stop a repeated execution — the terminal
+execution row, and the terminal run below it — and in a run that has finished they cover for each
+other, so removing either alone still left the test green. The new case is the one where only the
+first stands: a run with two parked calls, one approved and finished, the other still waiting on a
+human, so the run is `waiting_for_tool` rather than terminal. That is also the ordinary shape of the
+problem — a queue redelivers while work is in flight, not after everything has settled.
+
+**A cancelled run's stale Approve button.** `ResumeApprovedRun` checks the run is not terminal before
+it does anything, and nothing in the suite reached that check; removing it left every cancellation and
+approval test green. No refund is issued either way, since `ExecuteToolCall` refuses independently —
+which is why asserting the refund count proves nothing here. What the guard decides is whether the
+resume touches the run at all: without it a parked call on a stopped run is dragged back to `pending`,
+dispatched, and closed again, with a trace entry describing work that never happened.
+
+**T12 audited clean on every rejection.** Forged, unsigned, malformed, stale, future-dated, wrong-
+secret, disabled, secretless, oversized and replayed all fail when their check is removed, one at a
+time. Dropping the timestamp from the signed string — the clause that stops an attacker rewriting `t`
+on a captured request — fails a test too. That is a good result and it is most of T12.
+
+**The one T12 finding is in what counts as a replay.** Replay protection is a unique INSERT, so both
+`WebhookReceiver` and `AutomationDispatcher` catch a constraint violation as a normal outcome, and
+`DetectsUniqueViolations` exists to keep that catch narrow. Its docblock names the cost of getting it
+wrong exactly: treating any query error as "already claimed" makes Pandora answer *this webhook was
+already processed* to a delivery it in fact dropped on the floor. **Nothing tested it.** Widening
+either catch to every `QueryException` left all 28 webhook and idempotency tests green, because every
+one of them reaches a healthy database. Two tests now make the insert fail for a reason that is not a
+uniqueness clash — a lock-wait timeout and a deadlock, which on MySQL arrive as the same class — and
+assert the fault comes back out as a fault.
+
+**Recorded, not fixed: re-authorization treats "requires approval" as permission to proceed.**
+`ExecuteToolCall::execute()` re-runs the gatekeeper and acts only on `isDenied()`. On the resume path
+the gatekeeper always answers *requires approval* — the approval had `once` scope, so it covers
+nothing by the time the call runs — and the job proceeds without checking that the execution's own
+approval is in fact approved. Every path that dispatches `ExecuteToolCall` today goes through either
+the coordinator's gatekeeping or `ResumeApprovedRun`, which only proceeds on `Approved`, so there is
+no reachable case: the guard would be unverifiable code guarding nothing, which is the reasoning T6a
+already settled for this repository. It is written down here because it is a *latent* gap in the
+sentence T14 makes — the re-validation asserts the arguments and the gates, and not the approval —
+and because the day a new dispatch path appears is the day it stops being latent.
+
+**Also recorded: two mitigations that cannot be tested behaviourally.** `hash_equals()` in
+`WebhookSignature::verify()` is indistinguishable from `!==` by any assertion about outcomes; only
+the timing differs, and a timing test on shared CI is a flaky test. And `Approvals/ApprovalResolutionTest`
+covers the expiry coercion — an approval whose window closed while it sat in the queue resolves as
+expired, not approved — which is a T14 clause the acceptance plan's *Claimed by* column did not name.
+That column is now correct.
+
+## What auditing T2 found — 2026-08-19
+
+T2 was expected to be the dull one. Tenancy has more tests than any other threat in the model — six
+files, forty-two tests — and the one structural gap anybody had found in it was closed back in
+August by `HostResolverTenancyTest`. The three controls all held: delete the `where` clause from
+`BelongsToTenant`'s global scope and seventeen tests go red, delete the `creating` hook that stamps
+`tenant_id` and thirteen do, stop `TenantManager::current()` consulting the resolver and eight do —
+the same eight as 2026-08-11, which is a pleasing thing to be able to reproduce five months later.
+
+**Then the same question was asked one level down, and the answer was different.** Those ablations
+prove the scope works. None of them proves that any *particular* model asked for it. So the trait
+was removed from each of the twenty-six models that carry it, one at a time, running the whole suite
+against each. **Twenty are load-bearing. Six are not**: `Approval`, `AuditLog`, `Observation`,
+`WebhookDelivery`, `ChannelDelivery` and `ChannelLinkCode` each left all 1,813 tests green with
+their tenant scope deleted.
+
+Two of those six are the ones that matter. **An approval is the object that authorises a destructive
+tool call, and an audit log is the record that it happened** — the permission and the receipt. With
+the trait gone, one tenant reads and resolves the other's.
+
+**It hid because the write side does not depend on the trait.** `ApprovalManager::request()` sets
+`tenant_id` from `$run->tenant_id` explicitly, and `AuditLogger::record()` sets it from the manager,
+so every existing assertion about stamping — the obvious thing a tenancy test checks — passes with
+the scope removed. Only the read breaks, and on the approval path the read *is* the control:
+`resolve()` fetches with `Approval::query()->lockForUpdate()->findOrFail($id)`, and
+`assertMayResolve()` checks the actor, not the tenant. The global scope is the entire distance
+between a known approval id and another tenant approving a refund with it.
+
+**The finding is not really about six models.** It is that opting in was a convention. No test ever
+performed a cross-tenant *read* of any of the six: each is created and then read back inside the
+tenant that created it, and a scope that has been deleted is invisible to a same-tenant read — it
+was never going to filter that row out anyway. The suite could therefore exercise these models
+heavily, as it does, while saying nothing at all about whether they were scoped. This is the same
+shape as T15's `$guarded` rule and the same shape as the Phase 6 lesson, arriving for the fourth
+time: **the control was real, the opt-in was a habit, and habits are not asserted.**
+
+**Closed by `Security/TenantScopeCoverageTest`**, which does not test the six. It asks the migrated
+schema which tables carry a `tenant_id` column and requires the trait on every model that maps to
+one. Per-model tests would have been the wrong fix: the model this is actually about is the one
+somebody adds next month, and a table that does not exist yet has no test to go red. `ProviderCredential`
+is the single exemption, pinned by a third test so that widening the list is an argument in a diff
+rather than the quickest way to make a build pass — it holds deployment-wide credentials with a null
+`tenant_id` on purpose, where the scope would hide the row exactly when a run needs it, and
+`CredentialIsolationTest` covers the WHERE clause that replaces it.
+
+It lives under `Security/` rather than beside T15's `$fillable` rule in
+`Architecture/ModuleBoundaryTest`, which is its closest relative in shape. `tests/Pest.php` omits
+`Architecture` from its `uses()` list, so that file has no Laravel `TestCase` and no schema to ask,
+and asking the real schema is the whole point — parsing migrations would have introduced a second
+thing that can be wrong.
+
+`TenantIsolationTest` also gains behavioural tests naming `Approval` and `AuditLog` directly, since
+the two objects with real authority deserve an assertion a reader can find by name rather than a
+reflection loop that counts them. The approval one asserts unreachability *by id* through
+`ApprovalManager::approve()` — not merely absence from a list, which is the weaker claim and the one
+that would have passed anyway.
+
+**Verified by removal, as the criterion requires**: with the new tests in place, deleting the trait
+from any of the six now fails. `Approval` and `AuditLog` fail twice, once on the schema rule and once
+on the test that names them; the other four fail once.
+
+**The second finding is larger, and it is in the queue.** `ResolvesPandoraContext` re-enters the
+tenant a job carries, and its docblock names the stake exactly: *"Forgetting this is the classic way
+a queued job silently reads across every tenant."* Removing the re-entry — both by nulling the
+carried tenant and by dropping the `with()` wrapper entirely, so the job inherits whatever the
+worker has — left **all 1,818 tests passing, twice**.
+
+Two things hid it. The first is `QUEUE_CONNECTION=sync` in `phpunit.xml.dist`: every job runs inline,
+inside whatever tenant the test had already entered, so the ambient tenant stands in for the carried
+one and the carried one is never load-bearing. **That is the serial-runner finding from T12 and T14
+again, in a second costume** — the runner is the fake, and this is now the second control it has been
+found silently disarming. It is the reason the new tests dispatch from *outside* any tenant, which is
+how a worker with no request and no session actually starts.
+
+The second is why nothing went red even so, and it generalises past tenancy. **Losing the tenant does
+not make a read fail; it makes it wider.** With no tenant resolved the global scope is inert, so the
+job finds its own run, does its work, and succeeds. Every assertion that the job worked passes
+identically with the control removed. The failure mode of this mitigation is a leak, not an error,
+and a suite made of "it worked" assertions cannot see one — which is a good description of why the
+absence had gone unnoticed through eight phases.
+
+**Closed by `Security/QueuedJobTenancyTest`**, two tests that assert the leak rather than the
+success. The first runs a job untenanted and uses the audit row as the witness: `AuditLogger::record()`
+stamps whatever tenant is current when it writes, so an unstamped `run.started` row is proof the job
+ran with no tenant — and an unstamped audit row is invisible to the tenant whose run it describes.
+The second hands a job carrying one tenant another tenant's run id, the shape a corrupted payload or
+a replayed message takes, and asserts that run is still sitting in `queued` afterwards. Both fail
+under both ablations.
 
 ## Design decisions taken for this phase
 
