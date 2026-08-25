@@ -34,7 +34,7 @@
 
 ---
 
-> ### ⚠ v0.1.0 — first published release, and deliberately `0.x`
+> ### ⚠ v0.1.4 — deliberately still `0.x`
 >
 > **What works today:** define an agent, start a conversation, dispatch a queued run, stream it over
 > Reverb, persist an immutable trace, reload without losing anything, cancel it, and inspect it in
@@ -45,12 +45,15 @@
 > or S3-compatible storage, and **messaging channels** where an unlinked identity gets no run, no
 > session and no seat.
 >
-> **What does not exist yet:** release hardening — the full threat-model sweep, performance tests and
-> the example application (Phase 9, at 7 of 34 criteria). See [`docs/roadmap.md`](docs/roadmap.md).
+> **What does not exist yet:** the rest of release hardening — upgrade and install tests, the
+> performance suite and the example application (Phase 9, at 21 of 34 criteria). **The threat-model
+> sweep is done:** every T1–T15 mitigation has been removed one at a time and the failure recorded,
+> which found two security defects (fixed in v0.1.3) and one concurrency defect (fixed in v0.1.4).
+> See [`docs/roadmap.md`](docs/roadmap.md).
 >
-> **Verified by** 1,864 tests across SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector and MinIO
-> — 1,779 in the default leg, the rest **skipping** rather than passing without object storage or
-> pgvector · PHPStan level 8, no baseline · Pint.
+> **Verified by** 1,948 tests across SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector and MinIO
+> — 1,849 in the default leg, the rest **skipping** rather than passing without object storage,
+> pgvector or a server database engine · PHPStan level 8, no baseline · Pint.
 >
 > **Before depending on this, read
 > [`docs/product/support-statement.md`](docs/product/support-statement.md)** — it names what is

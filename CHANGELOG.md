@@ -10,7 +10,7 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
-## Unreleased
+## v0.1.4 — 2026-08-25
 
 Phase 9's threat audit continues, and **completes**. T3 first: session isolation is enforced by a
 hash — seven components folded into one key — which makes it unusually auditable, because every
