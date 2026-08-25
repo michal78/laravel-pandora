@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pandora\Providers\Health;
 
 use Illuminate\Contracts\Config\Repository as Config;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Pandora\Audit\AuditLogger;
@@ -139,6 +140,25 @@ final class ProviderHealthMonitor
         return max(1, (int) $this->config->get('pandora.providers.health.failure_threshold', 3));
     }
 
+    /**
+     * The health row for a provider, creating it if this is the first anyone
+     * has heard of it.
+     *
+     * `firstOrNew()` followed by `save()` is a check-then-insert, and
+     * `provider_key` is uniquely indexed. Two workers recording the first
+     * outcome for the same provider at the same instant both read nothing,
+     * both build a row, and the second one's INSERT is refused -- which threw
+     * out of here, out of the provider call, and failed the RUN. Bookkeeping
+     * about a provider's health must never be able to kill a run that the
+     * provider itself answered perfectly well.
+     *
+     * Found by `Performance/ConcurrentRunsTest` at twenty concurrent runs
+     * against one agent; invisible to a serial suite, where there is never a
+     * second inserter. The window is narrow -- only the first write for a
+     * given provider races, every later one is an UPDATE -- but it is exactly
+     * the window a fresh deployment starts in, with every worker warm and no
+     * health rows yet.
+     */
     private function rowFor(string $providerKey): ProviderHealthRecord
     {
         // The defaults are stated here as well as in the schema: a column
@@ -149,6 +169,22 @@ final class ProviderHealthMonitor
             ['provider_key' => $providerKey],
             ['status' => 'unknown', 'consecutive_failures' => 0, 'consecutive_successes' => 0],
         );
+
+        if ($record->exists) {
+            return $record;
+        }
+
+        try {
+            $record->save();
+        } catch (UniqueConstraintViolationException) {
+            // Somebody else got there between our read and our write. Theirs is
+            // as good as ours -- both are the same freshly defaulted row -- so
+            // take it and let the caller's update apply on top.
+            /** @var ProviderHealthRecord $record */
+            $record = ProviderHealthRecord::query()
+                ->where('provider_key', $providerKey)
+                ->firstOrFail();
+        }
 
         return $record;
     }

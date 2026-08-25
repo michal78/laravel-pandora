@@ -7,15 +7,15 @@ namespace Pandora\Tests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
-use Livewire\LivewireServiceProvider;
 
 use function Orchestra\Testbench\default_migration_path;
 
 use Orchestra\Testbench\TestCase as Orchestra;
-use Pandora\PandoraServiceProvider;
 use Pandora\Providers\Adapters\FakeProvider;
 use Pandora\Providers\ProviderManager;
 use Pandora\Tests\Fixtures\TestUser;
+use Pandora\Tests\Support\Concurrency\TestApplication;
+use Pandora\Tests\Support\Concurrency\TestDatabase;
 
 abstract class TestCase extends Orchestra
 {
@@ -222,10 +222,7 @@ abstract class TestCase extends Orchestra
      */
     protected function getPackageProviders($app): array
     {
-        return [
-            PandoraServiceProvider::class,
-            LivewireServiceProvider::class,
-        ];
+        return TestApplication::providers();
     }
 
     /**
@@ -240,7 +237,7 @@ abstract class TestCase extends Orchestra
     protected function defineEnvironment($app): void
     {
         $app['config']->set('database.default', 'testing');
-        $app['config']->set('database.connections.testing', $this->connectionConfig());
+        $app['config']->set('database.connections.testing', TestDatabase::connectionConfig());
 
         $app['config']->set('auth.providers.users.model', TestUser::class);
 
@@ -255,48 +252,6 @@ abstract class TestCase extends Orchestra
         // coalescing window that exists for production message volume.
         $app['config']->set('pandora.realtime.stream.flush_chars', 1);
         $app['config']->set('pandora.realtime.stream.flush_interval_ms', 0);
-    }
-
-    /**
-     * Deliberately NOT named `testingConnection`: Pint's Laravel preset
-     * applies `php_unit_method_casing` to anything in a test class whose name
-     * begins with "test", and silently renamed it to `testing_connection`
-     * without touching the call site.
-     *
-     * @return array<string, mixed>
-     */
-    private function connectionConfig(): array
-    {
-        $driver = env('DB_CONNECTION', 'sqlite');
-
-        if ($driver === 'sqlite' || $driver === 'testing') {
-            return [
-                'driver' => 'sqlite',
-                'database' => ':memory:',
-                'prefix' => '',
-                'foreign_key_constraints' => true,
-            ];
-        }
-
-        return [
-            // `mariadb` is its own driver in Laravel 11+, and using `mysql`
-            // for it hides exactly the differences the matrix exists to find.
-            'driver' => $driver,
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', $driver === 'pgsql' ? '5432' : '3306'),
-            'database' => env('DB_DATABASE', 'pandora'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
-            'charset' => $driver === 'pgsql' ? 'utf8' : 'utf8mb4',
-            // The collation the InnoDB key-length rule is written against.
-            // A narrower one would let an index that is too wide in production
-            // pass here.
-            'collation' => $driver === 'pgsql' ? null : 'utf8mb4_unicode_ci',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'search_path' => $driver === 'pgsql' ? 'public' : null,
-            'sslmode' => $driver === 'pgsql' ? 'prefer' : null,
-        ];
     }
 
     /**

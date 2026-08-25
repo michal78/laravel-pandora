@@ -22,7 +22,26 @@ ablations, nine load-bearing, one finding. No shipped behaviour was wrong here e
 control that protects a write from an escaping symlink turned out to be unasserted, with a quota
 lookup refusing the escape first by accident.
 
+**Then the suite learned to run more than one process at a time, and that carries a fix.** Four
+Phase 9 findings so far shared one cause — a control that only exists between workers, tested by a
+suite that has one — so criterion 27 was taken early. It found `RunLock`'s database lease untested
+and a live defect that could fail a run.
+
 ### Added
+
+- **A concurrency harness** — `tests/Support/RunsConcurrently.php`. Starts N real OS processes
+  against one database and releases them from a barrier, so a test can assert what happens when
+  workers genuinely collide. The barrier is the load-bearing part: application boot dwarfs the
+  contended section, so without a rendezvous the processes run one after another and a concurrency
+  test passes with the control deleted. `Queue/ConcurrentHarnessTest` asserts the harness's own
+  overlap before anything relies on it. Deliberately not `pest --parallel`, which would collide with
+  the shared-schema optimisation in `TestCase`.
+
+- **`Performance/ConcurrentRunsTest`** (criterion 27) — twenty concurrent runs against one agent
+  complete without starvation, lost steps or duplicated execution. It immediately established that
+  `RunLock`'s database lease, which the class documents as "the authority", can be deleted with all
+  22 serial lock tests green — including one named "grants ownership to one worker and refuses a
+  second". Five simultaneous processes all acquire the same run.
 
 - **Six workspace containment-layer tests** (T5). `LocalStorage::locate(mustExist: false)`
   re-resolves a write target that already exists, because a contained parent says nothing about what
@@ -47,11 +66,30 @@ lookup refusing the escape first by accident.
   test passes `origin` ready-made and never exercises the resolver's composition. Both are now
   asserted, and each ablation fails exactly the test that names it.
 
+### Fixed
+
+- **A provider health write could fail a run.** `ProviderHealthMonitor::rowFor()` used
+  `firstOrNew()` followed by `save()`, and `provider_key` is uniquely indexed. Two workers recording
+  the first outcome for the same provider at the same instant both read nothing, both build a row,
+  and the loser's INSERT was refused — with the exception coming out of the health write, out of the
+  provider call, and failing the **run**. A provider that answered perfectly well, a run destroyed by
+  its own bookkeeping. The window is narrow, since only the first write for a provider races and
+  every later one is an UPDATE, but it is exactly the window a fresh deployment starts in: workers
+  warm, health table empty. Now tolerates the duplicate and takes the row the other worker inserted.
+  Hosts running a single worker were never affected.
+
 ### Documentation
 
 - **T3's *Claimed by* column was incomplete.** `Summariser` scopes its read by `session_id`, and
   removing that filter leaves all four files T3 claimed green — it is `Context/SummarisationTest`
   that catches it. The control was real and tested; the plan did not know where.
+- **Recorded, not fixed: the provider health counters lose updates under concurrency.**
+  `recordSuccess()` reads `consecutive_successes`, adds one and writes it back with no lock, so two
+  concurrent successes both read N and both write N+1. It cannot fail a run and it feeds hysteresis —
+  deciding whether a provider is degraded — rather than any security control. Making it exact means
+  holding a row lock across a read-modify-write on the hot path of every provider call, which is a
+  performance decision rather than a defect to quietly change inside an audit.
+
 - **Recorded, not fixed: `Session::belongsToActor()` has no production call sites.** It is called only
   from a test, and its actorless guard is unreachable besides — `ActorContext` cannot produce a null
   `type`, so the comparison below the guard would already fail. Its docblock states a rule about
