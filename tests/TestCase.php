@@ -7,15 +7,14 @@ namespace Pandora\Tests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
-use Livewire\LivewireServiceProvider;
 
 use function Orchestra\Testbench\default_migration_path;
 
 use Orchestra\Testbench\TestCase as Orchestra;
-use Pandora\PandoraServiceProvider;
 use Pandora\Providers\Adapters\FakeProvider;
 use Pandora\Providers\ProviderManager;
 use Pandora\Tests\Fixtures\TestUser;
+use Pandora\Tests\Support\Concurrency\TestApplication;
 use Pandora\Tests\Support\Concurrency\TestDatabase;
 
 abstract class TestCase extends Orchestra
@@ -223,10 +222,7 @@ abstract class TestCase extends Orchestra
      */
     protected function getPackageProviders($app): array
     {
-        return [
-            PandoraServiceProvider::class,
-            LivewireServiceProvider::class,
-        ];
+        return TestApplication::providers();
     }
 
     /**

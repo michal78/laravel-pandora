@@ -18,9 +18,9 @@
 declare(strict_types=1);
 
 use Orchestra\Testbench\Foundation\Application;
-use Pandora\PandoraServiceProvider;
 use Pandora\Tests\Support\Concurrency\Barrier;
 use Pandora\Tests\Support\Concurrency\Scenario;
+use Pandora\Tests\Support\Concurrency\TestApplication;
 use Pandora\Tests\Support\Concurrency\TestDatabase;
 
 require __DIR__.'/../../../vendor/autoload.php';
@@ -60,7 +60,7 @@ try {
     // database here and purging is enough; nothing has connected yet.
     $app = Application::create(
         basePath: \Orchestra\Testbench\default_skeleton_path(),
-        options: ['extra' => ['providers' => [PandoraServiceProvider::class]]],
+        options: ['extra' => ['providers' => TestApplication::providers()]],
     );
 
     $config = $app->make('config');
