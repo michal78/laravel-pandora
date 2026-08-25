@@ -19,7 +19,8 @@ final readonly class DelegationDecision
 {
     /**
      * @param list<string> $effectiveTools the intersection, on an allowed decision
-     * @param list<string> $withheldTools abilities the parent held and did not pass on
+     * @param list<string> $withheldTools abilities the CHILD agent is configured for and did not
+     *                                    receive, because the parent did not have them to give
      */
     private function __construct(
         public bool $allowed,

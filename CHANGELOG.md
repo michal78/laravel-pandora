@@ -29,6 +29,16 @@ and a live defect that could fail a run.
 
 ### Added
 
+- **Five delegation deny-path tests** (T8). `AbilityIntersection::abilitiesOfAgent()` resolves an
+  agent's tools as *granted, minus denied*, and removing the denied half left all 70 delegation tests
+  green. Every existing T8 test gives the parent an ability it simply **lacks**; none gives it one
+  explicitly **denied** — the carve-out idiom `Agent::deniedTools()` exists for. The escalation runs
+  opposite to the one the other tests guard: ignore the deny list and the *parent* is credited with a
+  tool an operator took away by name, the child intersects against that inflated set and receives it,
+  and at call time the gatekeeper checks the child's policy and the frozen list, neither of which
+  mentions the parent's deny list. Under the ablation the child's tool execution reads `succeeded`
+  where it should read `denied` — it runs. All five new tests fail under it; all 70 existing ones pass.
+
 - **Seven limit-attribution tests** (T7) and a `SlowTool` fixture. T7 asks for each limit to be
   proved *by removing the others*, which is the only useful question about limits that overlap:
   `assertWithinBudget()` checks four in a fixed order and the first to trip throws, so a test
@@ -95,6 +105,11 @@ and a live defect that could fail a run.
 - **T3's *Claimed by* column was incomplete.** `Summariser` scopes its read by `session_id`, and
   removing that filter leaves all four files T3 claimed green — it is `Context/SummarisationTest`
   that catches it. The control was real and tested; the plan did not know where.
+- **`DelegationDecision` documented `$withheldTools` backwards.** It read "abilities the parent held
+  and did not pass on", while `AbilityIntersection::withheld()` computes the other direction on
+  purpose — what the child agent was configured for and was refused — and says so emphatically. The
+  code was right; the parameter comment is now corrected.
+
 - **T7's *Claimed by* column was wrong about the iteration limit.** Removing it leaves all five of
   the files T7 claimed green; what fails is `Feature/AgentRunTest`. The control was real and tested —
   the plan did not know where.

@@ -5,6 +5,50 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-25 — The tool that was taken away by name
+
+The ninth Phase 9 session, on `phase-9/audit-delegation-intersection`. **19 of 34 criteria; the
+removal audit at 14 of 15 threats, with T13 alone remaining.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,840 passed, 99 skipped (6,124 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+T8 is the best-tested threat in the phase and that deserves saying as plainly as the gaps have been.
+Eight ablations, seven load-bearing. The suite already distinguished an empty intersection from an
+absent one, already proved narrowing compounds at depth, already caught a flipped `array_diff` in the
+withheld list.
+
+**The gap: the deny half of layer 2 was never exercised through delegation.** Every existing T8 test
+gives the parent an ability it simply LACKS. None gives it one explicitly DENIED — the carve-out
+idiom `Agent::deniedTools()` exists for. Removing `&& ! ToolReference::matches($tool, $denied)` left
+all 70 delegation tests green.
+
+The escalation runs opposite to the one the other tests guard: ignore the deny list and the PARENT is
+credited with a tool taken away from it by name; the child intersects against that inflated set and
+receives it; at call time the gatekeeper checks the child's policy and the frozen list, neither of
+which mentions the parent's deny list. One hop.
+
+And it executes. Under the ablation the tool execution reads `succeeded` where it should read
+`denied`, and the fixture's counter reads 1 — the child ran a tool its parent was forbidden. Which is
+why the test asserts a side effect rather than a status: a containment failure fails wide rather than
+loudly, for the third time this phase.
+
+`Delegation/DeniedAbilityTest` — five tests, all five failing under the ablation while all 70 existing
+delegation tests pass.
+
+Also corrected a docblock that said the opposite of its code: `DelegationDecision` documented
+`$withheldTools` as "abilities the parent held and did not pass on", while
+`AbilityIntersection::withheld()` computes the other direction on purpose and says so emphatically.
+The code was right.
+
+Also normalised criterion 17's count. Earlier revisions counted T6a and T6b as two entries against a
+denominator of 15, so the arithmetic never closed; it counts threats now.
+
+---
+
 ## 2026-08-25 — The limit named after the state that isn't it
 
 The eighth Phase 9 session, on `phase-9/audit-limits`. **18 of 34 criteria; the removal audit at 14
