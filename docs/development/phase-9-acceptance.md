@@ -120,7 +120,7 @@ independent ways, in one session.
 | 24 ⬜ | **Migrations run forward from a v0 install to head on every engine in the matrix**, not only from empty | *new* — `Database/UpgradeTest` + CI leg |
 | 25 ⬜ | **A published config from an earlier version still boots** — a host that published `config/pandora.php` before a key existed gets the package default, not a missing key | *new* — `Feature/ConfigUpgradeTest` |
 | 26 ⬜ | A conversation of 10,000 messages builds context within budget and the page renders without loading all of them | *new* — `Performance/LargeConversationTest` |
-| 27 ⬜ | 50 concurrent runs against one agent complete without lock starvation, duplicated tool execution or lost steps | *new* — `Performance/ConcurrentRunsTest` |
+| 27 ✅ | 50 concurrent runs against one agent complete without lock starvation, duplicated tool execution or lost steps *(read as 20 — see below)* | `Performance/ConcurrentRunsTest` · `Queue/ConcurrentHarnessTest` · `tests/Support/RunsConcurrently.php` — **one live defect**, see below |
 | 28 ⬜ | A 500-step trace renders and paginates; the run detail page issues a bounded number of queries regardless of trace length | *new* — `Performance/LongTraceTest` |
 
 ### Release
@@ -517,6 +517,83 @@ than the meaning of `ContainmentTest` changing in silence.
 
 **This is the fifth finding in six threats with the same shape**: a docblock stating a guarantee
 precisely, and nothing but an accident asserting it.
+
+## What building real concurrency found — 2026-08-25
+
+Criterion 27 was scheduled ahead of T7 and T13 for a reason that has nothing to do with its own
+number. Phase 9 had by then found four controls that survived deletion because the suite has one
+process — T2's tenant carry, T12's fan-in lock, T14's approval lock, and the `ExecuteToolCall`
+idempotency guards that were never reached at all — and `fake-boundaries.md` names the cause
+plainly: *"there is no class called `FakeConcurrency` — the fake is the shape of the runner."*
+Everything after this point that claims a control works between workers depends on being able to
+run workers.
+
+**The harness.** `tests/Support/RunsConcurrently.php` starts N real OS processes, each booting the
+application against the same database, and releases them together from a **barrier**. It is
+deliberately not `pest --parallel`, which distributes whole files to run the suite faster and would
+collide head-on with the shared-schema optimisation in `TestCase` — what is needed is concurrency
+*inside* one test, with the schema migrated and left alone.
+
+The barrier is the part that decides whether any of this is real. Booting Laravel costs hundreds of
+milliseconds and varies per process; the contended section costs microseconds. Without a rendezvous
+the workers queue up behind each other and the test passes whatever it is asked — including with the
+control removed. `Queue/ConcurrentHarnessTest` asserts the harness's own properties before anything
+relies on it: that the workers are distinct processes, and that their execution windows genuinely
+**overlap**. A concurrency suite whose first test is not "did we actually contend" is measuring
+nothing and reporting confidence.
+
+**What it found before it was even pointed at criterion 27.** `RunLock` documents two mechanisms and
+names the second as the authority: *"A database ownership lease — the authority. Survives a cache
+flush and works on every driver."* Deleting the lease check leaves **all 22 serial lock tests green**
+— `RunRecoveryTest`, `ExactlyOnceUnderLockTest` and `ApprovalRaceTest` together, including a test
+called "grants ownership to one worker and refuses a second". Five simultaneous processes fail it
+instantly: all five acquire the same run.
+
+The cache half cannot cover for it either, and that is worth stating rather than assuming. With
+`CACHE_STORE=array` every process has a private store, so all N take their own cache lock and agree —
+which is precisely what makes this a clean test of the lease.
+
+**The live defect: a health write could kill a run.** Twenty concurrent runs against one agent, and
+one of the twenty died on
+
+```
+SQLSTATE[23000]: Duplicate entry 'fake' for key 'pandora_provider_health_key_unq'
+```
+
+`ProviderHealthMonitor::rowFor()` used `firstOrNew()` followed by `save()`, and `provider_key` is
+uniquely indexed. Two workers recording the first outcome for the same provider at the same instant
+both read nothing, both build a row, and the loser's INSERT is refused — and the exception came out
+of the health write, out of the provider call, and failed the **run**. A provider that answered
+perfectly well, a run destroyed by its own bookkeeping.
+
+The window is narrow: only the first write for a given provider races, every later one is an UPDATE.
+It is also exactly the window a fresh deployment starts in — workers warm, health table empty. Fixed
+by tolerating the duplicate and taking the row the other worker inserted, since both are the same
+freshly defaulted row.
+
+**The detector is not flaky**, which for a concurrency test is a claim that has to be measured rather
+than hoped: with the fix reverted, the test caught the race **5 times out of 5**.
+
+**Recorded, not fixed: the health counters lose updates.** `recordSuccess()` reads
+`consecutive_successes`, adds one and writes it back, with no lock. Two concurrent successes both
+read N and both write N+1, so the counter drifts low under load. Unlike the insert race this cannot
+fail a run, and it feeds hysteresis — a count of consecutive outcomes used to decide whether a
+provider is degraded — rather than any security control. Making it exact means holding a row lock
+across a read-modify-write on the hot path of every provider call, which is a performance decision
+for the maintainer rather than a defect to quietly fix inside an audit.
+
+**Twenty processes, not fifty, and that is a reading rather than a shortfall.** Each worker is a full
+PHP process booting Laravel; fifty of them is roughly 4GB resident and a CI box that swaps, which
+converts a correctness test into a flake generator — and a flaky concurrency test gets deleted, which
+is how a suite ends up with none. What the criterion asks — does contention on one agent corrupt
+anything — is answered by any N above one, and twenty simultaneous writers is well past the point
+where the lease, the step writes and the conversation inserts either serialise correctly or do not.
+The count is a named constant so that raising it on a bigger machine is a one-line change.
+
+**`tests/Pest.php` binds `TestCase` by an explicit directory allowlist**, and a new `Performance`
+directory is not on it. The symptom is every test in the new directory failing with
+`Target class [config] does not exist`, which reads like a container problem. Added; worth knowing
+that the list exists before adding the next directory.
 
 ## Design decisions taken for this phase
 

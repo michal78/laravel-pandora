@@ -5,6 +5,48 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-25 — A process is not a fake you can add
+
+The seventh Phase 9 session, on `phase-9/concurrent-test-harness`, and the first that changes the
+runner rather than the tests. **17 of 34 criteria.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,828 passed, 99 skipped (6,095 assertions)
+vendor/bin/pest (mysql)   -> concurrency legs green, 3 consecutive runs
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+Criterion 27 taken ahead of T7 and T13 deliberately. Four controls had already survived deletion
+because the suite has one process, and `fake-boundaries.md` had already named the cause: the fake is
+the shape of the runner, and there is no class called `FakeConcurrency` to swap out.
+
+`tests/Support/RunsConcurrently.php` starts N real processes against one database and releases them
+from a barrier. The barrier is the whole thing — boot cost dwarfs the contended section, so without a
+rendezvous the workers run one after another and the test passes with the control removed.
+`Queue/ConcurrentHarnessTest` asserts overlap before anything trusts the harness.
+
+**It found `RunLock`'s database lease untested.** The class calls it "the authority"; deleting it
+leaves all 22 serial lock tests green, including one named "grants ownership to one worker and
+refuses a second". Five simultaneous processes all acquire the same run.
+
+**And one live defect.** `ProviderHealthMonitor::rowFor()` was `firstOrNew()` + `save()` against a
+unique index, so two workers recording the first outcome for a provider both insert and the loser's
+exception fails the **run**. One of twenty died on it. Fixed by taking the winner's row. The detector
+was measured rather than assumed: 5 of 5 with the fix reverted.
+
+Recorded, not fixed: the health counters lose updates under concurrency. It cannot fail a run and it
+feeds hysteresis rather than a control; making it exact means a row lock on the hot path of every
+provider call, which is the maintainer's call.
+
+Twenty workers rather than fifty — fifty full Laravel boots is ~4GB and a swapping CI box, and a
+flaky concurrency test gets deleted. Named constant, one line to raise.
+
+Also: `tests/Pest.php` binds `TestCase` by an explicit directory allowlist, and a new directory not on
+it fails with `Target class [config] does not exist`. `Performance` added.
+
+---
+
 ## 2026-08-25 — The byte count that was holding the door
 
 The sixth Phase 9 audit session, on `phase-9/audit-workspace-containment`. T5 next, because its

@@ -208,10 +208,32 @@ the control does not exist, `ExactlyOnceUnderLockTest` **skips** on SQLite and r
 server-engine legs. A host deploying Pandora on SQLite has the guarantee by a route this suite does
 not assert.
 
-**Still open, accepted:** true simultaneity. Every test above proves the lock is *taken* and that it
-contends on the right row. None runs two processes at the same instant, because a test that depends
-on two workers interleaving is a test that goes flaky on a loaded runner and gets deleted. Criterion
-27 — fifty concurrent runs against one agent — is the honest home for that, and it is still open.
+**Closed 2026-08-25 — true simultaneity.** Every test above proves the lock is *taken* and that it
+contends on the right row. None ran two processes at the same instant, because a test that depends on
+two workers interleaving is a test that goes flaky on a loaded runner and gets deleted.
+
+`tests/Support/RunsConcurrently.php` is the general form of what `ExactlyOnceUnderLockTest` did with
+a second connection: N real OS processes, each booting the application, meeting at a **barrier** and
+starting together. The barrier is the load-bearing part. Booting Laravel costs hundreds of
+milliseconds and varies per process while the contended section costs microseconds, so without it the
+usual outcome is N sequential runs that never overlap — and a concurrency test that never contends
+passes everything, including with the lock deleted. `Queue/ConcurrentHarnessTest` therefore asserts
+the harness's own properties first, and the assertion that matters is that the workers' execution
+windows genuinely intersect.
+
+It was worth building for what it found immediately. **`RunLock`'s database lease — the mechanism the
+class's own docblock calls "the authority" — can be deleted with the entire serial lock suite green**:
+all 22 tests across `RunRecoveryTest`, `ExactlyOnceUnderLockTest` and `ApprovalRaceTest` pass without
+it, including one named "grants ownership to one worker and refuses a second". Five simultaneous
+processes catch it instantly — all five acquire the same run. The cache half cannot arbitrate here at
+all, because `CACHE_STORE=array` is per-process and each worker gets its own private lock, which is
+what makes this a clean test of the lease and not of the cache.
+
+**Still open, accepted:** the cache lock itself. `array` gives every process its own store, so the
+first of `RunLock`'s two mechanisms is inert across workers in this suite and only the database lease
+is under test. A host on Redis or Memcached has a real cross-process cache lock in front of the
+lease; that arrangement is not asserted anywhere, and proving it would mean adding a Redis leg to the
+matrix for one control that is documented as the non-authoritative half.
 
 ### Fixture packages — `tests/Extensions/`
 
