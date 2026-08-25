@@ -94,10 +94,10 @@ whether or not the control is present proves the control is untested, not that i
 | 11 ✅ | **T10** — a hostile MCP server cannot reach a model with an unapproved tool, an unapproved description, or a name that resolves where a core tool is expected | `Mcp/UntrustedDescriptionTest` · `Mcp/SchemaHashTest` · `Mcp/NamespaceTest` · `Mcp/ApprovalTest` — 39 tests, audited clean, all three mitigations fail on removal |
 | 12 ✅ | **T11** — no broadcast carries a system prompt, a secret, sensitive tool arguments or an exception dump, and a private channel refuses an unauthorised subscriber | `Security/BroadcastAuthorizationTest` · `Security/SecretRedactionTest` · `Realtime/BroadcastTest` *(one test renamed and one added — it claimed redaction and never checked it)* |
 | 13 ✅ | **T12** — a forged, replayed, stale or wrong-secret webhook is refused; a valid one is processed exactly once | `Automation/WebhookTest` · `Automation/IdempotencyTest` — audited clean on all four rejections; **one finding** in the narrowing that decides what counts as a replay, see below |
-| 14 ⬜ | **T13** — every control-center page and action is behind a gate; an authenticated non-admin reaches none of them, and prompts, tool I/O, costs and audit logs gate separately | `Security/ToolIoVisibilityTest` · `UI/*` |
+| 14 ✅ | **T13** — every control-center page and action is behind a gate; an authenticated non-admin reaches none of them, and prompts, tool I/O, costs and audit logs gate separately *(audit logs: see below — the ability gates nothing because no audit surface exists)* | `Security/ToolIoVisibilityTest` · `UI/*` · **new** `Security/ControlCenterGatingTest` — **three findings**, see below |
 | 15 ✅ | **T14** — an approval is consumed exactly once under the run lock, and the tool call is re-validated at execution against the arguments approved | `Security/ApprovalRaceTest` · `Security/ApprovalAuthorizationTest` · `Approvals/ApprovalResolutionTest` · **new** `Security/ExactlyOnceUnderLockTest` — **three findings**, see below |
 | 16 ✅ | **T15** — no model uses `$guarded = []`; every one declares `$fillable`, asserted by reflection over `src/` so a new model cannot omit it | `Architecture/ModuleBoundaryTest` — 3 added tests over 29 models; red when one model is switched to `$guarded = []`, verified by switching one |
-| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **14 of 15 threats done** (2026-08-25): T1, T2, T3, T4, T5, T6 *(both halves)*, T7, T8, T9, T10, T11, T12, T14, T15. Remaining: **T13 alone.** *(Earlier revisions of this row counted T6a and T6b as two entries against a denominator of 15, so the arithmetic never closed; it counts threats now.)* |
+| 17 ✅ | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **15 of 15 threats done, complete 2026-08-25.** Every T1–T15 mitigation has been removed, one at a time, and the failure recorded. Nine sessions, roughly 120 ablations, **two live security fixes shipped in v0.1.3** (an MCP SSRF and a closable delimiter), one shipped concurrency fix, and fourteen coverage gaps closed. |
 
 ### The suite tells the truth about what it tested
 
@@ -712,6 +712,82 @@ for and was refused — and its own docblock is emphatic that this is deliberate
 not the other one."* The code is right and the parameter comment is wrong. Corrected, and noted here
 because the phase's recurring finding is a docblock doing a control's job; this is the same hazard
 with the roles reversed, a docblock quietly misdescribing one.
+
+## What auditing T13 found — 2026-08-25, and the audit closes
+
+`routes/web.php` states the rule and its reason: *"Authorization is enforced inside each component —
+route middleware alone is not treated as sufficient."* All eighteen components follow it. **Nothing
+made them.**
+
+Twenty-five ablations — one per page gate, plus the checks that gate prompts, tool I/O, costs and the
+run trace separately. **Nineteen load-bearing, six gaps, three findings.**
+
+**Finding one: five pages could lose their gate with the whole suite green.** `AgentDetail`,
+`AutomationDetail`, `RunDetail`, `RunsIndex` and `ChannelLink`.
+
+The distribution is the part worth keeping. Every index page but `RunsIndex` has a "denies a user
+without `pandora.access`" test; **the detail pages have none at all.** And a detail page is where an
+index's one line becomes a full role-instruction prompt, a webhook secret, or an entire execution
+trace — so the pages that went unasserted are precisely the ones with the most to show. Nobody
+decided that. The index denial tests were written as a set, and the detail tests were written for
+what the page *displays*, which is a different question that never circles back to who may open it.
+
+**Finding two: two of the twenty configured abilities are wired to nothing.**
+
+- **`audit.view`** — declared, registered as a deny-by-default gate, and read nowhere, because the
+  audit **page** it was written for does not exist. Phase 6 closed "no audit page" as an open
+  decision and the ability was left pointing at it.
+- **`tools.manage`** — the Tools page is read-only. Its only action, `toggle()`, expands a row.
+
+Neither exposes anything: no audit record reaches any view, and no tool can be altered from the UI at
+all. These are promises with nothing behind them rather than holes — but an operator granting or
+withholding either sees no difference, and cannot discover that from outside. Both are named in the
+new test rather than deleted from the config, because removing a published key breaks a host that
+references it, and because the *next* unused ability must not be able to hide behind these two. Both
+belong in the v1.0 support statement (criterion 33).
+
+The criterion's own wording is what surfaced this: it requires audit logs to gate *separately*, and
+they do not gate at all.
+
+**Finding three: `ToolsIndex` reads `tools.io.view` twice and only one reading was asserted.**
+`canViewSchemas` is the flag the template branches on; the `if` above it decides whether the schemas
+are **assembled** at all. Deleting the assembly gate left the suite green, because the template still
+hid what it was handed. Nothing leaked — view data that is never echoed does not reach a browser —
+but the belt is the half that does not depend on every future template getting its branch right, and
+it was the unasserted one.
+
+`Security/ControlCenterGatingTest` closes all three with nine tests, and one of them is
+architectural: **every class in `src/UI/Livewire/` must authorize somewhere**, asserted over the
+source the way T15's `$guarded` rule and T6a's outbound-HTTP rule are, so a nineteenth page cannot be
+added ungated. It checks the class rather than `mount()` specifically, because `ChannelLink`
+authorizes from a private `guard()` and `MemoryIndex` from a shared `act()` — both correct, both
+flagged by a naive mount-only rule, and a rule that reports false violations acquires an exemption
+list and then gets ignored. All six ablations now fail; verified by re-running each.
+
+---
+
+### The removal audit is complete — 15 of 15
+
+Criterion 17 is closed. Every T1–T15 mitigation has been removed, one at a time, and the failure
+recorded. Nine sessions, roughly 120 ablations.
+
+**What it produced:** two live security fixes shipped in v0.1.3 — an SSRF in the MCP client that a
+hostile server could steer an authenticated POST through, and untrusted content able to close its own
+delimiter inside a system message — plus one concurrency fix, where a provider-health insert race
+could fail a run outright.
+
+**What it mostly produced, though, was tests for controls that already worked.** Fourteen coverage
+gaps across ten threats, and the recurring shape did not change once in nine sessions: **a docblock
+stating a guarantee precisely, and nothing but an accident asserting it.** T5's symlink re-check,
+where a quota lookup threw first. `RunLock`'s database lease, which the class calls "the authority".
+`BelongsToTenant`, where the opt-in was convention. The wall-clock limit, hidden behind a state named
+`TimedOut` that means something else. The deny half of layer 2, never reached through delegation
+because every test used an ability the parent simply lacked.
+
+Three structural causes account for most of it, and all three are now closed or written down:
+the suite had one process (closed — `RunsConcurrently`); `QUEUE_CONNECTION=sync` disarmed everything
+that depends on a job carrying its own context (closed — `QueuedJobTenancyTest`); and a fake stood
+where a real boundary belonged (inventoried — `fake-boundaries.md`).
 
 ## Design decisions taken for this phase
 

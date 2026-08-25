@@ -5,6 +5,56 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-25 — The pages nobody tried to open
+
+The tenth Phase 9 session, on `phase-9/audit-control-center-gating`. T13, the last threat.
+**21 of 34 criteria, and the removal audit is COMPLETE at 15 of 15.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,849 passed, 99 skipped (6,138 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+`routes/web.php` states the rule — authorization inside each component, route middleware not
+sufficient — and all eighteen components follow it. Nothing made them. Twenty-five ablations,
+nineteen load-bearing, three findings.
+
+**Five pages could lose their gate with the suite green**: `AgentDetail`, `AutomationDetail`,
+`RunDetail`, `RunsIndex`, `ChannelLink`. Every index but `RunsIndex` has a denial test; the DETAIL
+pages have none at all — and a detail page is where an index's one line becomes a prompt, a webhook
+secret or a full trace. The index denial tests were written as a set; the detail tests were written
+for what the page displays, which never circles back to who may open it.
+
+**Two of the twenty configured abilities are wired to nothing.** `audit.view` — there is no audit
+page, Phase 6 closed that as an open decision and the ability was left pointing at it. `tools.manage`
+— the Tools page is read-only. Neither exposes anything, but an operator granting or withholding
+either sees no difference and cannot tell from outside. Named in the test rather than deleted, so the
+next unused ability cannot hide behind them. Both go in the support statement.
+
+**`ToolsIndex` reads `tools.io.view` twice and only one reading was asserted** — the template flag,
+not the `if` deciding whether schemas are assembled at all.
+
+`Security/ControlCenterGatingTest` — nine tests, one architectural: every class in `src/UI/Livewire/`
+must authorize somewhere. It checks the class rather than `mount()`, because `ChannelLink` authorizes
+from a private `guard()` and `MemoryIndex` from a shared `act()`; a mount-only rule would report both
+as violations, acquire an exemption list, and then be ignored.
+
+### The removal audit is complete
+
+Nine sessions, ~120 ablations, every T1–T15 mitigation removed and the failure recorded. Two live
+security fixes shipped in v0.1.3, one concurrency fix, fourteen coverage gaps closed.
+
+The recurring shape never changed: **a docblock stating a guarantee precisely, and nothing but an
+accident asserting it.** Three structural causes are now closed or written down — one process
+(`RunsConcurrently`), `QUEUE_CONNECTION=sync` (`QueuedJobTenancyTest`), and a fake where a boundary
+belonged (`fake-boundaries.md`).
+
+Remaining for Phase 9: 13 criteria, none of them threats. Upgrade and install safety (18, 24, 25,
+29), scale and CI honesty (22, 23, 26, 28), release docs (30–33), and the human walkthrough (34).
+
+---
+
 ## 2026-08-25 — The tool that was taken away by name
 
 The ninth Phase 9 session, on `phase-9/audit-delegation-intersection`. **19 of 34 criteria; the
