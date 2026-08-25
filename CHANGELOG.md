@@ -29,6 +29,18 @@ and a live defect that could fail a run.
 
 ### Added
 
+- **Seven limit-attribution tests** (T7) and a `SlowTool` fixture. T7 asks for each limit to be
+  proved *by removing the others*, which is the only useful question about limits that overlap:
+  `assertWithinBudget()` checks four in a fixed order and the first to trip throws, so a test
+  asserting only "it stopped with a `BudgetExceeded`" passes with the limit it names deleted.
+  **The wall-clock limit turned out to have no test at all** — `Run::hasExceededDeadline()` had one
+  call site in `src/` and none in `tests/`, and deleting the check left all 1,828 tests green. The
+  test that reads like its coverage is about the agent-scope *token* budget; `RunState::TimedOut` is
+  where every budget breach lands, so its name means "stopped by a limit" rather than "ran out of
+  time". Reaching the limit needed a tool that moves the clock from inside `handle()`, the only place
+  a test can act between two iterations of a run executing inline. Every new test sets every other
+  limit generously and asserts the message of the limit under test.
+
 - **A concurrency harness** — `tests/Support/RunsConcurrently.php`. Starts N real OS processes
   against one database and releases them from a barrier, so a test can assert what happens when
   workers genuinely collide. The barrier is the load-bearing part: application boot dwarfs the
@@ -83,6 +95,16 @@ and a live defect that could fail a run.
 - **T3's *Claimed by* column was incomplete.** `Summariser` scopes its read by `session_id`, and
   removing that filter leaves all four files T3 claimed green — it is `Context/SummarisationTest`
   that catches it. The control was real and tested; the plan did not know where.
+- **T7's *Claimed by* column was wrong about the iteration limit.** Removing it leaves all five of
+  the files T7 claimed green; what fails is `Feature/AgentRunTest`. The control was real and tested —
+  the plan did not know where.
+
+- **Recorded, not fixed: the agent token budget is enforced twice.** Deleting
+  `assertWithinBudget()`'s token comparison leaves the suite green, because
+  `BudgetGuard::limitsFor(Run)` reads the same `token_budget` column by another route. Defence in
+  depth rather than a hole, and not equivalent for a delegated run, where `budgetOwner()` charges the
+  agent at the root of the tree. Both layers are now asserted separately.
+
 - **Recorded, not fixed: the provider health counters lose updates under concurrency.**
   `recordSuccess()` reads `consecutive_successes`, adds one and writes it back with no lock, so two
   concurrent successes both read N and both write N+1. It cannot fail a run and it feeds hysteresis —

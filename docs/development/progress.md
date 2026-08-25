@@ -5,6 +5,51 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-25 — The limit named after the state that isn't it
+
+The eighth Phase 9 session, on `phase-9/audit-limits`. **18 of 34 criteria; the removal audit at 14
+of 15.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,835 passed, 99 skipped (6,116 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+T7 asks its ablation backwards — *"each proved by removing the OTHER limits"* — and that is the only
+useful question about a set of limits, because `assertWithinBudget()` checks four in a fixed order and
+the first to trip throws. A test asserting only "it stopped with a BudgetExceeded" passes with the
+limit it names deleted, provided a neighbour trips first.
+
+Nine ablations across the eight limits (tokens has two mechanisms), seven load-bearing, two gaps.
+
+**The wall-clock limit had no test at all.** `Run::hasExceededDeadline()` has one call site in `src/`
+and none in `tests/`; deleting it left all 1,828 tests green. The test that reads like its coverage —
+"it terminates the run as timed_out with a specific reason" — is about the agent-scope TOKEN budget.
+`RunState::TimedOut` is where every budget breach lands, so the name means "stopped by a limit", not
+"ran out of time", and the one limit that literally runs out of time had nothing behind a name saying
+it did.
+
+Reaching it needed `Fixtures\Tools\SlowTool`, which moves the test clock from inside `handle()` —
+the only place a test can act between two iterations of a run executing inline.
+
+**Two things that cost attempts, both worth remembering.** Tool authorization is against the ACTOR, so
+a run dispatched with no user has every tool call denied — and a denied call still burns an iteration
+and a tool call, so a limit test built that way passes while executing no tool at all. And the token
+assertion had to be tightened twice: "token budget" and the figure appear in both the run-level and
+the scoped message, so only "exceeded its token budget of N" distinguishes them.
+
+**The iteration limit is caught by a file the criterion never named** — `Feature/AgentRunTest`, not
+any of T7's five. *Claimed by* corrected, same shape as T3's Summariser finding.
+
+Recorded, not fixed: the agent token check is redundant with `BudgetGuard`'s Run scope reading the
+same column. Defence in depth rather than a hole, and not equivalent for a delegated run, where
+`budgetOwner()` charges the tree's root. Both layers now asserted separately.
+
+Remaining for criterion 17: **T8, T13.**
+
+---
+
 ## 2026-08-25 — A process is not a fake you can add
 
 The seventh Phase 9 session, on `phase-9/concurrent-test-harness`, and the first that changes the
