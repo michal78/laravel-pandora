@@ -448,6 +448,30 @@ tool; it becomes an architectural test instead of an allowlist guarding nothing.
 all: ADR-0008 says an imported skill is never executed, which is the strongest available mitigation
 and is currently unasserted.
 
+### What remains, and in what order — assessed 2026-08-25
+
+Thirteen criteria, none of them threats. They are not equal in size, and two are outsized.
+
+| Block | Criteria | Notes |
+|---|---|---|
+| **Install and upgrade safety** | 18, 24, 25, 29 | Decides whether 1.0 is *installable*. Independent of everything else, so it is the natural next block. |
+| **Scale and CI honesty** | 22, 23, 26, 28 | 23 is verification of a matrix that already exists. 26 and 28 may use `RunsConcurrently` where they need real contention. |
+| **Release documentation** | 30, 31, 32, 33 | **30 is the largest item left in the phase** and the least predictable. 33's content is already gathered — see below. |
+| **The walkthrough** | 34 | A person, and a real Slack workspace. The true long pole; it cannot be compressed or delegated. |
+
+**Criterion 30 is the one that can move.** *"Every guide's commands are run and their output quoted,
+and no guide documents behaviour that changed after it was written"* is a search rather than a
+checklist, and walkthroughs in this project have a history of finding defects — Phase 2's found four.
+Any estimate for the remaining work breaks here first if it breaks anywhere.
+
+**Criterion 33 already has its queue.** Three disclosures must be named in the support statement:
+
+- Phase 8 §5 — two identities interleaving on one channel account, ⚠ known untested
+- `pandora.audit.view` and `pandora.tools.manage` — configured abilities that gate nothing, because
+  the audit page and tool management do not exist (T13)
+- The cross-process cache lock — `CACHE_STORE=array` is per-process, so only `RunLock`'s database
+  lease is under test; a host on Redis has a real cache lock in front of it that nothing asserts
+
 ---
 
 ## Cross-cutting, every phase
