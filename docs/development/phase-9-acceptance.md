@@ -88,7 +88,7 @@ whether or not the control is present proves the control is untested, not that i
 | 5 ✅ | **T5** — workspace path traversal and symlink escape are refused at the canonicalisation layer *and* at the disk root, with the second layer proved by disabling the first | `Workspaces/ContainmentTest` · `Workspaces/RootsTest` · **new** `Workspaces/ContainmentLayersTest` — **one finding**, see below |
 | 6 ✅ | **T6a** — **no core tool performs an outbound HTTP request**, asserted architecturally so the day one does is the day CI goes red | `Architecture/NoOutboundHttpFromToolsTest` — 4 tests; red within seconds of adding a tool that calls `Http::get()`, verified by adding one |
 | 7 ✅ | **T6b** — the MCP HTTP transport's URL is operator-configured and cannot be selected, redirected or influenced by model output or tool arguments | `Mcp/TransportUrlOriginTest` — 7 tests; **found a live SSRF**, see below |
-| 8 ⬜ | **T7** — iteration, tool-call, token, monetary, wall-clock, duplicate-call, delegation-depth and autonomy limits each independently halt a run, each proved by removing the other limits | `Feature/BudgetEnforcementTest` · `Feature/ToolLoopTest` · `Tools/DuplicateCallTest` · `Delegation/DepthTest` · `Automation/AutonomyTest` |
+| 8 ✅ | **T7** — iteration, tool-call, token, monetary, wall-clock, duplicate-call, delegation-depth and autonomy limits each independently halt a run, each proved by removing the other limits | `Feature/BudgetEnforcementTest` · `Feature/ToolLoopTest` · `Feature/AgentRunTest` *(the iteration limit lives here, not in the four the plan named)* · `Tools/DuplicateCallTest` · `Delegation/DepthTest` · `Automation/AutonomyTest` · **new** `Feature/LimitAttributionTest` — **one finding**, see below |
 | 9 ⬜ | **T8** — a child run's abilities are the intersection; delegation never widens authority, including through a cycle or a re-delegation | `Delegation/IntersectionTest` · `Delegation/CycleTest` · `Delegation/AllowlistTest` |
 | 10 ✅ | **T9** — **an imported skill is never executed**: a skill body carrying install instructions, a shell command or a tool call produces ~~instructions in context~~ **nothing in context** and no execution anywhere | `Skills/UntrustedSkillTest` — 6 tests; the criterion's own wording was wrong, see below |
 | 11 ✅ | **T10** — a hostile MCP server cannot reach a model with an unapproved tool, an unapproved description, or a name that resolves where a core tool is expected | `Mcp/UntrustedDescriptionTest` · `Mcp/SchemaHashTest` · `Mcp/NamespaceTest` · `Mcp/ApprovalTest` — 39 tests, audited clean, all three mitigations fail on removal |
@@ -97,7 +97,7 @@ whether or not the control is present proves the control is untested, not that i
 | 14 ⬜ | **T13** — every control-center page and action is behind a gate; an authenticated non-admin reaches none of them, and prompts, tool I/O, costs and audit logs gate separately | `Security/ToolIoVisibilityTest` · `UI/*` |
 | 15 ✅ | **T14** — an approval is consumed exactly once under the run lock, and the tool call is re-validated at execution against the arguments approved | `Security/ApprovalRaceTest` · `Security/ApprovalAuthorizationTest` · `Approvals/ApprovalResolutionTest` · **new** `Security/ExactlyOnceUnderLockTest` — **three findings**, see below |
 | 16 ✅ | **T15** — no model uses `$guarded = []`; every one declares `$fillable`, asserted by reflection over `src/` so a new model cannot omit it | `Architecture/ModuleBoundaryTest` — 3 added tests over 29 models; red when one model is switched to `$guarded = []`, verified by switching one |
-| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **13 of 15 done** (2026-08-25): T1, T2, T3, T4, T5, T6a, T6b, T9, T10, T11, T12, T14, T15. Remaining: T7, T8, T13 |
+| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **14 of 15 done** (2026-08-25): T1, T2, T3, T4, T5, T6a, T6b, T7, T9, T10, T11, T12, T14, T15. Remaining: T8, T13 |
 
 ### The suite tells the truth about what it tested
 
@@ -594,6 +594,66 @@ The count is a named constant so that raising it on a bigger machine is a one-li
 directory is not on it. The symptom is every test in the new directory failing with
 `Target class [config] does not exist`, which reads like a container problem. Added; worth knowing
 that the list exists before adding the next directory.
+
+## What auditing T7 found — 2026-08-25
+
+T7 words its ablation backwards from every other criterion in the phase. Not *"remove this limit and
+watch its test fail"*, but **"each proved by removing the OTHER limits"** — and that turns out to be
+the only question worth asking about a set of limits, because they overlap. `assertWithinBudget()`
+checks four of them in a fixed order — iterations, tool calls, duration, tokens — and the first to
+trip is the one that throws. A run built to exhaust its tool calls usually exhausts its iterations at
+the same moment, and a test asserting only *"it stopped, with a `BudgetExceeded`"* cannot tell which
+did it. Such a test passes with the limit it names deleted, provided a neighbour trips first.
+
+Nine ablations across the eight limits — tokens has two independent mechanisms — **seven
+load-bearing, two gaps.**
+
+The seven that behaved: the tool-call limit, the scoped token budget, the monetary budget, duplicate
+detection, the delegation-depth check, the autonomy budget, and the iteration limit.
+
+**The iteration limit is caught by a file the criterion never named.** Removing it leaves all five of
+T7's claimed test files green; what fails is `Feature/AgentRunTest`'s "it stops when the iteration
+budget is exhausted". The control was real and tested — the plan did not know where. Same shape as
+T3's `Summariser` finding, and the *Claimed by* column is now corrected.
+
+**The finding: the wall-clock limit had no test at all.**
+
+`Run::hasExceededDeadline()` has exactly one call site in `src/` and **none anywhere in `tests/`**.
+Deleting the check left all 1,828 tests green.
+
+What makes it worth more than a line in a table is *why* nobody noticed. The test that reads like its
+coverage is `BudgetEnforcementTest`'s **"it terminates the run as `timed_out` with a specific
+reason"** — and that test is about the agent-scope **token** budget. `RunState::TimedOut` is the state
+every budget breach lands in, so the name means "stopped by a limit", not "ran out of time". The one
+limit that literally runs out of time had nothing, behind a name that says it does.
+
+Reaching it needed a tool that takes time. `deadline_at` is stamped at creation and checked at the top
+of each iteration, so a run only exceeds it if the clock moves BETWEEN iterations — a test cannot
+sleep for a realistic timeout, and it cannot reach in between two iterations of a run executing
+inline. A tool runs exactly there. `Fixtures\Tools\SlowTool` moves the test clock from inside
+`handle()`, which is the same shape as a real tool that took two minutes to answer.
+
+**A second thing the fixture exposed, which cost the first two attempts.** Tool authorization is
+against the **actor**, so a run dispatched with nobody attached has every tool call *denied* — and a
+denied call still burns an iteration and a tool call. A limit test built that way still "passes" while
+never executing a tool at all. The wall-clock test failed initially for exactly this reason: the tool
+meant to move the clock never ran, and the run completed. Any future limit test must attach an actor
+or it is measuring denials.
+
+**Recorded, not fixed: the agent token check is redundant with the scoped one.** Deleting
+`assertWithinBudget()`'s token comparison also left the suite green, because
+`BudgetGuard::limitsFor(Run)` reads the same `token_budget` column by a different route and catches it
+a line later. This is defence in depth rather than a hole, and the two are **not** equivalent: the
+run-level check compares the run's own counters, while the scoped one sums usage records through
+`budgetOwner()`, which charges a delegated run to the agent at the root of its tree. Both layers are
+now named and asserted separately — and the run-level test had to be tightened twice to do it, because
+"token budget" and the figure appear in *both* messages. Only `BudgetExceeded::tokens()` phrases it
+"exceeded its token budget of N".
+
+`Feature/LimitAttributionTest` sets **every other limit generously** and asserts the message of the
+limit under test. Seven tests; five ablations each fail exactly the test that names them, verified by
+removing each in turn. One test deliberately proves the negative — a run inside its deadline still
+finishes — so the wall-clock check cannot be a blanket refusal of any run that calls a tool.
 
 ## Design decisions taken for this phase
 
