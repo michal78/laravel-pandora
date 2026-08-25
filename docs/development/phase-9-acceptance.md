@@ -97,7 +97,7 @@ whether or not the control is present proves the control is untested, not that i
 | 14 ✅ | **T13** — every control-center page and action is behind a gate; an authenticated non-admin reaches none of them, and prompts, tool I/O, costs and audit logs gate separately *(audit logs: see below — the ability gates nothing because no audit surface exists)* | `Security/ToolIoVisibilityTest` · `UI/*` · **new** `Security/ControlCenterGatingTest` — **three findings**, see below |
 | 15 ✅ | **T14** — an approval is consumed exactly once under the run lock, and the tool call is re-validated at execution against the arguments approved | `Security/ApprovalRaceTest` · `Security/ApprovalAuthorizationTest` · `Approvals/ApprovalResolutionTest` · **new** `Security/ExactlyOnceUnderLockTest` — **three findings**, see below |
 | 16 ✅ | **T15** — no model uses `$guarded = []`; every one declares `$fillable`, asserted by reflection over `src/` so a new model cannot omit it | `Architecture/ModuleBoundaryTest` — 3 added tests over 29 models; red when one model is switched to `$guarded = []`, verified by switching one |
-| 17 ✅ | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **15 of 15 threats done, complete 2026-08-25.** Every T1–T15 mitigation has been removed, one at a time, and the failure recorded. Nine sessions, roughly 120 ablations, **two live security fixes shipped in v0.1.3** (an MCP SSRF and a closable delimiter), one shipped concurrency fix, and fourteen coverage gaps closed. |
+| 17 ✅ | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **15 of 15 threats done, complete 2026-08-25.** Every T1–T15 mitigation has been removed, one at a time, and the failure recorded. Ten sessions, **two live security fixes shipped in v0.1.3** (an MCP SSRF and a closable delimiter), one shipped concurrency fix, and fourteen coverage gaps closed. |
 
 ### The suite tells the truth about what it tested
 
@@ -769,7 +769,7 @@ list and then gets ignored. All six ablations now fail; verified by re-running e
 ### The removal audit is complete — 15 of 15
 
 Criterion 17 is closed. Every T1–T15 mitigation has been removed, one at a time, and the failure
-recorded. Nine sessions, roughly 120 ablations.
+recorded. Ten sessions.
 
 **What it produced:** two live security fixes shipped in v0.1.3 — an SSRF in the MCP client that a
 hostile server could steer an authenticated POST through, and untrusted content able to close its own
@@ -777,7 +777,7 @@ delimiter inside a system message — plus one concurrency fix, where a provider
 could fail a run outright.
 
 **What it mostly produced, though, was tests for controls that already worked.** Fourteen coverage
-gaps across ten threats, and the recurring shape did not change once in nine sessions: **a docblock
+gaps across ten threats, and the recurring shape did not change once in ten sessions: **a docblock
 stating a guarantee precisely, and nothing but an accident asserting it.** T5's symlink re-check,
 where a quota lookup threw first. `RunLock`'s database lease, which the class calls "the authority".
 `BelongsToTenant`, where the opt-in was convention. The wall-clock limit, hidden behind a state named

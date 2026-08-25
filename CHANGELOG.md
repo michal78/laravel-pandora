@@ -12,26 +12,29 @@ All notable changes to this project are documented here. The format follows
 
 ## Unreleased
 
-Phase 9's threat audit continues with T3. Session isolation is enforced by a hash — seven components
-folded into one key — which makes it unusually auditable: every component is independently removable,
-and removing one is invisible unless a test varies exactly that component. Seven ablations, four
-load-bearing, two findings. No shipped behaviour was wrong.
+Phase 9's threat audit continues, and **completes**. T3 first: session isolation is enforced by a
+hash — seven components folded into one key — which makes it unusually auditable, because every
+component is independently removable and removing one is invisible unless a test varies exactly that
+component. Seven ablations, four load-bearing, two findings.
 
-**The Phase 9 removal audit is complete.** Every T1–T15 mitigation has now been removed, one at a
-time, and the failure recorded — nine sessions and roughly 120 ablations. It shipped two live security
-fixes in v0.1.3 and one concurrency fix here, and closed fourteen coverage gaps across ten threats.
-The recurring finding never changed shape: a docblock stating a guarantee precisely, and nothing but
-an accident asserting it.
-
-Then T5, whose criterion is the only one in the phase that names its own ablation. Ten more
-ablations, nine load-bearing, one finding. No shipped behaviour was wrong here either — but the
-control that protects a write from an escaping symlink turned out to be unasserted, with a quota
-lookup refusing the escape first by accident.
+Then T5, whose criterion is the only one in the phase that names its own ablation. Ten ablations,
+nine load-bearing, one finding: the control that protects a write from an escaping symlink was
+unasserted, with a quota lookup refusing the escape first by accident.
 
 **Then the suite learned to run more than one process at a time, and that carries a fix.** Four
-Phase 9 findings so far shared one cause — a control that only exists between workers, tested by a
-suite that has one — so criterion 27 was taken early. It found `RunLock`'s database lease untested
-and a live defect that could fail a run.
+findings so far shared one cause — a control that only exists between workers, tested by a suite that
+has one — so criterion 27 was taken early. It found `RunLock`'s database lease untested and a live
+defect that could fail a run.
+
+Then T7 (nine ablations, the wall-clock limit found to have no test at all), T8 (eight ablations, the
+deny half of layer 2 never exercised through delegation) and T13 (twenty-five ablations, five pages
+that could lose their gate with the suite green).
+
+**With T13 the removal audit is complete.** Every T1–T15 mitigation has now been removed, one at a
+time, and the failure recorded — ten sessions of it. It produced two live security fixes shipped in
+v0.1.3 and one concurrency fix here, and closed fourteen coverage gaps across ten threats. The
+recurring finding never changed shape: a docblock stating a guarantee precisely, and nothing but an
+accident asserting it.
 
 ### Added
 

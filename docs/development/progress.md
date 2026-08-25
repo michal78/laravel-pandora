@@ -42,7 +42,7 @@ as violations, acquire an exemption list, and then be ignored.
 
 ### The removal audit is complete
 
-Nine sessions, ~120 ablations, every T1–T15 mitigation removed and the failure recorded. Two live
+Ten sessions, every T1–T15 mitigation removed and the failure recorded. Two live
 security fixes shipped in v0.1.3, one concurrency fix, fourteen coverage gaps closed.
 
 The recurring shape never changed: **a docblock stating a guarantee precisely, and nothing but an
