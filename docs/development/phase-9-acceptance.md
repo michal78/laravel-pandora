@@ -89,7 +89,7 @@ whether or not the control is present proves the control is untested, not that i
 | 6 ✅ | **T6a** — **no core tool performs an outbound HTTP request**, asserted architecturally so the day one does is the day CI goes red | `Architecture/NoOutboundHttpFromToolsTest` — 4 tests; red within seconds of adding a tool that calls `Http::get()`, verified by adding one |
 | 7 ✅ | **T6b** — the MCP HTTP transport's URL is operator-configured and cannot be selected, redirected or influenced by model output or tool arguments | `Mcp/TransportUrlOriginTest` — 7 tests; **found a live SSRF**, see below |
 | 8 ✅ | **T7** — iteration, tool-call, token, monetary, wall-clock, duplicate-call, delegation-depth and autonomy limits each independently halt a run, each proved by removing the other limits | `Feature/BudgetEnforcementTest` · `Feature/ToolLoopTest` · `Feature/AgentRunTest` *(the iteration limit lives here, not in the four the plan named)* · `Tools/DuplicateCallTest` · `Delegation/DepthTest` · `Automation/AutonomyTest` · **new** `Feature/LimitAttributionTest` — **one finding**, see below |
-| 9 ⬜ | **T8** — a child run's abilities are the intersection; delegation never widens authority, including through a cycle or a re-delegation | `Delegation/IntersectionTest` · `Delegation/CycleTest` · `Delegation/AllowlistTest` |
+| 9 ✅ | **T8** — a child run's abilities are the intersection; delegation never widens authority, including through a cycle or a re-delegation | `Delegation/IntersectionTest` · `Delegation/CycleTest` · `Delegation/AllowlistTest` · **new** `Delegation/DeniedAbilityTest` — **one finding**, see below |
 | 10 ✅ | **T9** — **an imported skill is never executed**: a skill body carrying install instructions, a shell command or a tool call produces ~~instructions in context~~ **nothing in context** and no execution anywhere | `Skills/UntrustedSkillTest` — 6 tests; the criterion's own wording was wrong, see below |
 | 11 ✅ | **T10** — a hostile MCP server cannot reach a model with an unapproved tool, an unapproved description, or a name that resolves where a core tool is expected | `Mcp/UntrustedDescriptionTest` · `Mcp/SchemaHashTest` · `Mcp/NamespaceTest` · `Mcp/ApprovalTest` — 39 tests, audited clean, all three mitigations fail on removal |
 | 12 ✅ | **T11** — no broadcast carries a system prompt, a secret, sensitive tool arguments or an exception dump, and a private channel refuses an unauthorised subscriber | `Security/BroadcastAuthorizationTest` · `Security/SecretRedactionTest` · `Realtime/BroadcastTest` *(one test renamed and one added — it claimed redaction and never checked it)* |
@@ -97,7 +97,7 @@ whether or not the control is present proves the control is untested, not that i
 | 14 ⬜ | **T13** — every control-center page and action is behind a gate; an authenticated non-admin reaches none of them, and prompts, tool I/O, costs and audit logs gate separately | `Security/ToolIoVisibilityTest` · `UI/*` |
 | 15 ✅ | **T14** — an approval is consumed exactly once under the run lock, and the tool call is re-validated at execution against the arguments approved | `Security/ApprovalRaceTest` · `Security/ApprovalAuthorizationTest` · `Approvals/ApprovalResolutionTest` · **new** `Security/ExactlyOnceUnderLockTest` — **three findings**, see below |
 | 16 ✅ | **T15** — no model uses `$guarded = []`; every one declares `$fillable`, asserted by reflection over `src/` so a new model cannot omit it | `Architecture/ModuleBoundaryTest` — 3 added tests over 29 models; red when one model is switched to `$guarded = []`, verified by switching one |
-| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **14 of 15 done** (2026-08-25): T1, T2, T3, T4, T5, T6a, T6b, T7, T9, T10, T11, T12, T14, T15. Remaining: T8, T13 |
+| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **14 of 15 threats done** (2026-08-25): T1, T2, T3, T4, T5, T6 *(both halves)*, T7, T8, T9, T10, T11, T12, T14, T15. Remaining: **T13 alone.** *(Earlier revisions of this row counted T6a and T6b as two entries against a denominator of 15, so the arithmetic never closed; it counts threats now.)* |
 
 ### The suite tells the truth about what it tested
 
@@ -654,6 +654,64 @@ now named and asserted separately — and the run-level test had to be tightened
 limit under test. Seven tests; five ablations each fail exactly the test that names them, verified by
 removing each in turn. One test deliberately proves the negative — a run inside its deadline still
 finishes — so the wall-clock check cannot be a blanket refusal of any run that calls a tool.
+
+## What auditing T8 found — 2026-08-25
+
+T8 is the best-tested threat in the phase, and that is worth recording as plainly as the gaps have
+been. Eight ablations, **seven load-bearing**, one gap. The suite already distinguished an empty
+intersection from an absent one — the conflation `intersectionAllows()`'s own docblock calls "the
+failure mode worth being pedantic about" — and it already proved the property holds at depth, through
+a cycle, and when the gatekeeper is asked rather than when the list is merely stored.
+
+The seven that behaved: the intersection itself, the frozen-list short-circuit that makes narrowing
+compound at depth, the gatekeeper's enforcement of the frozen list, the empty-versus-null distinction,
+the cycle refusal, the delegation allowlist, and even the *direction* of the withheld list — flipping
+`array_diff`'s arguments fails a trace test.
+
+**The finding: the deny half of layer 2 was never exercised through delegation.**
+
+`AbilityIntersection::abilitiesOfAgent()` resolves an agent's tools as *granted, minus denied*, and
+`Agent::deniedTools()` states the purpose: *"Denial beats the allowlist, so a whole group can be
+granted with one member carved out."* Removing the `&& ! ToolReference::matches($tool, $denied)` half
+left **all 70 delegation tests green**, and the whole suite with them.
+
+Every existing T8 test gives the parent an ability it simply **lacks** — the parent's allowlist does
+not mention `refund_order`, so the intersection drops it. None gives the parent an ability it was
+explicitly **denied**, which is a different code path reaching the same list, and the only one the
+carve-out idiom uses.
+
+The escalation runs the opposite way round from the one the other tests guard:
+
+1. `abilitiesOf($parent, …)` falls back to `abilitiesOfAgent($parentAgent)` for a top-level run.
+   Ignore the deny list there and the **parent** is credited with a tool an operator took away from it
+   by name.
+2. That inflated set is what the child intersects against, so the child receives it.
+3. At call time the gatekeeper checks the **child** agent's policy and the frozen intersection.
+   Neither mentions the parent's deny list.
+
+So a tool carved out of a parent is reachable by delegating to an agent that allows it — one hop,
+exactly the failure T8 exists to prevent, through the one door the suite was not watching.
+
+**It is an execution, not a bookkeeping mismatch.** With the deny half removed, the new
+"refuses the call itself" test does not merely find the wrong list: the tool execution comes back
+`succeeded` where it should read `denied`, and the counter on the fixture tool reads 1. The child ran
+a tool its parent was forbidden. That distinction is why the test asserts a side effect rather than a
+status — a containment failure fails wide rather than loudly, which is the third time this phase has
+turned on that sentence.
+
+`Delegation/DeniedAbilityTest` closes it with five tests: the parent-side carve-out, the child-side
+carve-out, the end-to-end refusal with its side effect, the operator-facing withheld list, and one
+that proves a tool neither side denied still gets through — without which the other four are satisfied
+by an intersection that withholds everything. **All five fail under the ablation while all 70 existing
+delegation tests pass**, verified by removing it.
+
+**A docblock that says the opposite of what the code does.** `DelegationDecision`'s constructor
+documents `$withheldTools` as *"abilities the parent held and did not pass on"*.
+`AbilityIntersection::withheld()` computes the other direction — what the child agent was configured
+for and was refused — and its own docblock is emphatic that this is deliberate: *"This direction, and
+not the other one."* The code is right and the parameter comment is wrong. Corrected, and noted here
+because the phase's recurring finding is a docblock doing a control's job; this is the same hazard
+with the roles reversed, a docblock quietly misdescribing one.
 
 ## Design decisions taken for this phase
 
