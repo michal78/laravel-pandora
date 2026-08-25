@@ -5,6 +5,282 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-25 — The pages nobody tried to open
+
+The tenth Phase 9 session, on `phase-9/audit-control-center-gating`. T13, the last threat.
+**21 of 34 criteria, and the removal audit is COMPLETE at 15 of 15.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,849 passed, 99 skipped (6,138 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+`routes/web.php` states the rule — authorization inside each component, route middleware not
+sufficient — and all eighteen components follow it. Nothing made them. Twenty-five ablations,
+nineteen load-bearing, three findings.
+
+**Five pages could lose their gate with the suite green**: `AgentDetail`, `AutomationDetail`,
+`RunDetail`, `RunsIndex`, `ChannelLink`. Every index but `RunsIndex` has a denial test; the DETAIL
+pages have none at all — and a detail page is where an index's one line becomes a prompt, a webhook
+secret or a full trace. The index denial tests were written as a set; the detail tests were written
+for what the page displays, which never circles back to who may open it.
+
+**Two of the twenty configured abilities are wired to nothing.** `audit.view` — there is no audit
+page, Phase 6 closed that as an open decision and the ability was left pointing at it. `tools.manage`
+— the Tools page is read-only. Neither exposes anything, but an operator granting or withholding
+either sees no difference and cannot tell from outside. Named in the test rather than deleted, so the
+next unused ability cannot hide behind them. Both go in the support statement.
+
+**`ToolsIndex` reads `tools.io.view` twice and only one reading was asserted** — the template flag,
+not the `if` deciding whether schemas are assembled at all.
+
+`Security/ControlCenterGatingTest` — nine tests, one architectural: every class in `src/UI/Livewire/`
+must authorize somewhere. It checks the class rather than `mount()`, because `ChannelLink` authorizes
+from a private `guard()` and `MemoryIndex` from a shared `act()`; a mount-only rule would report both
+as violations, acquire an exemption list, and then be ignored.
+
+### The removal audit is complete
+
+Ten sessions, every T1–T15 mitigation removed and the failure recorded. Two live
+security fixes shipped in v0.1.3, one concurrency fix, fourteen coverage gaps closed.
+
+The recurring shape never changed: **a docblock stating a guarantee precisely, and nothing but an
+accident asserting it.** Three structural causes are now closed or written down — one process
+(`RunsConcurrently`), `QUEUE_CONNECTION=sync` (`QueuedJobTenancyTest`), and a fake where a boundary
+belonged (`fake-boundaries.md`).
+
+Remaining for Phase 9: 13 criteria, none of them threats. Upgrade and install safety (18, 24, 25,
+29), scale and CI honesty (22, 23, 26, 28), release docs (30–33), and the human walkthrough (34).
+
+---
+
+## 2026-08-25 — The tool that was taken away by name
+
+The ninth Phase 9 session, on `phase-9/audit-delegation-intersection`. **19 of 34 criteria; the
+removal audit at 14 of 15 threats, with T13 alone remaining.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,840 passed, 99 skipped (6,124 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+T8 is the best-tested threat in the phase and that deserves saying as plainly as the gaps have been.
+Eight ablations, seven load-bearing. The suite already distinguished an empty intersection from an
+absent one, already proved narrowing compounds at depth, already caught a flipped `array_diff` in the
+withheld list.
+
+**The gap: the deny half of layer 2 was never exercised through delegation.** Every existing T8 test
+gives the parent an ability it simply LACKS. None gives it one explicitly DENIED — the carve-out
+idiom `Agent::deniedTools()` exists for. Removing `&& ! ToolReference::matches($tool, $denied)` left
+all 70 delegation tests green.
+
+The escalation runs opposite to the one the other tests guard: ignore the deny list and the PARENT is
+credited with a tool taken away from it by name; the child intersects against that inflated set and
+receives it; at call time the gatekeeper checks the child's policy and the frozen list, neither of
+which mentions the parent's deny list. One hop.
+
+And it executes. Under the ablation the tool execution reads `succeeded` where it should read
+`denied`, and the fixture's counter reads 1 — the child ran a tool its parent was forbidden. Which is
+why the test asserts a side effect rather than a status: a containment failure fails wide rather than
+loudly, for the third time this phase.
+
+`Delegation/DeniedAbilityTest` — five tests, all five failing under the ablation while all 70 existing
+delegation tests pass.
+
+Also corrected a docblock that said the opposite of its code: `DelegationDecision` documented
+`$withheldTools` as "abilities the parent held and did not pass on", while
+`AbilityIntersection::withheld()` computes the other direction on purpose and says so emphatically.
+The code was right.
+
+Also normalised criterion 17's count. Earlier revisions counted T6a and T6b as two entries against a
+denominator of 15, so the arithmetic never closed; it counts threats now.
+
+---
+
+## 2026-08-25 — The limit named after the state that isn't it
+
+The eighth Phase 9 session, on `phase-9/audit-limits`. **18 of 34 criteria; the removal audit at 14
+of 15.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,835 passed, 99 skipped (6,116 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+T7 asks its ablation backwards — *"each proved by removing the OTHER limits"* — and that is the only
+useful question about a set of limits, because `assertWithinBudget()` checks four in a fixed order and
+the first to trip throws. A test asserting only "it stopped with a BudgetExceeded" passes with the
+limit it names deleted, provided a neighbour trips first.
+
+Nine ablations across the eight limits (tokens has two mechanisms), seven load-bearing, two gaps.
+
+**The wall-clock limit had no test at all.** `Run::hasExceededDeadline()` has one call site in `src/`
+and none in `tests/`; deleting it left all 1,828 tests green. The test that reads like its coverage —
+"it terminates the run as timed_out with a specific reason" — is about the agent-scope TOKEN budget.
+`RunState::TimedOut` is where every budget breach lands, so the name means "stopped by a limit", not
+"ran out of time", and the one limit that literally runs out of time had nothing behind a name saying
+it did.
+
+Reaching it needed `Fixtures\Tools\SlowTool`, which moves the test clock from inside `handle()` —
+the only place a test can act between two iterations of a run executing inline.
+
+**Two things that cost attempts, both worth remembering.** Tool authorization is against the ACTOR, so
+a run dispatched with no user has every tool call denied — and a denied call still burns an iteration
+and a tool call, so a limit test built that way passes while executing no tool at all. And the token
+assertion had to be tightened twice: "token budget" and the figure appear in both the run-level and
+the scoped message, so only "exceeded its token budget of N" distinguishes them.
+
+**The iteration limit is caught by a file the criterion never named** — `Feature/AgentRunTest`, not
+any of T7's five. *Claimed by* corrected, same shape as T3's Summariser finding.
+
+Recorded, not fixed: the agent token check is redundant with `BudgetGuard`'s Run scope reading the
+same column. Defence in depth rather than a hole, and not equivalent for a delegated run, where
+`budgetOwner()` charges the tree's root. Both layers now asserted separately.
+
+Remaining for criterion 17: **T8, T13.**
+
+---
+
+## 2026-08-25 — A process is not a fake you can add
+
+The seventh Phase 9 session, on `phase-9/concurrent-test-harness`, and the first that changes the
+runner rather than the tests. **17 of 34 criteria.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,828 passed, 99 skipped (6,095 assertions)
+vendor/bin/pest (mysql)   -> concurrency legs green, 3 consecutive runs
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+Criterion 27 taken ahead of T7 and T13 deliberately. Four controls had already survived deletion
+because the suite has one process, and `fake-boundaries.md` had already named the cause: the fake is
+the shape of the runner, and there is no class called `FakeConcurrency` to swap out.
+
+`tests/Support/RunsConcurrently.php` starts N real processes against one database and releases them
+from a barrier. The barrier is the whole thing — boot cost dwarfs the contended section, so without a
+rendezvous the workers run one after another and the test passes with the control removed.
+`Queue/ConcurrentHarnessTest` asserts overlap before anything trusts the harness.
+
+**It found `RunLock`'s database lease untested.** The class calls it "the authority"; deleting it
+leaves all 22 serial lock tests green, including one named "grants ownership to one worker and
+refuses a second". Five simultaneous processes all acquire the same run.
+
+**And one live defect.** `ProviderHealthMonitor::rowFor()` was `firstOrNew()` + `save()` against a
+unique index, so two workers recording the first outcome for a provider both insert and the loser's
+exception fails the **run**. One of twenty died on it. Fixed by taking the winner's row. The detector
+was measured rather than assumed: 5 of 5 with the fix reverted.
+
+Recorded, not fixed: the health counters lose updates under concurrency. It cannot fail a run and it
+feeds hysteresis rather than a control; making it exact means a row lock on the hot path of every
+provider call, which is the maintainer's call.
+
+Twenty workers rather than fifty — fifty full Laravel boots is ~4GB and a swapping CI box, and a
+flaky concurrency test gets deleted. Named constant, one line to raise.
+
+Also: `tests/Pest.php` binds `TestCase` by an explicit directory allowlist, and a new directory not on
+it fails with `Target class [config] does not exist`. `Performance` added.
+
+---
+
+## 2026-08-25 — The byte count that was holding the door
+
+The sixth Phase 9 audit session, on `phase-9/audit-workspace-containment`. T5 next, because its
+criterion is the only one that names its own ablation. **16 of 34 criteria; the removal audit at 13
+of 15.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,828 passed, 90 skipped (6,095 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+Ten ablations across `LocalStorage` and `WorkspaceRoots`, nine load-bearing, one gap. The nine cover
+canonicalisation itself, the containment assertion, the trailing separator in the prefix comparison,
+the null-byte guard, the listing filter, the root-existence check, the slug regex, the unknown-key
+refusal and the tenant-segment hash. All refuse within seconds of being removed.
+
+**The gap: `LocalStorage`'s write-path symlink re-check can be deleted with the entire suite green.**
+Two tests are named for the case it protects and both still pass, because `WorkspaceFiles::write()`
+calls `storage->size()` for quota accounting first, and `size()` resolves with `mustExist: true` — so
+the escape is refused by a byte-count lookup several lines before the check written for it is
+reached. Two layers, as the criterion wants; but the outer one is quota code that is not there for
+containment and would move the moment reservations became lazy, and the inner one was unasserted.
+
+`Workspaces/ContainmentLayersTest` drives `LocalStorage` directly to reach the second layer with the
+first out of the way. Six tests; three fail when the re-check is removed, verified by removing it,
+with the rest of `tests/Workspaces` staying green. One of the six pins the quota ordering in place on
+purpose, so a change there is loud rather than silent.
+
+The ablation also drew a distinction the original pair blurred: the symlinked-*directory* case is
+caught by the parent check, not the leaf re-check. Two tests, two different controls, and only one of
+them was ever the witness for the control being audited.
+
+Also corrected `docs/roadmap.md`, which still read `11/34` and `⬜` for Phase 9 — eight days and four
+accepted threats out of date.
+
+Remaining for criterion 17: **T7, T8, T13.**
+
+---
+
+## 2026-08-19 — Half an actor
+
+The fifth Phase 9 audit session, on `phase-9/audit-session-isolation`, the same day v0.1.3 shipped.
+T3 next, because it shares the isolation machinery T2 had just been through. **15 of 34 criteria; the
+removal audit at 12 of 15.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,822 passed, 90 skipped (6,086 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+**T3's mitigation is a hash, which makes it unusually auditable.** `Session::isolationKeyFor()` folds
+seven components into a SHA-256 digest and `SessionResolver` does `firstOrCreate` on it, so every
+component is independently removable and removing one is invisible unless a test varies exactly that
+component. Seven ablations across the key, the resolver, and the two places `session_id` is a `WHERE`
+clause. Four load-bearing: the `RecentMessagesProvider` filter, and the actor id, participant id and
+channel components.
+
+**`actor_type` could be dropped with all 1,820 tests green** — while dropping `actor_id` beside it
+failed two. That asymmetry is the finding. "Derives a different isolation key for every differing
+component" varies tenant, agent, channel, participant, origin and the actor's *id*, and never the
+actor's *type*: six of seven, and the missing one reads as covered precisely because its sibling is.
+
+The collision is reachable. `ActorContext::system()` takes an arbitrary label as its id, so an
+automation labelled with a user's primary key has that user's `id` and a different `type`. Without
+the type in the key they are one session and the automation reads the person's history.
+
+**The second finding is a comment doing a control's job.** `SessionResolver` folds the conversation
+into the origin, with a note saying two conversations with the same agent and actor must not share a
+context boundary. Removing the fold left the whole suite green. The unit test cannot reach it: it
+calls `isolationKeyFor()` directly with `origin` ready-made, so the composition the resolver performs
+is never exercised by the test that looks like it tests composition. Fourth time this phase that a
+docblock has been the only thing asserting a control.
+
+Both are closed in `Security/SessionIsolationTest`, and each ablation now fails exactly the test that
+names it. The first test asserts the two actor ids really are equal before requiring the keys to
+differ — without that, it would pass for the wrong reason.
+
+**Two things recorded rather than fixed.** T3's *Claimed by* column was incomplete: `Summariser`
+scopes by `session_id` too, and none of the four files T3 claimed catches its removal —
+`Context/SummarisationTest` does. And `Session::belongsToActor()` has no production call sites at
+all; it is called only from a test, and its actorless guard is unreachable besides, since
+`ActorContext` cannot produce a null `type`. Testing it would assert the behaviour of code nothing
+consults. Its docblock states a rule about system sessions that a reader would take for enforced.
+
+**Method note.** Full-suite runs invoked in the foreground stalled past ten minutes twice this
+session, while the identical command detached finishes in about 150 seconds. Every ablation sweep
+here was run detached with a restore trap, which is also what stops a killed run leaving `src/`
+modified.
+
+**Next.** Criterion 17 has T5, T7, T8 and T13 left.
+
+---
+
 ## 2026-08-19 — The scope nobody opted into
 
 The fourth Phase 9 audit session, same branch. T2 next, and picked partly because it looked safe:

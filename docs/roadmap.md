@@ -17,7 +17,7 @@
 | 6 | Multi-agent and MCP | ✅ 31/31; both walkthrough halves driven (delegation 2026-08-08 + 2026-08-10, MCP 2026-08-10 against real servers) — 15 findings, 13 fixed. Two open by decision: no audit page, and a dead-end tool result becomes a retry storm |
 | 7 | Workspaces, released and on object storage | ✅ 25/25 — walkthrough driven end to end 2026-08-10 against real MinIO; 7 defects, 6 fixed. Tenancy section closed 2026-08-11 by `Security/HostResolverTenancyTest`, which found that no test had ever exercised the host resolver path |
 | 8 | Channels and extensions | ✅ 33/33 — walkthrough driven for every section but 5, against a real Slack workspace. 16 findings. Section 5 (two people, one channel account, **concurrently**) is closed as ⚠ **known untested** — no second account, and it goes in the v1.0 support statement |
-| 9 | Hardening and release | 🔨 11/34 — the threat audit is open; the removal audit itself stands at 8 of 15. T1, T4, T6a, T6b, T9, T10, T11 and T15 accepted 2026-08-17, each verified by removing its mitigation. Two live defects so far: an SSRF in the MCP client, and untrusted content able to close its own delimiter inside a system message |
+| 9 | Hardening and release | 🔨 21/34 — **the threat audit is closed**; **the removal audit is complete at 15 of 15 threats.** T1, T4, T6a, T6b, T9, T10, T11 and T15 accepted 2026-08-17; T12, T14 and T2 on 2026-08-19; T3 on 2026-08-19; T5, T7, T8 and T13 on 2026-08-25. Three live defects: an SSRF in the MCP client and untrusted content able to close its own delimiter inside a system message (both fixed in v0.1.3), and a provider-health insert race that could fail an otherwise healthy run (fixed in v0.1.4) |
 
 ---
 
@@ -414,7 +414,7 @@ with its own suite running against real core — which is the only form that cla
 
 ---
 
-## Phase 9 — Hardening and release ⬜
+## Phase 9 — Hardening and release 🔨
 
 Security review against the full threat model · performance tests (large conversations, many
 concurrent runs, long traces) · CI matrix across SQLite / MySQL / MariaDB / PostgreSQL · upgrade
@@ -423,7 +423,9 @@ automation · CHANGELOG · v1.0 checklist.
 
 **Acceptance:** every T1–T15 threat has a passing test. The matrix is green. The example application
 runs the documented quick start end to end. See `docs/development/phase-9-acceptance.md` — **34
-criteria, 11 accepted**, and deliberately none inherited.
+criteria, 21 accepted**, and deliberately none inherited. **The removal audit (criterion 17) is
+complete: all 15 threats verified by removing their mitigations.** What remains is upgrade and
+install safety, scale, the release documentation set and the human walkthrough.
 
 This is the first phase whose subject is the **suite** rather than the code, so a green test is
 evidence to be audited rather than a criterion already met. Phase 6 closed at 30 verified criteria
@@ -445,6 +447,30 @@ tool, so the threat is currently mitigated by absence, which holds exactly until
 tool; it becomes an architectural test instead of an allowlist guarding nothing. And T9 has no test at
 all: ADR-0008 says an imported skill is never executed, which is the strongest available mitigation
 and is currently unasserted.
+
+### What remains, and in what order — assessed 2026-08-25
+
+Thirteen criteria, none of them threats. They are not equal in size, and two are outsized.
+
+| Block | Criteria | Notes |
+|---|---|---|
+| **Install and upgrade safety** | 18, 24, 25, 29 | Decides whether 1.0 is *installable*. Independent of everything else, so it is the natural next block. |
+| **Scale and CI honesty** | 22, 23, 26, 28 | 23 is verification of a matrix that already exists. 26 and 28 may use `RunsConcurrently` where they need real contention. |
+| **Release documentation** | 30, 31, 32, 33 | **30 is the largest item left in the phase** and the least predictable. 33's content is already gathered — see below. |
+| **The walkthrough** | 34 | A person, and a real Slack workspace. The true long pole; it cannot be compressed or delegated. |
+
+**Criterion 30 is the one that can move.** *"Every guide's commands are run and their output quoted,
+and no guide documents behaviour that changed after it was written"* is a search rather than a
+checklist, and walkthroughs in this project have a history of finding defects — Phase 2's found four.
+Any estimate for the remaining work breaks here first if it breaks anywhere.
+
+**Criterion 33 already has its queue.** Three disclosures must be named in the support statement:
+
+- Phase 8 §5 — two identities interleaving on one channel account, ⚠ known untested
+- `pandora.audit.view` and `pandora.tools.manage` — configured abilities that gate nothing, because
+  the audit page and tool management do not exist (T13)
+- The cross-process cache lock — `CACHE_STORE=array` is per-process, so only `RunLock`'s database
+  lease is under test; a host on Redis has a real cache lock in front of it that nothing asserts
 
 ---
 

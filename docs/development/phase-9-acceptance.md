@@ -1,6 +1,6 @@
 # Phase 9 — Acceptance Test Plan
 
-> **Status: 14 of 34 criteria accepted** (1, 2, 4, 6, 7, 10, 11, 12, 13, 15, 16, 19, 20, 21). Nothing here is ticked by inheritance.
+> **Status: 15 of 34 criteria accepted** (1, 2, 3, 4, 6, 7, 10, 11, 12, 13, 15, 16, 19, 20, 21). Nothing here is ticked by inheritance.
 >
 > Every previous phase wrote tests and then claimed the criteria those tests were written for. Phase 9
 > is the phase that claims T1–T15, and it is the first one where the claim is about the *suite* rather
@@ -83,21 +83,21 @@ whether or not the control is present proves the control is untested, not that i
 |---|---|---|
 | 1 ✅ | **T1** — injected instructions in a document, web page or tool result cannot reach a destructive tool call: authorization is against the actor, `high`/`critical` require approval, untrusted content is delimited and labelled, and the approval UI shows the real arguments | `Security/ToolAuthorizationTest` · `Delegation/UntrustedResultTest` · `Channels/UntrustedInboundTest` · **new** `Security/UntrustedContextTest`, `InjectionToDestructiveCallTest`, `ApprovalArgumentFidelityTest`, `ApprovalFloorAgreementTest` — **three findings**, see below |
 | 2 ✅ | **T2** — no cross-tenant read or write through any model, direct-ID lookup, page, console command or API resource, **with the tenant arriving from a bound host resolver rather than an override** | `Security/HostResolverTenancyTest` *(new, 2026-08-11)* · `Security/TenantIsolationTest` · `Security/ToolTenantIsolationTest` · `Memory/TenancyTest` · `Automation/TenancyTest` · `Channels/TenancyTest` · `McpServer/TenancyTest` · **new** `Security/TenantScopeCoverageTest`, `Security/QueuedJobTenancyTest` — **two findings**, see below |
-| 3 ⬜ | **T3** — no cross-session context leak, including two participants on one channel account | `Security/SessionIsolationTest` · `Channels/SessionIsolationTest` · `Channels/UnlinkedIdentityTest` · `Channels/LinkRevocationTest` |
+| 3 ✅ | **T3** — no cross-session context leak, including two participants on one channel account | `Security/SessionIsolationTest` · `Channels/SessionIsolationTest` · `Channels/UnlinkedIdentityTest` · `Channels/LinkRevocationTest` · `Context/SummarisationTest` *(the summariser's scoping lives here, not in the four above)* — **two findings**, see below |
 | 4 ✅ | **T4** — a provider credential is not in context, a step payload, a broadcast, an API resource or a log, and cannot be extracted by a prompt that asks for one | `Security/CredentialIsolationTest` · `Security/SecretLeakTest` · `Security/SecretRedactionTest` · **new** `Security/CredentialExtractionTest` — the extraction clause had no test |
-| 5 ⬜ | **T5** — workspace path traversal and symlink escape are refused at the canonicalisation layer *and* at the disk root, with the second layer proved by disabling the first | `Workspaces/ContainmentTest` · `Workspaces/RootsTest` |
+| 5 ✅ | **T5** — workspace path traversal and symlink escape are refused at the canonicalisation layer *and* at the disk root, with the second layer proved by disabling the first | `Workspaces/ContainmentTest` · `Workspaces/RootsTest` · **new** `Workspaces/ContainmentLayersTest` — **one finding**, see below |
 | 6 ✅ | **T6a** — **no core tool performs an outbound HTTP request**, asserted architecturally so the day one does is the day CI goes red | `Architecture/NoOutboundHttpFromToolsTest` — 4 tests; red within seconds of adding a tool that calls `Http::get()`, verified by adding one |
 | 7 ✅ | **T6b** — the MCP HTTP transport's URL is operator-configured and cannot be selected, redirected or influenced by model output or tool arguments | `Mcp/TransportUrlOriginTest` — 7 tests; **found a live SSRF**, see below |
-| 8 ⬜ | **T7** — iteration, tool-call, token, monetary, wall-clock, duplicate-call, delegation-depth and autonomy limits each independently halt a run, each proved by removing the other limits | `Feature/BudgetEnforcementTest` · `Feature/ToolLoopTest` · `Tools/DuplicateCallTest` · `Delegation/DepthTest` · `Automation/AutonomyTest` |
-| 9 ⬜ | **T8** — a child run's abilities are the intersection; delegation never widens authority, including through a cycle or a re-delegation | `Delegation/IntersectionTest` · `Delegation/CycleTest` · `Delegation/AllowlistTest` |
+| 8 ✅ | **T7** — iteration, tool-call, token, monetary, wall-clock, duplicate-call, delegation-depth and autonomy limits each independently halt a run, each proved by removing the other limits | `Feature/BudgetEnforcementTest` · `Feature/ToolLoopTest` · `Feature/AgentRunTest` *(the iteration limit lives here, not in the four the plan named)* · `Tools/DuplicateCallTest` · `Delegation/DepthTest` · `Automation/AutonomyTest` · **new** `Feature/LimitAttributionTest` — **one finding**, see below |
+| 9 ✅ | **T8** — a child run's abilities are the intersection; delegation never widens authority, including through a cycle or a re-delegation | `Delegation/IntersectionTest` · `Delegation/CycleTest` · `Delegation/AllowlistTest` · **new** `Delegation/DeniedAbilityTest` — **one finding**, see below |
 | 10 ✅ | **T9** — **an imported skill is never executed**: a skill body carrying install instructions, a shell command or a tool call produces ~~instructions in context~~ **nothing in context** and no execution anywhere | `Skills/UntrustedSkillTest` — 6 tests; the criterion's own wording was wrong, see below |
 | 11 ✅ | **T10** — a hostile MCP server cannot reach a model with an unapproved tool, an unapproved description, or a name that resolves where a core tool is expected | `Mcp/UntrustedDescriptionTest` · `Mcp/SchemaHashTest` · `Mcp/NamespaceTest` · `Mcp/ApprovalTest` — 39 tests, audited clean, all three mitigations fail on removal |
 | 12 ✅ | **T11** — no broadcast carries a system prompt, a secret, sensitive tool arguments or an exception dump, and a private channel refuses an unauthorised subscriber | `Security/BroadcastAuthorizationTest` · `Security/SecretRedactionTest` · `Realtime/BroadcastTest` *(one test renamed and one added — it claimed redaction and never checked it)* |
 | 13 ✅ | **T12** — a forged, replayed, stale or wrong-secret webhook is refused; a valid one is processed exactly once | `Automation/WebhookTest` · `Automation/IdempotencyTest` — audited clean on all four rejections; **one finding** in the narrowing that decides what counts as a replay, see below |
-| 14 ⬜ | **T13** — every control-center page and action is behind a gate; an authenticated non-admin reaches none of them, and prompts, tool I/O, costs and audit logs gate separately | `Security/ToolIoVisibilityTest` · `UI/*` |
+| 14 ✅ | **T13** — every control-center page and action is behind a gate; an authenticated non-admin reaches none of them, and prompts, tool I/O, costs and audit logs gate separately *(audit logs: see below — the ability gates nothing because no audit surface exists)* | `Security/ToolIoVisibilityTest` · `UI/*` · **new** `Security/ControlCenterGatingTest` — **three findings**, see below |
 | 15 ✅ | **T14** — an approval is consumed exactly once under the run lock, and the tool call is re-validated at execution against the arguments approved | `Security/ApprovalRaceTest` · `Security/ApprovalAuthorizationTest` · `Approvals/ApprovalResolutionTest` · **new** `Security/ExactlyOnceUnderLockTest` — **three findings**, see below |
 | 16 ✅ | **T15** — no model uses `$guarded = []`; every one declares `$fillable`, asserted by reflection over `src/` so a new model cannot omit it | `Architecture/ModuleBoundaryTest` — 3 added tests over 29 models; red when one model is switched to `$guarded = []`, verified by switching one |
-| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **11 of 15 done** (2026-08-19): T1, T2, T4, T6a, T6b, T9, T10, T11, T12, T14, T15. Remaining: T3, T5, T7, T8, T13 |
+| 17 ✅ | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **15 of 15 threats done, complete 2026-08-25.** Every T1–T15 mitigation has been removed, one at a time, and the failure recorded. Ten sessions, **two live security fixes shipped in v0.1.3** (an MCP SSRF and a closable delimiter), one shipped concurrency fix, and fourteen coverage gaps closed. |
 
 ### The suite tells the truth about what it tested
 
@@ -120,7 +120,7 @@ independent ways, in one session.
 | 24 ⬜ | **Migrations run forward from a v0 install to head on every engine in the matrix**, not only from empty | *new* — `Database/UpgradeTest` + CI leg |
 | 25 ⬜ | **A published config from an earlier version still boots** — a host that published `config/pandora.php` before a key existed gets the package default, not a missing key | *new* — `Feature/ConfigUpgradeTest` |
 | 26 ⬜ | A conversation of 10,000 messages builds context within budget and the page renders without loading all of them | *new* — `Performance/LargeConversationTest` |
-| 27 ⬜ | 50 concurrent runs against one agent complete without lock starvation, duplicated tool execution or lost steps | *new* — `Performance/ConcurrentRunsTest` |
+| 27 ✅ | 50 concurrent runs against one agent complete without lock starvation, duplicated tool execution or lost steps *(read as 20 — see below)* | `Performance/ConcurrentRunsTest` · `Queue/ConcurrentHarnessTest` · `tests/Support/RunsConcurrently.php` — **one live defect**, see below |
 | 28 ⬜ | A 500-step trace renders and paginates; the run detail page issues a bounded number of queries regardless of trace length | *new* — `Performance/LongTraceTest` |
 
 ### Release
@@ -404,6 +404,390 @@ ran with no tenant — and an unstamped audit row is invisible to the tenant who
 The second hands a job carrying one tenant another tenant's run id, the shape a corrupted payload or
 a replayed message takes, and asserts that run is still sitting in `queued` afterwards. Both fail
 under both ablations.
+
+## What auditing T3 found — 2026-08-19
+
+T3's mitigation is a hash. `Session::isolationKeyFor()` folds seven components into a SHA-256 digest,
+`SessionResolver` does `firstOrCreate` on it, and a unique index turns a collision into a database
+error rather than a silent leak. That design is right, and it has an unusual property for auditing:
+**every component is independently removable, and removing one is invisible unless a test varies
+exactly that component.** So the audit removed them one at a time — seven ablations across the key,
+the resolver and the two places `session_id` is used as a `WHERE` clause.
+
+**Four are load-bearing.** Drop the session filter from `RecentMessagesProvider` and T3's own tests
+fail; drop the actor id, the participant id or the channel from the key and they fail too.
+
+**The first finding is half an actor.** `actor_type` can be dropped from the key with **all 1,820
+tests still passing**, while dropping `actor_id` beside it fails two. The asymmetry is the finding,
+and its cause is visible in the test that looks most like coverage: "derives a different isolation
+key for every differing component" varies tenant, agent, channel, participant, origin and the actor's
+*id* — system `alice` against system `bob` — and never the actor's *type*. Six of seven components
+asserted, and the seventh was the one that reads as already covered because its sibling was.
+
+The collision is reachable rather than theoretical. `ActorContext::system()` takes an arbitrary label
+as its id, so an automation labelled with a user's primary key has the same `id` as that user and a
+different `type`. Without the type in the key they resolve to one session, and the automation reads
+the person's conversation history.
+
+**The second finding is a sentence in a comment.** `SessionResolver` folds the conversation into the
+origin component, with a note saying two conversations with the same agent and actor must not share a
+context boundary. Removing the fold left the whole suite green. The unit test cannot reach it — it
+calls `isolationKeyFor()` directly and passes `origin` ready-made, so the composition the resolver
+performs is never exercised by the test that appears to test composition. That is the fourth time in
+this phase a docblock has turned out to be the only thing asserting a control.
+
+**Closed by two tests in `Security/SessionIsolationTest`.** The first builds two actors that share an
+id and differ only in type, asserts the ids really are equal — otherwise the test proves nothing —
+and requires different keys and different resolved sessions. The second resolves two conversations
+for one agent and actor, requires distinct sessions, and then asserts the consequence where it would
+be felt: a message in the first conversation must not appear in context built for the second. Each
+ablation fails exactly the test that names it.
+
+**A bookkeeping finding: the *Claimed by* column was incomplete.** `Summariser` scopes its read by
+`session_id` too, and removing that filter leaves all four files T3 claims green — it is caught by
+`Context/SummarisationTest`'s "it summarises only this session", which nobody had listed as T3
+evidence. The control is real and tested; the plan just did not know where. The column now says so.
+
+**Recorded, not fixed: `Session::belongsToActor()` has no production call sites.** Deleting its
+actorless guard changes nothing anywhere, and the reason is not thin coverage. The method is called
+only from a test. Its guard is unreachable besides: it returns false when `actor_id` is null, but
+`ActorContext`'s two constructors cannot produce a null `type`, so the comparison below it would
+already fail. Writing a test here would assert the behaviour of code nothing consults, which is the
+reasoning T6a settled for this repository — a control that is a specification rather than something
+running. It is written down because the docblock states a rule about system sessions that a reader
+would reasonably take for an enforced one, and today it is not enforced anywhere.
+
+## What auditing T5 found — 2026-08-25
+
+T5 is the one criterion written in the audit's own language: it names its ablation rather than its
+control. *"Refused at the canonicalisation layer **and** at the disk root, with the second layer
+proved by disabling the first."* Ten ablations across `LocalStorage` and `WorkspaceRoots`, nine
+load-bearing, **one finding.** No shipped behaviour was wrong.
+
+Nine that behaved: replacing `realpath()` with the unresolved candidate, deleting the containment
+assertion, dropping the trailing separator from the prefix comparison, removing the null-byte guard,
+removing the listing's containment filter, removing the root-existence check, removing the slug
+regex, letting an unknown root key fall back to the first declared root, and returning a raw tenant
+id instead of the hashed segment. Each failed `ContainmentTest` or `RootsTest` within seconds. The
+trailing-separator ablation is worth naming because it is the one with a boring name and a real
+consequence — a root of `/srv/agent` accepting `/srv/agent-secrets` — and the test for it was already
+there.
+
+**The finding: the write path's symlink re-check was doing nothing that a quota lookup was not
+already doing by accident.**
+
+`LocalStorage::locate($relative, mustExist: false)` resolves the parent, checks it is contained, and
+then — because a contained parent says nothing about what the leaf is a link to — re-resolves the
+target if it exists in any form. The docblock beside it is unusually direct about why:
+
+> The parent being contained is NOT sufficient, and assuming it was is a genuine hole: `notes.txt`
+> can be a symlink to somewhere else entirely, and every write call that follows would happily
+> follow it.
+
+Removing that re-check leaves **all 36 T5 tests green, and the full 1,828-test suite green.** Two of
+those tests are named for exactly the case it protects — *"refuses a write through a symlink pointing
+outside"* and *"refuses a write into a symlinked directory"* — and both still pass without it.
+
+The reason is ordering in the caller. Every T5 test drives `WorkspaceFiles`, and
+`WorkspaceFiles::write()` calls `$this->storage->size($relative)` for quota accounting *before* it
+writes. `size()` resolves with `mustExist: true`, which canonicalises and asserts containment, and it
+swallows only `not_found` — so an escaping symlink throws `outside_root` from the quota lookup,
+several lines before the write path's own check is ever reached. The reservation needs the old byte
+count; containment is a side effect of needing it.
+
+So there are two layers, which is what the criterion wanted to hear. But the outer one is **quota
+code** — it is not there for containment, it would move or vanish the moment reservations became
+lazy or were skipped for an unlimited workspace, and nothing anywhere says the write path depends on
+it. And the inner one, the one actually written for this threat, was unasserted.
+
+`Workspaces/ContainmentLayersTest` closes it with six tests that drive `LocalStorage` directly, which
+is the only way to reach layer 2 with layer 1 out of the way. Three of them fail when the re-check is
+removed, and the rest of `tests/Workspaces` stays green — verified by removing it.
+
+One distinction the ablation drew that the original tests blurred: **the symlinked-*directory* case
+is caught by the parent check, not the leaf re-check.** For `elsewhere/planted.txt` the parent
+resolves outside the root and `assertContained()` refuses it there. Only the symlinked *leaf* and the
+*dangling* leaf reach the second check. The two existing tests read as one pair covering one control;
+they are two tests covering two different controls, and only one of them was ever the witness for the
+one being audited.
+
+A sixth test pins layer 1 in place deliberately — asserting that `WorkspaceFiles::size()` on an
+escaping symlink throws — so that if the ordering in `write()` ever changes, something says so rather
+than the meaning of `ContainmentTest` changing in silence.
+
+**This is the fifth finding in six threats with the same shape**: a docblock stating a guarantee
+precisely, and nothing but an accident asserting it.
+
+## What building real concurrency found — 2026-08-25
+
+Criterion 27 was scheduled ahead of T7 and T13 for a reason that has nothing to do with its own
+number. Phase 9 had by then found four controls that survived deletion because the suite has one
+process — T2's tenant carry, T12's fan-in lock, T14's approval lock, and the `ExecuteToolCall`
+idempotency guards that were never reached at all — and `fake-boundaries.md` names the cause
+plainly: *"there is no class called `FakeConcurrency` — the fake is the shape of the runner."*
+Everything after this point that claims a control works between workers depends on being able to
+run workers.
+
+**The harness.** `tests/Support/RunsConcurrently.php` starts N real OS processes, each booting the
+application against the same database, and releases them together from a **barrier**. It is
+deliberately not `pest --parallel`, which distributes whole files to run the suite faster and would
+collide head-on with the shared-schema optimisation in `TestCase` — what is needed is concurrency
+*inside* one test, with the schema migrated and left alone.
+
+The barrier is the part that decides whether any of this is real. Booting Laravel costs hundreds of
+milliseconds and varies per process; the contended section costs microseconds. Without a rendezvous
+the workers queue up behind each other and the test passes whatever it is asked — including with the
+control removed. `Queue/ConcurrentHarnessTest` asserts the harness's own properties before anything
+relies on it: that the workers are distinct processes, and that their execution windows genuinely
+**overlap**. A concurrency suite whose first test is not "did we actually contend" is measuring
+nothing and reporting confidence.
+
+**What it found before it was even pointed at criterion 27.** `RunLock` documents two mechanisms and
+names the second as the authority: *"A database ownership lease — the authority. Survives a cache
+flush and works on every driver."* Deleting the lease check leaves **all 22 serial lock tests green**
+— `RunRecoveryTest`, `ExactlyOnceUnderLockTest` and `ApprovalRaceTest` together, including a test
+called "grants ownership to one worker and refuses a second". Five simultaneous processes fail it
+instantly: all five acquire the same run.
+
+The cache half cannot cover for it either, and that is worth stating rather than assuming. With
+`CACHE_STORE=array` every process has a private store, so all N take their own cache lock and agree —
+which is precisely what makes this a clean test of the lease.
+
+**The live defect: a health write could kill a run.** Twenty concurrent runs against one agent, and
+one of the twenty died on
+
+```
+SQLSTATE[23000]: Duplicate entry 'fake' for key 'pandora_provider_health_key_unq'
+```
+
+`ProviderHealthMonitor::rowFor()` used `firstOrNew()` followed by `save()`, and `provider_key` is
+uniquely indexed. Two workers recording the first outcome for the same provider at the same instant
+both read nothing, both build a row, and the loser's INSERT is refused — and the exception came out
+of the health write, out of the provider call, and failed the **run**. A provider that answered
+perfectly well, a run destroyed by its own bookkeeping.
+
+The window is narrow: only the first write for a given provider races, every later one is an UPDATE.
+It is also exactly the window a fresh deployment starts in — workers warm, health table empty. Fixed
+by tolerating the duplicate and taking the row the other worker inserted, since both are the same
+freshly defaulted row.
+
+**The detector is not flaky**, which for a concurrency test is a claim that has to be measured rather
+than hoped: with the fix reverted, the test caught the race **5 times out of 5**.
+
+**Recorded, not fixed: the health counters lose updates.** `recordSuccess()` reads
+`consecutive_successes`, adds one and writes it back, with no lock. Two concurrent successes both
+read N and both write N+1, so the counter drifts low under load. Unlike the insert race this cannot
+fail a run, and it feeds hysteresis — a count of consecutive outcomes used to decide whether a
+provider is degraded — rather than any security control. Making it exact means holding a row lock
+across a read-modify-write on the hot path of every provider call, which is a performance decision
+for the maintainer rather than a defect to quietly fix inside an audit.
+
+**Twenty processes, not fifty, and that is a reading rather than a shortfall.** Each worker is a full
+PHP process booting Laravel; fifty of them is roughly 4GB resident and a CI box that swaps, which
+converts a correctness test into a flake generator — and a flaky concurrency test gets deleted, which
+is how a suite ends up with none. What the criterion asks — does contention on one agent corrupt
+anything — is answered by any N above one, and twenty simultaneous writers is well past the point
+where the lease, the step writes and the conversation inserts either serialise correctly or do not.
+The count is a named constant so that raising it on a bigger machine is a one-line change.
+
+**`tests/Pest.php` binds `TestCase` by an explicit directory allowlist**, and a new `Performance`
+directory is not on it. The symptom is every test in the new directory failing with
+`Target class [config] does not exist`, which reads like a container problem. Added; worth knowing
+that the list exists before adding the next directory.
+
+## What auditing T7 found — 2026-08-25
+
+T7 words its ablation backwards from every other criterion in the phase. Not *"remove this limit and
+watch its test fail"*, but **"each proved by removing the OTHER limits"** — and that turns out to be
+the only question worth asking about a set of limits, because they overlap. `assertWithinBudget()`
+checks four of them in a fixed order — iterations, tool calls, duration, tokens — and the first to
+trip is the one that throws. A run built to exhaust its tool calls usually exhausts its iterations at
+the same moment, and a test asserting only *"it stopped, with a `BudgetExceeded`"* cannot tell which
+did it. Such a test passes with the limit it names deleted, provided a neighbour trips first.
+
+Nine ablations across the eight limits — tokens has two independent mechanisms — **seven
+load-bearing, two gaps.**
+
+The seven that behaved: the tool-call limit, the scoped token budget, the monetary budget, duplicate
+detection, the delegation-depth check, the autonomy budget, and the iteration limit.
+
+**The iteration limit is caught by a file the criterion never named.** Removing it leaves all five of
+T7's claimed test files green; what fails is `Feature/AgentRunTest`'s "it stops when the iteration
+budget is exhausted". The control was real and tested — the plan did not know where. Same shape as
+T3's `Summariser` finding, and the *Claimed by* column is now corrected.
+
+**The finding: the wall-clock limit had no test at all.**
+
+`Run::hasExceededDeadline()` has exactly one call site in `src/` and **none anywhere in `tests/`**.
+Deleting the check left all 1,828 tests green.
+
+What makes it worth more than a line in a table is *why* nobody noticed. The test that reads like its
+coverage is `BudgetEnforcementTest`'s **"it terminates the run as `timed_out` with a specific
+reason"** — and that test is about the agent-scope **token** budget. `RunState::TimedOut` is the state
+every budget breach lands in, so the name means "stopped by a limit", not "ran out of time". The one
+limit that literally runs out of time had nothing, behind a name that says it does.
+
+Reaching it needed a tool that takes time. `deadline_at` is stamped at creation and checked at the top
+of each iteration, so a run only exceeds it if the clock moves BETWEEN iterations — a test cannot
+sleep for a realistic timeout, and it cannot reach in between two iterations of a run executing
+inline. A tool runs exactly there. `Fixtures\Tools\SlowTool` moves the test clock from inside
+`handle()`, which is the same shape as a real tool that took two minutes to answer.
+
+**A second thing the fixture exposed, which cost the first two attempts.** Tool authorization is
+against the **actor**, so a run dispatched with nobody attached has every tool call *denied* — and a
+denied call still burns an iteration and a tool call. A limit test built that way still "passes" while
+never executing a tool at all. The wall-clock test failed initially for exactly this reason: the tool
+meant to move the clock never ran, and the run completed. Any future limit test must attach an actor
+or it is measuring denials.
+
+**Recorded, not fixed: the agent token check is redundant with the scoped one.** Deleting
+`assertWithinBudget()`'s token comparison also left the suite green, because
+`BudgetGuard::limitsFor(Run)` reads the same `token_budget` column by a different route and catches it
+a line later. This is defence in depth rather than a hole, and the two are **not** equivalent: the
+run-level check compares the run's own counters, while the scoped one sums usage records through
+`budgetOwner()`, which charges a delegated run to the agent at the root of its tree. Both layers are
+now named and asserted separately — and the run-level test had to be tightened twice to do it, because
+"token budget" and the figure appear in *both* messages. Only `BudgetExceeded::tokens()` phrases it
+"exceeded its token budget of N".
+
+`Feature/LimitAttributionTest` sets **every other limit generously** and asserts the message of the
+limit under test. Seven tests; five ablations each fail exactly the test that names them, verified by
+removing each in turn. One test deliberately proves the negative — a run inside its deadline still
+finishes — so the wall-clock check cannot be a blanket refusal of any run that calls a tool.
+
+## What auditing T8 found — 2026-08-25
+
+T8 is the best-tested threat in the phase, and that is worth recording as plainly as the gaps have
+been. Eight ablations, **seven load-bearing**, one gap. The suite already distinguished an empty
+intersection from an absent one — the conflation `intersectionAllows()`'s own docblock calls "the
+failure mode worth being pedantic about" — and it already proved the property holds at depth, through
+a cycle, and when the gatekeeper is asked rather than when the list is merely stored.
+
+The seven that behaved: the intersection itself, the frozen-list short-circuit that makes narrowing
+compound at depth, the gatekeeper's enforcement of the frozen list, the empty-versus-null distinction,
+the cycle refusal, the delegation allowlist, and even the *direction* of the withheld list — flipping
+`array_diff`'s arguments fails a trace test.
+
+**The finding: the deny half of layer 2 was never exercised through delegation.**
+
+`AbilityIntersection::abilitiesOfAgent()` resolves an agent's tools as *granted, minus denied*, and
+`Agent::deniedTools()` states the purpose: *"Denial beats the allowlist, so a whole group can be
+granted with one member carved out."* Removing the `&& ! ToolReference::matches($tool, $denied)` half
+left **all 70 delegation tests green**, and the whole suite with them.
+
+Every existing T8 test gives the parent an ability it simply **lacks** — the parent's allowlist does
+not mention `refund_order`, so the intersection drops it. None gives the parent an ability it was
+explicitly **denied**, which is a different code path reaching the same list, and the only one the
+carve-out idiom uses.
+
+The escalation runs the opposite way round from the one the other tests guard:
+
+1. `abilitiesOf($parent, …)` falls back to `abilitiesOfAgent($parentAgent)` for a top-level run.
+   Ignore the deny list there and the **parent** is credited with a tool an operator took away from it
+   by name.
+2. That inflated set is what the child intersects against, so the child receives it.
+3. At call time the gatekeeper checks the **child** agent's policy and the frozen intersection.
+   Neither mentions the parent's deny list.
+
+So a tool carved out of a parent is reachable by delegating to an agent that allows it — one hop,
+exactly the failure T8 exists to prevent, through the one door the suite was not watching.
+
+**It is an execution, not a bookkeeping mismatch.** With the deny half removed, the new
+"refuses the call itself" test does not merely find the wrong list: the tool execution comes back
+`succeeded` where it should read `denied`, and the counter on the fixture tool reads 1. The child ran
+a tool its parent was forbidden. That distinction is why the test asserts a side effect rather than a
+status — a containment failure fails wide rather than loudly, which is the third time this phase has
+turned on that sentence.
+
+`Delegation/DeniedAbilityTest` closes it with five tests: the parent-side carve-out, the child-side
+carve-out, the end-to-end refusal with its side effect, the operator-facing withheld list, and one
+that proves a tool neither side denied still gets through — without which the other four are satisfied
+by an intersection that withholds everything. **All five fail under the ablation while all 70 existing
+delegation tests pass**, verified by removing it.
+
+**A docblock that says the opposite of what the code does.** `DelegationDecision`'s constructor
+documents `$withheldTools` as *"abilities the parent held and did not pass on"*.
+`AbilityIntersection::withheld()` computes the other direction — what the child agent was configured
+for and was refused — and its own docblock is emphatic that this is deliberate: *"This direction, and
+not the other one."* The code is right and the parameter comment is wrong. Corrected, and noted here
+because the phase's recurring finding is a docblock doing a control's job; this is the same hazard
+with the roles reversed, a docblock quietly misdescribing one.
+
+## What auditing T13 found — 2026-08-25, and the audit closes
+
+`routes/web.php` states the rule and its reason: *"Authorization is enforced inside each component —
+route middleware alone is not treated as sufficient."* All eighteen components follow it. **Nothing
+made them.**
+
+Twenty-five ablations — one per page gate, plus the checks that gate prompts, tool I/O, costs and the
+run trace separately. **Nineteen load-bearing, six gaps, three findings.**
+
+**Finding one: five pages could lose their gate with the whole suite green.** `AgentDetail`,
+`AutomationDetail`, `RunDetail`, `RunsIndex` and `ChannelLink`.
+
+The distribution is the part worth keeping. Every index page but `RunsIndex` has a "denies a user
+without `pandora.access`" test; **the detail pages have none at all.** And a detail page is where an
+index's one line becomes a full role-instruction prompt, a webhook secret, or an entire execution
+trace — so the pages that went unasserted are precisely the ones with the most to show. Nobody
+decided that. The index denial tests were written as a set, and the detail tests were written for
+what the page *displays*, which is a different question that never circles back to who may open it.
+
+**Finding two: two of the twenty configured abilities are wired to nothing.**
+
+- **`audit.view`** — declared, registered as a deny-by-default gate, and read nowhere, because the
+  audit **page** it was written for does not exist. Phase 6 closed "no audit page" as an open
+  decision and the ability was left pointing at it.
+- **`tools.manage`** — the Tools page is read-only. Its only action, `toggle()`, expands a row.
+
+Neither exposes anything: no audit record reaches any view, and no tool can be altered from the UI at
+all. These are promises with nothing behind them rather than holes — but an operator granting or
+withholding either sees no difference, and cannot discover that from outside. Both are named in the
+new test rather than deleted from the config, because removing a published key breaks a host that
+references it, and because the *next* unused ability must not be able to hide behind these two. Both
+belong in the v1.0 support statement (criterion 33).
+
+The criterion's own wording is what surfaced this: it requires audit logs to gate *separately*, and
+they do not gate at all.
+
+**Finding three: `ToolsIndex` reads `tools.io.view` twice and only one reading was asserted.**
+`canViewSchemas` is the flag the template branches on; the `if` above it decides whether the schemas
+are **assembled** at all. Deleting the assembly gate left the suite green, because the template still
+hid what it was handed. Nothing leaked — view data that is never echoed does not reach a browser —
+but the belt is the half that does not depend on every future template getting its branch right, and
+it was the unasserted one.
+
+`Security/ControlCenterGatingTest` closes all three with nine tests, and one of them is
+architectural: **every class in `src/UI/Livewire/` must authorize somewhere**, asserted over the
+source the way T15's `$guarded` rule and T6a's outbound-HTTP rule are, so a nineteenth page cannot be
+added ungated. It checks the class rather than `mount()` specifically, because `ChannelLink`
+authorizes from a private `guard()` and `MemoryIndex` from a shared `act()` — both correct, both
+flagged by a naive mount-only rule, and a rule that reports false violations acquires an exemption
+list and then gets ignored. All six ablations now fail; verified by re-running each.
+
+---
+
+### The removal audit is complete — 15 of 15
+
+Criterion 17 is closed. Every T1–T15 mitigation has been removed, one at a time, and the failure
+recorded. Ten sessions.
+
+**What it produced:** two live security fixes shipped in v0.1.3 — an SSRF in the MCP client that a
+hostile server could steer an authenticated POST through, and untrusted content able to close its own
+delimiter inside a system message — plus one concurrency fix, where a provider-health insert race
+could fail a run outright.
+
+**What it mostly produced, though, was tests for controls that already worked.** Fourteen coverage
+gaps across ten threats, and the recurring shape did not change once in ten sessions: **a docblock
+stating a guarantee precisely, and nothing but an accident asserting it.** T5's symlink re-check,
+where a quota lookup threw first. `RunLock`'s database lease, which the class calls "the authority".
+`BelongsToTenant`, where the opt-in was convention. The wall-clock limit, hidden behind a state named
+`TimedOut` that means something else. The deny half of layer 2, never reached through delegation
+because every test used an ability the parent simply lacked.
+
+Three structural causes account for most of it, and all three are now closed or written down:
+the suite had one process (closed — `RunsConcurrently`); `QUEUE_CONNECTION=sync` disarmed everything
+that depends on a job carrying its own context (closed — `QueuedJobTenancyTest`); and a fake stood
+where a real boundary belonged (inventoried — `fake-boundaries.md`).
 
 ## Design decisions taken for this phase
 

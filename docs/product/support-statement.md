@@ -1,17 +1,19 @@
-# Support Statement — v0.1.0
+# Support Statement — v0.1.4
 
 > What Pandora supports, what it excludes by design, and what it ships **untested**. Read the third
 > section before depending on this in production.
 
 ## What the version number means
 
-`0.1.2`. The public API is usable and in use; it is not yet promised. Minor versions below `1.0.0`
+`0.1.4`. The public API is usable and in use; it is not yet promised. Minor versions below `1.0.0`
 may contain breaking changes, and will say so in `CHANGELOG.md` with an upgrade instruction.
 
 `1.0.0` is defined, not aspirational: it is when every criterion in
 `docs/development/phase-9-acceptance.md` is met — most importantly that **each of the fifteen threats
 in `docs/architecture/security-model.md` has a test that fails when its mitigation is removed.**
-That stands at 11 of 34 criteria today, and the removal audit itself at 8 of the 15 threats.
+**That last part is done as of v0.1.4**, at 15 of 15 threats. The phase overall stands at 21 of 34
+criteria; what remains is upgrade and install safety, the performance suite, the release
+documentation set and a walkthrough a person drives.
 
 ## Supported
 
@@ -68,18 +70,33 @@ different host user, no inheritance — against a real workspace. The untested c
 specific: two linked identities interleaving in real time, where a defect would be a race in session
 resolution rather than a wrong isolation key.
 
-**The threat model is not yet fully proved by removal.** T1, T4, T6a, T6b, T9, T10, T11 and T15 are
-— each has a test that was checked by deleting the mitigation and watching it fail. The remaining
-seven (T2, T3, T5, T7, T8, T12, T13, T14) name passing tests that have not all been read against the
-threat they claim, and a test that passes with its mitigation removed was never testing the
-mitigation. This is the single largest reason this release is `0.x`.
+**The threat model is now fully proved by removal — as of v0.1.4.** Every T1–T15 mitigation has been
+deleted, one at a time, and the resulting failure recorded; ten sessions of it. This was the single
+largest reason earlier releases were `0.x`, and it no longer is. What keeps the version below `1.0`
+now is the rest of Phase 9: upgrade and install tests, the performance suite, the example
+application, and a walkthrough a person still has to drive.
 
-Worth knowing what the audited eight cost. They found a live SSRF in the MCP HTTP transport, untrusted
-content able to close its own delimiter inside a system message, a console command reporting an
-approval requirement that did not exist, a config allowlist that could publish a credential, a
-criterion describing behaviour the package does not have, and two tests that passed with their own
-mitigation deleted. The audit is not a formality, and the seven outstanding threats should be read as
-unproved rather than as probably fine.
+Worth knowing what the audit cost, because it is not a formality. It found a live SSRF in the MCP
+HTTP transport, untrusted content able to close its own delimiter inside a system message, a console
+command reporting an approval requirement that did not exist, a config allowlist that could publish a
+credential, a provider-health insert race that could fail an otherwise healthy run, a criterion
+describing behaviour the package does not have — and fourteen controls that were correct but which no
+test would have noticed the removal of. The recurring finding was a docblock stating a guarantee
+precisely with nothing but an accident enforcing it.
+
+**Two configured abilities gate nothing.** `pandora.audit.view` is declared, registered as a
+deny-by-default gate, and read nowhere, because the audit page it was written for does not exist.
+`pandora.tools.manage` likewise: the Tools page is read-only. Neither exposes anything — no audit
+record reaches any view, and no tool can be altered from the UI at all — but an operator granting or
+withholding either sees no change, and cannot discover that from outside. They are kept in the config
+rather than removed, because deleting a published key breaks a host that references it.
+
+**The cross-process cache lock is not exercised.** `RunLock` has two mechanisms and documents the
+database lease as the authority. `Performance/ConcurrentRunsTest` proves the lease across real
+concurrent processes; the cache lock in front of it is not proved, because the suite runs
+`CACHE_STORE=array`, which is private per process. A host on Redis or Memcached has a real
+cross-process cache lock that nothing here asserts. The layer beneath it — the one that decides — is
+asserted.
 
 **Retrieval quality on the default embedding provider.** `HashEmbeddingProvider` hashes tokens into
 buckets. The vector path — contract, store, cache, scope re-filter, pgvector adapter — is real and

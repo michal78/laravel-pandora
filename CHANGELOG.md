@@ -10,6 +10,157 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
+## v0.1.4 — 2026-08-25
+
+Phase 9's threat audit continues, and **completes**. T3 first: session isolation is enforced by a
+hash — seven components folded into one key — which makes it unusually auditable, because every
+component is independently removable and removing one is invisible unless a test varies exactly that
+component. Seven ablations, four load-bearing, two findings.
+
+Then T5, whose criterion is the only one in the phase that names its own ablation. Ten ablations,
+nine load-bearing, one finding: the control that protects a write from an escaping symlink was
+unasserted, with a quota lookup refusing the escape first by accident.
+
+**Then the suite learned to run more than one process at a time, and that carries a fix.** Four
+findings so far shared one cause — a control that only exists between workers, tested by a suite that
+has one — so criterion 27 was taken early. It found `RunLock`'s database lease untested and a live
+defect that could fail a run.
+
+Then T7 (nine ablations, the wall-clock limit found to have no test at all), T8 (eight ablations, the
+deny half of layer 2 never exercised through delegation) and T13 (twenty-five ablations, five pages
+that could lose their gate with the suite green).
+
+**With T13 the removal audit is complete.** Every T1–T15 mitigation has now been removed, one at a
+time, and the failure recorded — ten sessions of it. It produced two live security fixes shipped in
+v0.1.3 and one concurrency fix here, and closed fourteen coverage gaps across ten threats. The
+recurring finding never changed shape: a docblock stating a guarantee precisely, and nothing but an
+accident asserting it.
+
+### Added
+
+- **Nine control-center gating tests** (T13), one of them architectural. `routes/web.php` requires
+  authorization inside each component rather than relying on route middleware, and all eighteen
+  components complied — but nothing made them, and **five could lose their gate with the whole suite
+  green**: the agent, automation and run *detail* pages, the runs index, and the channel-link page.
+  Every index but one had a denial test; the detail pages had none at all, which is where an index's
+  one line becomes a prompt, a webhook secret or a full execution trace. The architectural test now
+  asserts that every class in `src/UI/Livewire/` authorizes somewhere, so a nineteenth page cannot be
+  added ungated. `ToolsIndex` also read `tools.io.view` twice with only the template flag asserted,
+  not the check deciding whether schemas are assembled at all.
+
+- **Five delegation deny-path tests** (T8). `AbilityIntersection::abilitiesOfAgent()` resolves an
+  agent's tools as *granted, minus denied*, and removing the denied half left all 70 delegation tests
+  green. Every existing T8 test gives the parent an ability it simply **lacks**; none gives it one
+  explicitly **denied** — the carve-out idiom `Agent::deniedTools()` exists for. The escalation runs
+  opposite to the one the other tests guard: ignore the deny list and the *parent* is credited with a
+  tool an operator took away by name, the child intersects against that inflated set and receives it,
+  and at call time the gatekeeper checks the child's policy and the frozen list, neither of which
+  mentions the parent's deny list. Under the ablation the child's tool execution reads `succeeded`
+  where it should read `denied` — it runs. All five new tests fail under it; all 70 existing ones pass.
+
+- **Seven limit-attribution tests** (T7) and a `SlowTool` fixture. T7 asks for each limit to be
+  proved *by removing the others*, which is the only useful question about limits that overlap:
+  `assertWithinBudget()` checks four in a fixed order and the first to trip throws, so a test
+  asserting only "it stopped with a `BudgetExceeded`" passes with the limit it names deleted.
+  **The wall-clock limit turned out to have no test at all** — `Run::hasExceededDeadline()` had one
+  call site in `src/` and none in `tests/`, and deleting the check left all 1,828 tests green. The
+  test that reads like its coverage is about the agent-scope *token* budget; `RunState::TimedOut` is
+  where every budget breach lands, so its name means "stopped by a limit" rather than "ran out of
+  time". Reaching the limit needed a tool that moves the clock from inside `handle()`, the only place
+  a test can act between two iterations of a run executing inline. Every new test sets every other
+  limit generously and asserts the message of the limit under test.
+
+- **A concurrency harness** — `tests/Support/RunsConcurrently.php`. Starts N real OS processes
+  against one database and releases them from a barrier, so a test can assert what happens when
+  workers genuinely collide. The barrier is the load-bearing part: application boot dwarfs the
+  contended section, so without a rendezvous the processes run one after another and a concurrency
+  test passes with the control deleted. `Queue/ConcurrentHarnessTest` asserts the harness's own
+  overlap before anything relies on it. Deliberately not `pest --parallel`, which would collide with
+  the shared-schema optimisation in `TestCase`.
+
+- **`Performance/ConcurrentRunsTest`** (criterion 27) — twenty concurrent runs against one agent
+  complete without starvation, lost steps or duplicated execution. It immediately established that
+  `RunLock`'s database lease, which the class documents as "the authority", can be deleted with all
+  22 serial lock tests green — including one named "grants ownership to one worker and refuses a
+  second". Five simultaneous processes all acquire the same run.
+
+- **Six workspace containment-layer tests** (T5). `LocalStorage::locate(mustExist: false)`
+  re-resolves a write target that already exists, because a contained parent says nothing about what
+  the leaf is a link to — and that re-check could be deleted with all 1,828 tests green. Two tests
+  are named for exactly the case it protects. Both passed without it, because
+  `WorkspaceFiles::write()` calls `storage->size()` for quota accounting first, and `size()` resolves
+  with `mustExist: true`, so an escaping symlink is refused by a byte-count lookup several lines
+  before the containment check written for it is reached. The new tests drive `LocalStorage`
+  directly, which is the only way to reach the second layer with the first out of the way; three of
+  them fail when the re-check is removed. A fourth pins the quota ordering in place deliberately, so
+  that changing it is loud. The ablation also separated two controls the original tests read as one:
+  a symlinked *directory* is caught by the parent check, a symlinked *leaf* only by the re-check.
+
+- **Two session-isolation tests** (T3). `actor_type` could be dropped from `Session::isolationKeyFor()`
+  with all 1,820 tests still green, while dropping `actor_id` beside it failed two — the existing
+  "derives a different isolation key for every differing component" varies six of the seven components
+  and never the actor's type. The collision is reachable: `ActorContext::system()` takes an arbitrary
+  label as its id, so an automation labelled with a user's primary key shares that user's `id` and
+  differs only in `type`, and without the type in the key they resolve to one session. Separately,
+  `SessionResolver` folds the conversation into the origin so two conversations with the same agent
+  and actor do not share a boundary — a comment that was the only thing asserting it, since the unit
+  test passes `origin` ready-made and never exercises the resolver's composition. Both are now
+  asserted, and each ablation fails exactly the test that names it.
+
+### Fixed
+
+- **A provider health write could fail a run.** `ProviderHealthMonitor::rowFor()` used
+  `firstOrNew()` followed by `save()`, and `provider_key` is uniquely indexed. Two workers recording
+  the first outcome for the same provider at the same instant both read nothing, both build a row,
+  and the loser's INSERT was refused — with the exception coming out of the health write, out of the
+  provider call, and failing the **run**. A provider that answered perfectly well, a run destroyed by
+  its own bookkeeping. The window is narrow, since only the first write for a provider races and
+  every later one is an UPDATE, but it is exactly the window a fresh deployment starts in: workers
+  warm, health table empty. Now tolerates the duplicate and takes the row the other worker inserted.
+  Hosts running a single worker were never affected.
+
+### Documentation
+
+- **T3's *Claimed by* column was incomplete.** `Summariser` scopes its read by `session_id`, and
+  removing that filter leaves all four files T3 claimed green — it is `Context/SummarisationTest`
+  that catches it. The control was real and tested; the plan did not know where.
+- **Two configured abilities gate nothing.** `pandora.audit.view` is declared and read nowhere,
+  because the audit page it was written for does not exist; `pandora.tools.manage` likewise, because
+  the Tools page is read-only. Neither exposes anything — no audit record reaches any view and no tool
+  can be altered from the UI — but an operator granting or withholding either sees no difference and
+  cannot tell that from outside. Both are now named explicitly in a test rather than removed from the
+  config, since deleting a published key would break a host that references it, and both belong in the
+  v1.0 support statement.
+
+- **`DelegationDecision` documented `$withheldTools` backwards.** It read "abilities the parent held
+  and did not pass on", while `AbilityIntersection::withheld()` computes the other direction on
+  purpose — what the child agent was configured for and was refused — and says so emphatically. The
+  code was right; the parameter comment is now corrected.
+
+- **T7's *Claimed by* column was wrong about the iteration limit.** Removing it leaves all five of
+  the files T7 claimed green; what fails is `Feature/AgentRunTest`. The control was real and tested —
+  the plan did not know where.
+
+- **Recorded, not fixed: the agent token budget is enforced twice.** Deleting
+  `assertWithinBudget()`'s token comparison leaves the suite green, because
+  `BudgetGuard::limitsFor(Run)` reads the same `token_budget` column by another route. Defence in
+  depth rather than a hole, and not equivalent for a delegated run, where `budgetOwner()` charges the
+  agent at the root of the tree. Both layers are now asserted separately.
+
+- **Recorded, not fixed: the provider health counters lose updates under concurrency.**
+  `recordSuccess()` reads `consecutive_successes`, adds one and writes it back with no lock, so two
+  concurrent successes both read N and both write N+1. It cannot fail a run and it feeds hysteresis —
+  deciding whether a provider is degraded — rather than any security control. Making it exact means
+  holding a row lock across a read-modify-write on the hot path of every provider call, which is a
+  performance decision rather than a defect to quietly change inside an audit.
+
+- **Recorded, not fixed: `Session::belongsToActor()` has no production call sites.** It is called only
+  from a test, and its actorless guard is unreachable besides — `ActorContext` cannot produce a null
+  `type`, so the comparison below the guard would already fail. Its docblock states a rule about
+  system sessions that a reader would reasonably take for an enforced one, and it is not enforced
+  anywhere.
+
+
 ## v0.1.3 — 2026-08-19
 
 **This release carries two security fixes.** Untrusted content could close its own delimiter and
