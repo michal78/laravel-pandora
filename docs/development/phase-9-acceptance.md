@@ -1,6 +1,6 @@
 # Phase 9 — Acceptance Test Plan
 
-> **Status: 14 of 34 criteria accepted** (1, 2, 4, 6, 7, 10, 11, 12, 13, 15, 16, 19, 20, 21). Nothing here is ticked by inheritance.
+> **Status: 15 of 34 criteria accepted** (1, 2, 3, 4, 6, 7, 10, 11, 12, 13, 15, 16, 19, 20, 21). Nothing here is ticked by inheritance.
 >
 > Every previous phase wrote tests and then claimed the criteria those tests were written for. Phase 9
 > is the phase that claims T1–T15, and it is the first one where the claim is about the *suite* rather
@@ -83,7 +83,7 @@ whether or not the control is present proves the control is untested, not that i
 |---|---|---|
 | 1 ✅ | **T1** — injected instructions in a document, web page or tool result cannot reach a destructive tool call: authorization is against the actor, `high`/`critical` require approval, untrusted content is delimited and labelled, and the approval UI shows the real arguments | `Security/ToolAuthorizationTest` · `Delegation/UntrustedResultTest` · `Channels/UntrustedInboundTest` · **new** `Security/UntrustedContextTest`, `InjectionToDestructiveCallTest`, `ApprovalArgumentFidelityTest`, `ApprovalFloorAgreementTest` — **three findings**, see below |
 | 2 ✅ | **T2** — no cross-tenant read or write through any model, direct-ID lookup, page, console command or API resource, **with the tenant arriving from a bound host resolver rather than an override** | `Security/HostResolverTenancyTest` *(new, 2026-08-11)* · `Security/TenantIsolationTest` · `Security/ToolTenantIsolationTest` · `Memory/TenancyTest` · `Automation/TenancyTest` · `Channels/TenancyTest` · `McpServer/TenancyTest` · **new** `Security/TenantScopeCoverageTest`, `Security/QueuedJobTenancyTest` — **two findings**, see below |
-| 3 ⬜ | **T3** — no cross-session context leak, including two participants on one channel account | `Security/SessionIsolationTest` · `Channels/SessionIsolationTest` · `Channels/UnlinkedIdentityTest` · `Channels/LinkRevocationTest` |
+| 3 ✅ | **T3** — no cross-session context leak, including two participants on one channel account | `Security/SessionIsolationTest` · `Channels/SessionIsolationTest` · `Channels/UnlinkedIdentityTest` · `Channels/LinkRevocationTest` · `Context/SummarisationTest` *(the summariser's scoping lives here, not in the four above)* — **two findings**, see below |
 | 4 ✅ | **T4** — a provider credential is not in context, a step payload, a broadcast, an API resource or a log, and cannot be extracted by a prompt that asks for one | `Security/CredentialIsolationTest` · `Security/SecretLeakTest` · `Security/SecretRedactionTest` · **new** `Security/CredentialExtractionTest` — the extraction clause had no test |
 | 5 ⬜ | **T5** — workspace path traversal and symlink escape are refused at the canonicalisation layer *and* at the disk root, with the second layer proved by disabling the first | `Workspaces/ContainmentTest` · `Workspaces/RootsTest` |
 | 6 ✅ | **T6a** — **no core tool performs an outbound HTTP request**, asserted architecturally so the day one does is the day CI goes red | `Architecture/NoOutboundHttpFromToolsTest` — 4 tests; red within seconds of adding a tool that calls `Http::get()`, verified by adding one |
@@ -97,7 +97,7 @@ whether or not the control is present proves the control is untested, not that i
 | 14 ⬜ | **T13** — every control-center page and action is behind a gate; an authenticated non-admin reaches none of them, and prompts, tool I/O, costs and audit logs gate separately | `Security/ToolIoVisibilityTest` · `UI/*` |
 | 15 ✅ | **T14** — an approval is consumed exactly once under the run lock, and the tool call is re-validated at execution against the arguments approved | `Security/ApprovalRaceTest` · `Security/ApprovalAuthorizationTest` · `Approvals/ApprovalResolutionTest` · **new** `Security/ExactlyOnceUnderLockTest` — **three findings**, see below |
 | 16 ✅ | **T15** — no model uses `$guarded = []`; every one declares `$fillable`, asserted by reflection over `src/` so a new model cannot omit it | `Architecture/ModuleBoundaryTest` — 3 added tests over 29 models; red when one model is switched to `$guarded = []`, verified by switching one |
-| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **11 of 15 done** (2026-08-19): T1, T2, T4, T6a, T6b, T9, T10, T11, T12, T14, T15. Remaining: T3, T5, T7, T8, T13 |
+| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **12 of 15 done** (2026-08-19): T1, T2, T3, T4, T6a, T6b, T9, T10, T11, T12, T14, T15. Remaining: T5, T7, T8, T13 |
 
 ### The suite tells the truth about what it tested
 
@@ -404,6 +404,58 @@ ran with no tenant — and an unstamped audit row is invisible to the tenant who
 The second hands a job carrying one tenant another tenant's run id, the shape a corrupted payload or
 a replayed message takes, and asserts that run is still sitting in `queued` afterwards. Both fail
 under both ablations.
+
+## What auditing T3 found — 2026-08-19
+
+T3's mitigation is a hash. `Session::isolationKeyFor()` folds seven components into a SHA-256 digest,
+`SessionResolver` does `firstOrCreate` on it, and a unique index turns a collision into a database
+error rather than a silent leak. That design is right, and it has an unusual property for auditing:
+**every component is independently removable, and removing one is invisible unless a test varies
+exactly that component.** So the audit removed them one at a time — seven ablations across the key,
+the resolver and the two places `session_id` is used as a `WHERE` clause.
+
+**Four are load-bearing.** Drop the session filter from `RecentMessagesProvider` and T3's own tests
+fail; drop the actor id, the participant id or the channel from the key and they fail too.
+
+**The first finding is half an actor.** `actor_type` can be dropped from the key with **all 1,820
+tests still passing**, while dropping `actor_id` beside it fails two. The asymmetry is the finding,
+and its cause is visible in the test that looks most like coverage: "derives a different isolation
+key for every differing component" varies tenant, agent, channel, participant, origin and the actor's
+*id* — system `alice` against system `bob` — and never the actor's *type*. Six of seven components
+asserted, and the seventh was the one that reads as already covered because its sibling was.
+
+The collision is reachable rather than theoretical. `ActorContext::system()` takes an arbitrary label
+as its id, so an automation labelled with a user's primary key has the same `id` as that user and a
+different `type`. Without the type in the key they resolve to one session, and the automation reads
+the person's conversation history.
+
+**The second finding is a sentence in a comment.** `SessionResolver` folds the conversation into the
+origin component, with a note saying two conversations with the same agent and actor must not share a
+context boundary. Removing the fold left the whole suite green. The unit test cannot reach it — it
+calls `isolationKeyFor()` directly and passes `origin` ready-made, so the composition the resolver
+performs is never exercised by the test that appears to test composition. That is the fourth time in
+this phase a docblock has turned out to be the only thing asserting a control.
+
+**Closed by two tests in `Security/SessionIsolationTest`.** The first builds two actors that share an
+id and differ only in type, asserts the ids really are equal — otherwise the test proves nothing —
+and requires different keys and different resolved sessions. The second resolves two conversations
+for one agent and actor, requires distinct sessions, and then asserts the consequence where it would
+be felt: a message in the first conversation must not appear in context built for the second. Each
+ablation fails exactly the test that names it.
+
+**A bookkeeping finding: the *Claimed by* column was incomplete.** `Summariser` scopes its read by
+`session_id` too, and removing that filter leaves all four files T3 claims green — it is caught by
+`Context/SummarisationTest`'s "it summarises only this session", which nobody had listed as T3
+evidence. The control is real and tested; the plan just did not know where. The column now says so.
+
+**Recorded, not fixed: `Session::belongsToActor()` has no production call sites.** Deleting its
+actorless guard changes nothing anywhere, and the reason is not thin coverage. The method is called
+only from a test. Its guard is unreachable besides: it returns false when `actor_id` is null, but
+`ActorContext`'s two constructors cannot produce a null `type`, so the comparison below it would
+already fail. Writing a test here would assert the behaviour of code nothing consults, which is the
+reasoning T6a settled for this repository — a control that is a specification rather than something
+running. It is written down because the docblock states a rule about system sessions that a reader
+would reasonably take for an enforced one, and today it is not enforced anywhere.
 
 ## Design decisions taken for this phase
 

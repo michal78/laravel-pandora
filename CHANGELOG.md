@@ -10,6 +10,38 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
+## Unreleased
+
+Phase 9's threat audit continues with T3. Session isolation is enforced by a hash — seven components
+folded into one key — which makes it unusually auditable: every component is independently removable,
+and removing one is invisible unless a test varies exactly that component. Seven ablations, four
+load-bearing, two findings. No shipped behaviour was wrong.
+
+### Added
+
+- **Two session-isolation tests** (T3). `actor_type` could be dropped from `Session::isolationKeyFor()`
+  with all 1,820 tests still green, while dropping `actor_id` beside it failed two — the existing
+  "derives a different isolation key for every differing component" varies six of the seven components
+  and never the actor's type. The collision is reachable: `ActorContext::system()` takes an arbitrary
+  label as its id, so an automation labelled with a user's primary key shares that user's `id` and
+  differs only in `type`, and without the type in the key they resolve to one session. Separately,
+  `SessionResolver` folds the conversation into the origin so two conversations with the same agent
+  and actor do not share a boundary — a comment that was the only thing asserting it, since the unit
+  test passes `origin` ready-made and never exercises the resolver's composition. Both are now
+  asserted, and each ablation fails exactly the test that names it.
+
+### Documentation
+
+- **T3's *Claimed by* column was incomplete.** `Summariser` scopes its read by `session_id`, and
+  removing that filter leaves all four files T3 claimed green — it is `Context/SummarisationTest`
+  that catches it. The control was real and tested; the plan did not know where.
+- **Recorded, not fixed: `Session::belongsToActor()` has no production call sites.** It is called only
+  from a test, and its actorless guard is unreachable besides — `ActorContext` cannot produce a null
+  `type`, so the comparison below the guard would already fail. Its docblock states a rule about
+  system sessions that a reader would reasonably take for an enforced one, and it is not enforced
+  anywhere.
+
+
 ## v0.1.3 — 2026-08-19
 
 **This release carries two security fixes.** Untrusted content could close its own delimiter and

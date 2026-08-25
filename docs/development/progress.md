@@ -5,6 +5,61 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-19 — Half an actor
+
+The fifth Phase 9 audit session, on `phase-9/audit-session-isolation`, the same day v0.1.3 shipped.
+T3 next, because it shares the isolation machinery T2 had just been through. **15 of 34 criteria; the
+removal audit at 12 of 15.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,822 passed, 90 skipped (6,086 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+**T3's mitigation is a hash, which makes it unusually auditable.** `Session::isolationKeyFor()` folds
+seven components into a SHA-256 digest and `SessionResolver` does `firstOrCreate` on it, so every
+component is independently removable and removing one is invisible unless a test varies exactly that
+component. Seven ablations across the key, the resolver, and the two places `session_id` is a `WHERE`
+clause. Four load-bearing: the `RecentMessagesProvider` filter, and the actor id, participant id and
+channel components.
+
+**`actor_type` could be dropped with all 1,820 tests green** — while dropping `actor_id` beside it
+failed two. That asymmetry is the finding. "Derives a different isolation key for every differing
+component" varies tenant, agent, channel, participant, origin and the actor's *id*, and never the
+actor's *type*: six of seven, and the missing one reads as covered precisely because its sibling is.
+
+The collision is reachable. `ActorContext::system()` takes an arbitrary label as its id, so an
+automation labelled with a user's primary key has that user's `id` and a different `type`. Without
+the type in the key they are one session and the automation reads the person's history.
+
+**The second finding is a comment doing a control's job.** `SessionResolver` folds the conversation
+into the origin, with a note saying two conversations with the same agent and actor must not share a
+context boundary. Removing the fold left the whole suite green. The unit test cannot reach it: it
+calls `isolationKeyFor()` directly with `origin` ready-made, so the composition the resolver performs
+is never exercised by the test that looks like it tests composition. Fourth time this phase that a
+docblock has been the only thing asserting a control.
+
+Both are closed in `Security/SessionIsolationTest`, and each ablation now fails exactly the test that
+names it. The first test asserts the two actor ids really are equal before requiring the keys to
+differ — without that, it would pass for the wrong reason.
+
+**Two things recorded rather than fixed.** T3's *Claimed by* column was incomplete: `Summariser`
+scopes by `session_id` too, and none of the four files T3 claimed catches its removal —
+`Context/SummarisationTest` does. And `Session::belongsToActor()` has no production call sites at
+all; it is called only from a test, and its actorless guard is unreachable besides, since
+`ActorContext` cannot produce a null `type`. Testing it would assert the behaviour of code nothing
+consults. Its docblock states a rule about system sessions that a reader would take for enforced.
+
+**Method note.** Full-suite runs invoked in the foreground stalled past ten minutes twice this
+session, while the identical command detached finishes in about 150 seconds. Every ablation sweep
+here was run detached with a restore trap, which is also what stops a killed run leaving `src/`
+modified.
+
+**Next.** Criterion 17 has T5, T7, T8 and T13 left.
+
+---
+
 ## 2026-08-19 — The scope nobody opted into
 
 The fourth Phase 9 audit session, same branch. T2 next, and picked partly because it looked safe:
