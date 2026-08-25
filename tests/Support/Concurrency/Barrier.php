@@ -27,9 +27,15 @@ use RuntimeException;
  */
 final readonly class Barrier
 {
+    /**
+     * The timeout covers application BOOT, not the work, so it is generous:
+     * a shared CI runner starting several PHP processes at once is far slower
+     * than a developer machine, and a barrier that expires during boot fails
+     * the test for the runner's load rather than for anything under test.
+     */
     public function __construct(
         private string $directory,
-        private float $timeoutSeconds = 30.0,
+        private float $timeoutSeconds = 90.0,
     ) {}
 
     /**

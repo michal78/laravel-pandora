@@ -80,10 +80,10 @@ trait RunsConcurrently
 
             if (! $barrier->waitForAll($processes)) {
                 throw new RuntimeException(sprintf(
-                    "Only %d of %d workers reached the barrier. First worker stderr:\n%s",
+                    "Only %d of %d workers reached the barrier.\n%s",
                     $barrier->arrived(),
                     $processes,
-                    $running[0]->getErrorOutput() ?: '(empty)',
+                    $this->diagnose($running),
                 ));
             }
 
@@ -101,6 +101,35 @@ trait RunsConcurrently
 
             $this->removeDirectory($directory);
         }
+    }
+
+    /**
+     * Everything known about workers that did not arrive.
+     *
+     * A worker that dies during boot reports the reason as JSON on STDOUT, not
+     * stderr -- so an error message that showed only stderr printed "(empty)"
+     * for a failure that had described itself perfectly well. That cost a
+     * round trip through CI to discover, which is precisely the situation this
+     * harness exists to avoid.
+     *
+     * @param list<Process> $processes
+     */
+    private function diagnose(array $processes): string
+    {
+        $lines = [];
+
+        foreach ($processes as $index => $process) {
+            $lines[] = sprintf(
+                "worker %d: running=%s exit=%s\n  stdout: %s\n  stderr: %s",
+                $index,
+                $process->isRunning() ? 'yes' : 'no',
+                var_export($process->getExitCode(), true),
+                trim($process->getOutput()) ?: '(empty)',
+                trim($process->getErrorOutput()) ?: '(empty)',
+            );
+        }
+
+        return implode("\n", $lines);
     }
 
     private function removeDirectory(string $directory): void
