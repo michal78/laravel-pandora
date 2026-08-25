@@ -85,7 +85,7 @@ whether or not the control is present proves the control is untested, not that i
 | 2 ✅ | **T2** — no cross-tenant read or write through any model, direct-ID lookup, page, console command or API resource, **with the tenant arriving from a bound host resolver rather than an override** | `Security/HostResolverTenancyTest` *(new, 2026-08-11)* · `Security/TenantIsolationTest` · `Security/ToolTenantIsolationTest` · `Memory/TenancyTest` · `Automation/TenancyTest` · `Channels/TenancyTest` · `McpServer/TenancyTest` · **new** `Security/TenantScopeCoverageTest`, `Security/QueuedJobTenancyTest` — **two findings**, see below |
 | 3 ✅ | **T3** — no cross-session context leak, including two participants on one channel account | `Security/SessionIsolationTest` · `Channels/SessionIsolationTest` · `Channels/UnlinkedIdentityTest` · `Channels/LinkRevocationTest` · `Context/SummarisationTest` *(the summariser's scoping lives here, not in the four above)* — **two findings**, see below |
 | 4 ✅ | **T4** — a provider credential is not in context, a step payload, a broadcast, an API resource or a log, and cannot be extracted by a prompt that asks for one | `Security/CredentialIsolationTest` · `Security/SecretLeakTest` · `Security/SecretRedactionTest` · **new** `Security/CredentialExtractionTest` — the extraction clause had no test |
-| 5 ⬜ | **T5** — workspace path traversal and symlink escape are refused at the canonicalisation layer *and* at the disk root, with the second layer proved by disabling the first | `Workspaces/ContainmentTest` · `Workspaces/RootsTest` |
+| 5 ✅ | **T5** — workspace path traversal and symlink escape are refused at the canonicalisation layer *and* at the disk root, with the second layer proved by disabling the first | `Workspaces/ContainmentTest` · `Workspaces/RootsTest` · **new** `Workspaces/ContainmentLayersTest` — **one finding**, see below |
 | 6 ✅ | **T6a** — **no core tool performs an outbound HTTP request**, asserted architecturally so the day one does is the day CI goes red | `Architecture/NoOutboundHttpFromToolsTest` — 4 tests; red within seconds of adding a tool that calls `Http::get()`, verified by adding one |
 | 7 ✅ | **T6b** — the MCP HTTP transport's URL is operator-configured and cannot be selected, redirected or influenced by model output or tool arguments | `Mcp/TransportUrlOriginTest` — 7 tests; **found a live SSRF**, see below |
 | 8 ⬜ | **T7** — iteration, tool-call, token, monetary, wall-clock, duplicate-call, delegation-depth and autonomy limits each independently halt a run, each proved by removing the other limits | `Feature/BudgetEnforcementTest` · `Feature/ToolLoopTest` · `Tools/DuplicateCallTest` · `Delegation/DepthTest` · `Automation/AutonomyTest` |
@@ -97,7 +97,7 @@ whether or not the control is present proves the control is untested, not that i
 | 14 ⬜ | **T13** — every control-center page and action is behind a gate; an authenticated non-admin reaches none of them, and prompts, tool I/O, costs and audit logs gate separately | `Security/ToolIoVisibilityTest` · `UI/*` |
 | 15 ✅ | **T14** — an approval is consumed exactly once under the run lock, and the tool call is re-validated at execution against the arguments approved | `Security/ApprovalRaceTest` · `Security/ApprovalAuthorizationTest` · `Approvals/ApprovalResolutionTest` · **new** `Security/ExactlyOnceUnderLockTest` — **three findings**, see below |
 | 16 ✅ | **T15** — no model uses `$guarded = []`; every one declares `$fillable`, asserted by reflection over `src/` so a new model cannot omit it | `Architecture/ModuleBoundaryTest` — 3 added tests over 29 models; red when one model is switched to `$guarded = []`, verified by switching one |
-| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **12 of 15 done** (2026-08-19): T1, T2, T3, T4, T6a, T6b, T9, T10, T11, T12, T14, T15. Remaining: T5, T7, T8, T13 |
+| 17 🔨 | **Every T1–T15 test fails when its mitigation is removed** — verified by removing it, one threat at a time, and recording the failure | *the audit itself* — **13 of 15 done** (2026-08-25): T1, T2, T3, T4, T5, T6a, T6b, T9, T10, T11, T12, T14, T15. Remaining: T7, T8, T13 |
 
 ### The suite tells the truth about what it tested
 
@@ -456,6 +456,67 @@ already fail. Writing a test here would assert the behaviour of code nothing con
 reasoning T6a settled for this repository — a control that is a specification rather than something
 running. It is written down because the docblock states a rule about system sessions that a reader
 would reasonably take for an enforced one, and today it is not enforced anywhere.
+
+## What auditing T5 found — 2026-08-25
+
+T5 is the one criterion written in the audit's own language: it names its ablation rather than its
+control. *"Refused at the canonicalisation layer **and** at the disk root, with the second layer
+proved by disabling the first."* Ten ablations across `LocalStorage` and `WorkspaceRoots`, nine
+load-bearing, **one finding.** No shipped behaviour was wrong.
+
+Nine that behaved: replacing `realpath()` with the unresolved candidate, deleting the containment
+assertion, dropping the trailing separator from the prefix comparison, removing the null-byte guard,
+removing the listing's containment filter, removing the root-existence check, removing the slug
+regex, letting an unknown root key fall back to the first declared root, and returning a raw tenant
+id instead of the hashed segment. Each failed `ContainmentTest` or `RootsTest` within seconds. The
+trailing-separator ablation is worth naming because it is the one with a boring name and a real
+consequence — a root of `/srv/agent` accepting `/srv/agent-secrets` — and the test for it was already
+there.
+
+**The finding: the write path's symlink re-check was doing nothing that a quota lookup was not
+already doing by accident.**
+
+`LocalStorage::locate($relative, mustExist: false)` resolves the parent, checks it is contained, and
+then — because a contained parent says nothing about what the leaf is a link to — re-resolves the
+target if it exists in any form. The docblock beside it is unusually direct about why:
+
+> The parent being contained is NOT sufficient, and assuming it was is a genuine hole: `notes.txt`
+> can be a symlink to somewhere else entirely, and every write call that follows would happily
+> follow it.
+
+Removing that re-check leaves **all 36 T5 tests green, and the full 1,828-test suite green.** Two of
+those tests are named for exactly the case it protects — *"refuses a write through a symlink pointing
+outside"* and *"refuses a write into a symlinked directory"* — and both still pass without it.
+
+The reason is ordering in the caller. Every T5 test drives `WorkspaceFiles`, and
+`WorkspaceFiles::write()` calls `$this->storage->size($relative)` for quota accounting *before* it
+writes. `size()` resolves with `mustExist: true`, which canonicalises and asserts containment, and it
+swallows only `not_found` — so an escaping symlink throws `outside_root` from the quota lookup,
+several lines before the write path's own check is ever reached. The reservation needs the old byte
+count; containment is a side effect of needing it.
+
+So there are two layers, which is what the criterion wanted to hear. But the outer one is **quota
+code** — it is not there for containment, it would move or vanish the moment reservations became
+lazy or were skipped for an unlimited workspace, and nothing anywhere says the write path depends on
+it. And the inner one, the one actually written for this threat, was unasserted.
+
+`Workspaces/ContainmentLayersTest` closes it with six tests that drive `LocalStorage` directly, which
+is the only way to reach layer 2 with layer 1 out of the way. Three of them fail when the re-check is
+removed, and the rest of `tests/Workspaces` stays green — verified by removing it.
+
+One distinction the ablation drew that the original tests blurred: **the symlinked-*directory* case
+is caught by the parent check, not the leaf re-check.** For `elsewhere/planted.txt` the parent
+resolves outside the root and `assertContained()` refuses it there. Only the symlinked *leaf* and the
+*dangling* leaf reach the second check. The two existing tests read as one pair covering one control;
+they are two tests covering two different controls, and only one of them was ever the witness for the
+one being audited.
+
+A sixth test pins layer 1 in place deliberately — asserting that `WorkspaceFiles::size()` on an
+escaping symlink throws — so that if the ordering in `write()` ever changes, something says so rather
+than the meaning of `ContainmentTest` changing in silence.
+
+**This is the fifth finding in six threats with the same shape**: a docblock stating a guarantee
+precisely, and nothing but an accident asserting it.
 
 ## Design decisions taken for this phase
 

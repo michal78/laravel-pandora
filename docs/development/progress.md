@@ -5,6 +5,46 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-08-25 — The byte count that was holding the door
+
+The sixth Phase 9 audit session, on `phase-9/audit-workspace-containment`. T5 next, because its
+criterion is the only one that names its own ablation. **16 of 34 criteria; the removal audit at 13
+of 15.**
+
+```
+vendor/bin/pest (sqlite)  -> 1,828 passed, 90 skipped (6,095 assertions)
+vendor/bin/phpstan        -> [OK] No errors (level 8)
+vendor/bin/pint --test    -> passed
+```
+
+Ten ablations across `LocalStorage` and `WorkspaceRoots`, nine load-bearing, one gap. The nine cover
+canonicalisation itself, the containment assertion, the trailing separator in the prefix comparison,
+the null-byte guard, the listing filter, the root-existence check, the slug regex, the unknown-key
+refusal and the tenant-segment hash. All refuse within seconds of being removed.
+
+**The gap: `LocalStorage`'s write-path symlink re-check can be deleted with the entire suite green.**
+Two tests are named for the case it protects and both still pass, because `WorkspaceFiles::write()`
+calls `storage->size()` for quota accounting first, and `size()` resolves with `mustExist: true` — so
+the escape is refused by a byte-count lookup several lines before the check written for it is
+reached. Two layers, as the criterion wants; but the outer one is quota code that is not there for
+containment and would move the moment reservations became lazy, and the inner one was unasserted.
+
+`Workspaces/ContainmentLayersTest` drives `LocalStorage` directly to reach the second layer with the
+first out of the way. Six tests; three fail when the re-check is removed, verified by removing it,
+with the rest of `tests/Workspaces` staying green. One of the six pins the quota ordering in place on
+purpose, so a change there is loud rather than silent.
+
+The ablation also drew a distinction the original pair blurred: the symlinked-*directory* case is
+caught by the parent check, not the leaf re-check. Two tests, two different controls, and only one of
+them was ever the witness for the control being audited.
+
+Also corrected `docs/roadmap.md`, which still read `11/34` and `⬜` for Phase 9 — eight days and four
+accepted threats out of date.
+
+Remaining for criterion 17: **T7, T8, T13.**
+
+---
+
 ## 2026-08-19 — Half an actor
 
 The fifth Phase 9 audit session, on `phase-9/audit-session-isolation`, the same day v0.1.3 shipped.

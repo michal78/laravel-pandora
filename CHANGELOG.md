@@ -17,7 +17,24 @@ folded into one key — which makes it unusually auditable: every component is i
 and removing one is invisible unless a test varies exactly that component. Seven ablations, four
 load-bearing, two findings. No shipped behaviour was wrong.
 
+Then T5, whose criterion is the only one in the phase that names its own ablation. Ten more
+ablations, nine load-bearing, one finding. No shipped behaviour was wrong here either — but the
+control that protects a write from an escaping symlink turned out to be unasserted, with a quota
+lookup refusing the escape first by accident.
+
 ### Added
+
+- **Six workspace containment-layer tests** (T5). `LocalStorage::locate(mustExist: false)`
+  re-resolves a write target that already exists, because a contained parent says nothing about what
+  the leaf is a link to — and that re-check could be deleted with all 1,828 tests green. Two tests
+  are named for exactly the case it protects. Both passed without it, because
+  `WorkspaceFiles::write()` calls `storage->size()` for quota accounting first, and `size()` resolves
+  with `mustExist: true`, so an escaping symlink is refused by a byte-count lookup several lines
+  before the containment check written for it is reached. The new tests drive `LocalStorage`
+  directly, which is the only way to reach the second layer with the first out of the way; three of
+  them fail when the re-check is removed. A fourth pins the quota ordering in place deliberately, so
+  that changing it is loud. The ablation also separated two controls the original tests read as one:
+  a symlinked *directory* is caught by the parent check, a symlinked *leaf* only by the re-check.
 
 - **Two session-isolation tests** (T3). `actor_type` could be dropped from `Session::isolationKeyFor()`
   with all 1,820 tests still green, while dropping `actor_id` beside it failed two — the existing
