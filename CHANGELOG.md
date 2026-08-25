@@ -17,6 +17,12 @@ folded into one key — which makes it unusually auditable: every component is i
 and removing one is invisible unless a test varies exactly that component. Seven ablations, four
 load-bearing, two findings. No shipped behaviour was wrong.
 
+**The Phase 9 removal audit is complete.** Every T1–T15 mitigation has now been removed, one at a
+time, and the failure recorded — nine sessions and roughly 120 ablations. It shipped two live security
+fixes in v0.1.3 and one concurrency fix here, and closed fourteen coverage gaps across ten threats.
+The recurring finding never changed shape: a docblock stating a guarantee precisely, and nothing but
+an accident asserting it.
+
 Then T5, whose criterion is the only one in the phase that names its own ablation. Ten more
 ablations, nine load-bearing, one finding. No shipped behaviour was wrong here either — but the
 control that protects a write from an escaping symlink turned out to be unasserted, with a quota
@@ -28,6 +34,16 @@ suite that has one — so criterion 27 was taken early. It found `RunLock`'s dat
 and a live defect that could fail a run.
 
 ### Added
+
+- **Nine control-center gating tests** (T13), one of them architectural. `routes/web.php` requires
+  authorization inside each component rather than relying on route middleware, and all eighteen
+  components complied — but nothing made them, and **five could lose their gate with the whole suite
+  green**: the agent, automation and run *detail* pages, the runs index, and the channel-link page.
+  Every index but one had a denial test; the detail pages had none at all, which is where an index's
+  one line becomes a prompt, a webhook secret or a full execution trace. The architectural test now
+  asserts that every class in `src/UI/Livewire/` authorizes somewhere, so a nineteenth page cannot be
+  added ungated. `ToolsIndex` also read `tools.io.view` twice with only the template flag asserted,
+  not the check deciding whether schemas are assembled at all.
 
 - **Five delegation deny-path tests** (T8). `AbilityIntersection::abilitiesOfAgent()` resolves an
   agent's tools as *granted, minus denied*, and removing the denied half left all 70 delegation tests
@@ -105,6 +121,14 @@ and a live defect that could fail a run.
 - **T3's *Claimed by* column was incomplete.** `Summariser` scopes its read by `session_id`, and
   removing that filter leaves all four files T3 claimed green — it is `Context/SummarisationTest`
   that catches it. The control was real and tested; the plan did not know where.
+- **Two configured abilities gate nothing.** `pandora.audit.view` is declared and read nowhere,
+  because the audit page it was written for does not exist; `pandora.tools.manage` likewise, because
+  the Tools page is read-only. Neither exposes anything — no audit record reaches any view and no tool
+  can be altered from the UI — but an operator granting or withholding either sees no difference and
+  cannot tell that from outside. Both are now named explicitly in a test rather than removed from the
+  config, since deleting a published key would break a host that references it, and both belong in the
+  v1.0 support statement.
+
 - **`DelegationDecision` documented `$withheldTools` backwards.** It read "abilities the parent held
   and did not pass on", while `AbilityIntersection::withheld()` computes the other direction on
   purpose — what the child agent was configured for and was refused — and says so emphatically. The
