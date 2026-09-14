@@ -117,6 +117,12 @@ jobs:
   # installed. The official `minio/minio` image needs a command (`server /data`)
   # and `services:` has nowhere to put one. Starting it by hand costs eight
   # lines and owes nothing to a vendor's distribution policy.
+  #
+  # A second scar, same shape: MinIO then withdrew `minio/minio` and `minio/mc`
+  # from Docker Hub — `pull access denied ... repository does not exist` — and
+  # stopped publishing community builds. Both images still live on quay.io, so
+  # they come from there, PINNED to a release tag: `latest` is what disappeared,
+  # and a tag nobody will ever republish is the one that cannot move under us.
   object-storage:
     name: object storage · minio
     runs-on: ubuntu-latest
@@ -130,7 +136,7 @@ jobs:
           docker run -d --name minio -p 9000:9000 \
             -e MINIO_ROOT_USER=pandora \
             -e MINIO_ROOT_PASSWORD=pandora-secret \
-            minio/minio:latest server /data
+            quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z server /data
 
           # Ready means answering, not running: the bucket creation below fails
           # against a server that has started but not yet bound its port.
@@ -144,7 +150,7 @@ jobs:
 
           curl -fs http://127.0.0.1:9000/minio/health/live >/dev/null
 
-          docker run --rm --network host --entrypoint sh minio/mc:latest -c "
+          docker run --rm --network host --entrypoint sh quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z -c "
             mc alias set local http://127.0.0.1:9000 pandora pandora-secret &&
             mc mb --ignore-existing local/pandora-test
           "
