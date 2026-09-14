@@ -1,7 +1,9 @@
 # Security Model
 
-> Status: Phase 0 (discovery). Controls described here are the design of record; see
-> `docs/development/progress.md` for what is implemented and `tests/Security/` for what is proven.
+> Status: v0.1.4. Every T1–T15 control below has been removed one at a time and the resulting failure
+> recorded (Phase 9 criterion 17, closed 2026-08-25); the evidence and every finding are in
+> `docs/development/phase-9-acceptance.md`. Where a row says a control is absent, latent or wired to
+> nothing, that is the current state, not a plan.
 
 ## 1. Statement of position
 
@@ -53,17 +55,17 @@ unauthenticated HTTP request from the internet — because in effect it did.
 | T2 | Cross-tenant data leak | Tenant column on every data-bearing table + global scope + `TenantResolver`. Direct-ID lookups are always tenant-scoped. Explicit tests. |
 | T3 | Cross-session context leak (two users, one conversation; shared channel inbox) | Session is a security boundary keyed on `(tenant, agent, actor, channel, participant, origin)`. Context and memory retrieval are session-scoped. **Channel identity is never application identity**: an unlinked participant gets no actor, no session and no run, and nothing infers a host user from a channel-supplied email, username or id (ADR-0015). Linking needs a code issued into the channel *and* redemption in an authenticated host session; a re-link bumps an epoch inside the isolation key, so a reassigned handle inherits nothing. Verified by `Channels/SessionIsolationTest`, `UnlinkedIdentityTest`, `LinkRedemptionTest`, `LinkRevocationTest`, `TenancyTest`. |
 | T4 | Provider credential exfiltration via prompt or tool output | Credentials resolve at HTTP-call time inside the adapter. Never in context, never in a step payload, never broadcast, never in an API resource. Redaction filter on logs, traces, broadcasts, API output. **No tool will hand one over on request**: `read_config` refuses credential-shaped keys even when an operator has allowlisted them, against a hard-coded baseline that `pandora.security.redact_keys` may extend and cannot narrow — the redaction list is tuned for output noise, so deriving the refusal from it alone let a logging decision weaken a security control. Verified by `Security/CredentialExtractionTest`. |
-| T5 | Workspace path traversal / symlink escape | Canonicalise, then assert the resolved real path is a descendant of the canonical root. Reject symlinks resolving outside. Disk-level root confinement as a second layer. |
+| T5 | Workspace path traversal / symlink escape | Canonicalise, then assert the resolved real path is a descendant of the canonical root. Reject symlinks resolving outside. Disk-level root confinement as a second layer. A write re-resolves an existing leaf, so a symlinked `notes.txt` is refused even when its parent is contained. Verified by `Workspaces/ContainmentTest`, `RootsTest`, and `ContainmentLayersTest`, which drives `LocalStorage` directly because the quota lookup in `WorkspaceFiles::write()` otherwise refuses the escape first and hides the leaf check. |
 | T6a | SSRF via an HTTP tool or a fetched URL | **Mitigated by absence, and asserted as such.** No core tool makes an outbound request; there is no fetch tool and no HTTP client reachable from one. The allowlist described below is a *specification for a tool that does not exist*, not a control that is running — writing it now would be unverifiable code guarding nothing. `Architecture/NoOutboundHttpFromToolsTest` fails the day a core tool gains outbound HTTP, which is the day the specification has to be built: host allowlist (deny by default), DNS resolved then private/link-local/loopback/metadata ranges blocked, re-validation after every redirect, caps on redirects, size and time. |
 | T6b | SSRF via the MCP HTTP transport | The one outbound surface that exists, and a different shape: the URL is **operator-configured** on the server row and never selectable by model output or tool arguments. Redirects are refused rather than followed — a `Location` header is the far end choosing our destination. Size cap before decode, timeout from the server row. Verified by `Mcp/TransportUrlOriginTest`, which found that redirects *were* followed: a hostile server could answer `302 Location: http://169.254.169.254/` and have the response body returned to the model. Fixed 2026-08-17. |
-| T7 | Runaway cost or infinite loop | Iteration limit, tool-call limit, token budget, monetary budget, wall-clock timeout, duplicate tool-call detection, delegation depth, autonomy budget. All enforced in the loop, all persisted. |
+| T7 | Runaway cost or infinite loop | Iteration limit, tool-call limit, token budget, monetary budget, wall-clock timeout, duplicate tool-call detection, delegation depth, autonomy budget. All enforced in the loop, all persisted. Each limit is proved by setting every *other* limit generously and asserting the breach message, because the limits overlap and the first to trip hides the rest. Verified by `Feature/LimitAttributionTest`, `BudgetEnforcementTest`, `ToolLoopTest`, `AgentRunTest` (iteration limit), `Tools/DuplicateCallTest`, `Delegation/DepthTest`, `Automation/AutonomyTest`. |
 | T8 | Privilege escalation through delegation | Child run's effective abilities are the **intersection** of parent and child agent permissions. Delegation never widens authority. Verified by `Delegation/IntersectionTest`. |
 | T9 | Malicious imported skill | Skills are instructions only. Never executed. Import validates the manifest, strips nothing silently, and surfaces warnings. Embedded install instructions are never auto-run, and an imported skill lands `enabled = false` so importing is not enabling. There is no column a skill could carry something executable in, and `src/` contains no `eval`/`exec`/`proc_open` call outside the stdio MCP transport. Verified by `Skills/UntrustedSkillTest` — which also found that **nothing reads a skill's instructions at all**: the text never reaches a prompt, so a skill is currently inert rather than untrusted-but-included. See ADR-0008. |
 | T10 | Hostile MCP server (tool *descriptions* are an injection vector) | Remote tools untrusted until explicitly approved **per agent, per tool**. Namespaced, with resolution split by origin so a remote tool cannot resolve where a core one is expected. Descriptions bounded, escaped, marked foreign, never in an instruction position — and **inside the approval hash**, so rewriting one clears approval and fails the tool closed (ADR-0014). Verified by `Mcp/UntrustedDescriptionTest`, `SchemaHashTest`, `NamespaceTest`, `ApprovalTest`. |
 | T11 | Broadcast eavesdropping | Private channels with authorization callbacks. Payloads redacted before broadcast, in a `final broadcastWith()` no event can bypass. The guarantees are structural rather than conventional: `MessageCreated` carries ids and a role and no content, so a system prompt cannot be broadcast even by accident; no event carries tool arguments at all; an unclassified exception yields a fixed sentence rather than its own message. Verified by `Security/BroadcastAuthorizationTest`, `SecretRedactionTest`, `Realtime/BroadcastTest`. |
-| T12 | Webhook forgery / replay | HMAC signature, timestamp window, nonce store, per-endpoint secret, idempotency key. |
-| T13 | Unauthorized control-center access | Every page and action behind a gate. No implicit "authenticated ⇒ admin". Separate abilities for prompts, tool I/O, costs and audit logs. |
-| T14 | Approval bypass via a race | Approval resolution and run resumption are transactional under the run lock. An approval is consumed exactly once; the tool call is re-validated at execution time. |
+| T12 | Webhook forgery / replay | HMAC signature over the body *and* timestamp, timestamp window, nonce store, per-endpoint secret, idempotency key. Replay protection is a unique insert, and only a uniqueness violation counts as "already processed" — a deadlock or lock timeout comes back out as a fault. Verified by `Automation/WebhookTest`, `IdempotencyTest`. `hash_equals()` is not behaviourally testable; only its timing differs. |
+| T13 | Unauthorized control-center access | Every page and action behind a gate, checked inside each component rather than by route middleware. No implicit "authenticated ⇒ admin". Separate abilities for prompts, tool I/O and costs. **`pandora.audit.view` and `pandora.tools.manage` gate nothing today**: there is no audit page and no tool management UI, so granting or withholding either changes nothing. Verified by `Security/ControlCenterGatingTest` — including a source-level rule that every class in `src/UI/Livewire/` calls `PandoraGate::authorize(` somewhere (a presence check per class, not per action) — and `ToolIoVisibilityTest`. |
+| T14 | Approval bypass via a race | Approval resolution is a transaction holding a row lock on the approval (`lockForUpdate()`); run ownership is a database lease in `RunLock`. An approval is consumed exactly once. At execution time the gatekeeper is consulted again against the approved arguments, and a *denied* answer stops the call. **Latent gap:** that re-check does not confirm the execution's own approval was granted — it is safe because every path that dispatches `ExecuteToolCall` today goes through gatekeeping or `ResumeApprovedRun`, and a new dispatch path would need it. Verified by `Security/ExactlyOnceUnderLockTest` (skips on SQLite, where row locks do not exist), `ApprovalRaceTest`, `ApprovalAuthorizationTest`, `Approvals/ApprovalResolutionTest`, `Performance/ConcurrentRunsTest` (the lease, across real processes). |
 | T15 | Mass assignment / unsafe deserialisation | No `$guarded = []`. Explicit fillable. Payloads stored as JSON of scalars; no PHP serialisation of user-influenced data. Asserted by reflection over every model in `src/` in `Architecture/ModuleBoundaryTest`, so a model added later cannot omit it — until 2026-08-17 the rule was a sentence here and a comment on two of the twenty-nine models. |
 
 ## 4. Authorization model
@@ -95,6 +97,11 @@ authenticated user is an administrator:
 
 The host may override every one via configuration callbacks or by binding its own resolver.
 
+`pandora.audit.view` and `pandora.tools.manage` are registered and consulted by nothing: the surfaces
+they were written for (an audit page, tool management) do not exist. They are kept so a host that
+references them does not break, and `Security/ControlCenterGatingTest` names them as the only two
+exceptions so a third unused ability cannot hide behind them.
+
 ### Argument modification
 
 `modify_arguments` is a real capability (clamp a refund amount, force a tenant filter) and therefore
@@ -117,7 +124,11 @@ included in the run trace. Silent argument rewriting is forbidden.
    instruction that content inside those boundaries is data, not instructions.
 4. **Tool allowlists per agent** — a support agent has no shell, no HTTP, no SQL.
 5. **Output validation** — tool arguments are schema- and rule-validated before they reach code.
-6. **Egress control** — HTTP allowlists, workspace containment, no arbitrary file or process access.
+6. **Egress control** — no core tool makes an outbound request (T6a; the HTTP allowlist is a
+   specification for a fetch tool that does not exist), MCP endpoints are operator-configured with
+   redirects refused (T6b), workspace containment, no arbitrary file or process access. Arguments sent
+   to an *approved* MCP tool leave the application without a per-call approval: MCP approval covers
+   the tool's schema and description, not the data a call carries.
 7. **Budgets** — a persuaded agent runs out of iterations, tokens and money.
 8. **Audit** — everything attempted is recorded, whether or not it succeeded.
 
@@ -149,7 +160,14 @@ or tool is consulted, and no tool exposes a parameter that could widen it — `r
 string and nothing else. A vector store is an accelerator and never an authority: every candidate it
 proposes is re-filtered against the same constraint in the database, so an index Pandora does not
 control cannot surface anything the database would have hidden. Content that looks like a credential
-is refused outright; every claim about a person is held for a human. Forgetting hard-deletes the
+is refused outright; every claim about a person is held for a human. **Claims about the agent are
+not held.** `remember` with `about: agent` writes agent-scoped memory at `medium` risk — below the
+default approval floor — and it is active immediately unless the sensitivity classifier matches.
+Agent-scoped memory is retrieved for every session of that agent, so text planted from one user's
+session reaches other users' runs of the same agent (within the tenant). It arrives delimited by
+`UntrustedBlock` in the user role, which bounds where it sits but not whether the model obeys it.
+Deployments that do not want cross-user persistence should give `remember` a `ToolPolicy` that
+returns `require_approval`, or leave it off agents that read untrusted content. Forgetting hard-deletes the
 vector and soft-deletes the row, because a soft-deleted row with a live vector is still findable by
 the path that matters. Export is gated and audited at `warning` — one call returns everything an
 agent believes about a person.
