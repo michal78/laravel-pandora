@@ -1,6 +1,6 @@
 # Phase 9 — Acceptance Test Plan
 
-> **Status: 15 of 34 criteria accepted** (1, 2, 3, 4, 6, 7, 10, 11, 12, 13, 15, 16, 19, 20, 21). Nothing here is ticked by inheritance.
+> **Status: 21 of 34 criteria accepted** (1–17, 19, 20, 21, 27). Nothing here is ticked by inheritance.
 >
 > Every previous phase wrote tests and then claimed the criteria those tests were written for. Phase 9
 > is the phase that claims T1–T15, and it is the first one where the claim is about the *suite* rather
@@ -770,6 +770,15 @@ list and then gets ignored. All six ablations now fail; verified by re-running e
 
 Criterion 17 is closed. Every T1–T15 mitigation has been removed, one at a time, and the failure
 recorded. Ten sessions.
+
+**What "removed" means, and what it does not.** Each ablation was a single hand-chosen edit to `src/`
+— a `(name, file, old, new)` replacement — run against the threat's claimed tests and then the full
+suite, under a trap that restored `src/` on exit. The controls were chosen by reading the threat's
+sentence and the docblocks claiming a guarantee; this is targeted mutation, not exhaustive mutation
+coverage. The outcomes are recorded as prose in the sections above and as the tests each gap
+produced. **The driver script was not committed and no machine log was kept**, so the sweep cannot be
+re-run with one command today, and only five sessions recorded a countable total (59 ablations). The
+durable evidence is the new tests: each was verified to fail with its control removed.
 
 **What it produced:** two live security fixes shipped in v0.1.3 — an SSRF in the MCP client that a
 hostile server could steer an authenticated POST through, and untrusted content able to close its own
