@@ -67,7 +67,7 @@ Providers disagree about almost everything. The adapter absorbs the disagreement
 |---|---|
 | Tool-call format (native vs. JSON-in-text) | `ToolCall[]` on the response |
 | Streaming event shape (SSE deltas, partial JSON) | `StreamDelta` union |
-| Usage field names | `UsageRecordData` (input, output, cached_input, cached_output, reasoning, audio units, image units, requests) |
+| Usage field names | `UsageRecordData` (input, output, cached_input, cached_output, reasoning, audio units, image units, requests). The three input figures are **disjoint** — fresh input, cache reads, cache writes — because each is priced separately; a vendor whose prompt count includes its cache share has that share taken out |
 | Finish reasons | `FinishReason` enum (`stop`, `tool_calls`, `length`, `content_filter`, `error`) |
 | Errors | Pandora exception hierarchy with a `retryable` classification |
 | Multimodal content | `ContentPart` |

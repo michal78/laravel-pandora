@@ -450,10 +450,15 @@ final class OpenAiCompatibleProvider implements ModelCatalogProvider, StreamingP
         /** @var array<string, mixed> $completionDetails */
         $completionDetails = $usage['completion_tokens_details'] ?? [];
 
+        $cached = (int) ($promptDetails['cached_tokens'] ?? 0);
+
+        // `prompt_tokens` INCLUDES the cached share. Pandora's input figures
+        // are disjoint, because `CatalogModel::estimate()` prices each one;
+        // reporting the total as fresh input billed every cached token twice.
         return new UsageData(
-            inputTokens: (int) ($usage['prompt_tokens'] ?? 0),
+            inputTokens: max(0, (int) ($usage['prompt_tokens'] ?? 0) - $cached),
             outputTokens: (int) ($usage['completion_tokens'] ?? 0),
-            cachedInputTokens: (int) ($promptDetails['cached_tokens'] ?? 0),
+            cachedInputTokens: $cached,
             reasoningTokens: (int) ($completionDetails['reasoning_tokens'] ?? 0),
         );
     }
