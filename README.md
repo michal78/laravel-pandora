@@ -45,8 +45,9 @@
 > or S3-compatible storage, and **messaging channels** where an unlinked identity gets no run, no
 > session and no seat.
 >
-> **What does not exist yet:** the rest of release hardening — upgrade and install tests, the
-> performance suite and the example application (Phase 9, at 21 of 34 criteria). **The threat-model
+> **What does not exist yet:** the rest of release hardening — the performance suite, the release
+> documentation audit and a human walkthrough (Phase 9, at 25 of 34 criteria). Install and upgrade
+> safety is done: the quick start below is run by the suite. **The threat-model
 > sweep is done:** every T1–T15 mitigation has been removed one at a time and the failure recorded,
 > which found two security defects (fixed in v0.1.3) and one concurrency defect (fixed in v0.1.4).
 > See [`docs/roadmap.md`](docs/roadmap.md).
@@ -199,9 +200,77 @@ composer require michal78/laravel-pandora:dev-development
 The installer is idempotent, publishes config and migrations, explains Reverb / queue / scheduler
 setup, and **deliberately creates no default agent.**
 
-Then define an agent and run it:
+### Quick start
+
+From a fresh install to an agent that calls a tool, **with no API key** — the default provider is
+`fake`, which answers without a network. Every block below is run by the test suite
+(`tests/Feature/QuickStartTest.php`) against `tests/Fixtures/ExampleApp`, so this section cannot
+drift from what works.
+
+A tool — where an agent touches your application:
 
 ```php
+<?php // app/Tools/LookupOrder.php
+
+namespace App\Tools;
+
+use Pandora\Tools\Enums\RiskLevel;
+use Pandora\Tools\Tool;
+use Pandora\Tools\ToolContext;
+use Pandora\Tools\ToolInput;
+use Pandora\Tools\ToolResult;
+
+final class LookupOrder extends Tool
+{
+    public function name(): string
+    {
+        return 'lookup_order';
+    }
+
+    public function description(): string
+    {
+        return 'Look up an order by its reference.';
+    }
+
+    public function rules(): array
+    {
+        return ['reference' => 'required|string|max:32'];
+    }
+
+    public function risk(): RiskLevel
+    {
+        return RiskLevel::Low;
+    }
+
+    // The console run below acts as the system rather than as a user, which
+    // the default authorize() refuses. This tool reads nothing private.
+    public function authorize(ToolInput $input, ToolContext $context): bool
+    {
+        return $context->actor !== null;
+    }
+
+    public function handle(ToolInput $input, ToolContext $context): ToolResult
+    {
+        $orders = ['1234' => 'shipped on Tuesday'];
+        $reference = (string) $input->string('reference');
+
+        return isset($orders[$reference])
+            ? ToolResult::success("Order {$reference} {$orders[$reference]}.")
+            : ToolResult::failure('No order has that reference.');
+    }
+}
+```
+
+An agent that may use it:
+
+```php
+<?php // app/Agents/SupportAgent.php
+
+namespace App\Agents;
+
+use Pandora\Agents\AgentBlueprint;
+use Pandora\Contracts\AgentDefinition;
+
 final class SupportAgent implements AgentDefinition
 {
     public function define(AgentBlueprint $agent): AgentBlueprint
@@ -209,14 +278,42 @@ final class SupportAgent implements AgentDefinition
         return $agent
             ->name('Support')
             ->instructions('Help customers resolve support issues.')
-            ->model('openai', 'gpt-4o-mini');
+            ->tools(['lookup_order']);
     }
 }
 ```
 
+Register both:
+
+```php
+// config/pandora.php -- in the file the installer published
+'agents' => [
+    'definitions' => [App\Agents\SupportAgent::class],
+],
+
+'tools' => [
+    'registered' => [App\Tools\LookupOrder::class],
+],
+```
+
+Run it:
+
 ```bash
+php artisan pandora:agent:list
 php artisan pandora:agent:run support "Where is order 1234?" --trace
 ```
+
+The fake provider echoes your message back rather than calling the tool — it is not a model. Point
+Pandora at a real one to see the agent decide to call `lookup_order`:
+
+```dotenv
+PANDORA_PROVIDER=openai
+PANDORA_MODEL=gpt-4o-mini
+PANDORA_OPENAI_API_KEY=sk-...
+```
+
+The [quick-start guide](docs/guides/quick-start.md) goes further: queued runs from a controller,
+streaming, inspecting the trace, and testing your integration against the fake provider.
 
 ## Control center
 

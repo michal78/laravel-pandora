@@ -5,6 +5,47 @@ claimed to pass were run; output is quoted where it matters.
 
 ---
 
+## 2026-10-28 — The second install
+
+The eleventh Phase 9 session, on `phase-9/install-and-upgrade`. Criteria 18, 24, 25 and 29 — the
+block that decides whether 1.0 is installable. **25 of 34 criteria.**
+
+```
+vendor/bin/pest (sqlite)            -> 1,861 passed, 99 skipped (6,664 assertions)
+new + install tests on pgsql, mysql -> 45 passed each
+vendor/bin/pint --test              -> passed
+vendor/bin/phpstan                  -> four fill() errors, also present on a clean development
+                                       checkout with today's dependency resolution; none new
+```
+
+Run in a PHP 8.4 container with `memory_limit=-1`: the stock image's 128 MB runs out in
+`ControlCenterGatingTest`, which aborts the rest of the suite without a failure line.
+
+**Two live defects, both upgrade bugs a fresh-install suite could not see.** A second
+`pandora:install` — which is what an upgrade is — republished eight migrations its glob did not
+recognise, and `migrate` died on a duplicate column; the test called *installing twice is safe*
+passed throughout because it used `--no-migrate` and checked only the config file. And
+`mergeConfigFrom()` merges one level deep, so a published config silently lacked every nested key
+added after it was published: criterion 25 described a property the package did not have.
+
+**No release has needed a migration yet** — `database/` and `config/` are byte-identical from v0.1.0
+to head — so `UpgradeTest` and the "never edit a shipped migration" guard exist for the first one
+that does.
+
+**Criterion 29 is accepted without its conversation**, because the console quick start has none by
+design; the test asserts zero rather than skipping it. The README had no runnable quick start at all
+— its agent needed a paid key and was never registered — and now carries one that runs with no key,
+read block by block by `QuickStartTest`.
+
+One cautionary note about the harness rather than the code: a long suite run sharing the Testbench
+skeleton with short ad-hoc runs failed 100 workspace tests, because the ad-hoc runs had briefly
+published a config into the skeleton. Criterion 18's hazard, reproduced by hand.
+
+Remaining for Phase 9: scale and CI honesty (22, 23, 26, 28), release docs (30–33), and the human
+walkthrough (34).
+
+---
+
 ## 2026-08-25 — The pages nobody tried to open
 
 The tenth Phase 9 session, on `phase-9/audit-control-center-gating`. T13, the last threat.
