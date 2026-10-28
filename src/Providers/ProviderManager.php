@@ -132,6 +132,12 @@ final class ProviderManager
                 http: $this->container->make(Factory::class),
                 credentials: $this->credentials,
             ),
+            'laravel-ai' => Adapters\LaravelAi\LaravelAiProvider::make(
+                key: $key,
+                config: $config,
+                container: $this->container,
+                credentials: $this->credentials,
+            ),
             default => throw InvalidConfiguration::unknownAdapter($adapter, $key),
         };
     }

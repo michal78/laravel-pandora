@@ -100,7 +100,18 @@ distinct dialect, and building it was what forced the contract suite to stop
 assuming every vendor issues tool-call ids. That assumption would otherwise
 have been baked in and inherited by every adapter written afterwards.
 
-**Official extensions:** Azure OpenAI, Bedrock, Mistral, Groq, xAI, Together, DeepSeek.
+**Through the Laravel AI SDK:** `laravel-ai` (`src/Providers/Adapters/LaravelAi/`) is one adapter
+in front of every text driver `laravel/ai` ships, which covers most of the extension list below
+without a package per vendor. It uses only the SDK's single-step gateway (`StepTextGateway`), never
+its agents or tool loop, and hands it tools that cannot be executed — see ADR-0017. It passes the
+shared contract suite against the native Anthropic and OpenAI-compatible fixtures; the SDK's Gemini
+driver speaks a different API (Interactions) and is not covered, so native `gemini` remains the path
+to Gemini. `laravel/ai` is `suggest`ed, and an architecture test confines every `Laravel\Ai` symbol to
+that one directory.
+
+**Official extensions:** Azure OpenAI, Bedrock, Mistral, Groq, xAI, Together, DeepSeek — each now
+reachable through `laravel-ai`; a dedicated extension remains worth writing only where a vendor needs
+something the SDK does not expose.
 
 **Testing:** `FakeProvider`, `FakeStreamingProvider`, `FakeEmbeddingProvider`.
 

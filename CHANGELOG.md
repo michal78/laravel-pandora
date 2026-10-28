@@ -12,6 +12,16 @@ All notable changes to this project are documented here. The format follows
 
 ## Unreleased
 
+### Added
+
+- **`laravel-ai` provider adapter.** Reaches every text provider the Laravel AI SDK (`laravel/ai`)
+  has a driver for — Bedrock, Azure OpenAI, Mistral, Groq, xAI, DeepSeek, Cohere and the rest — with
+  a config entry. The SDK makes one model call at a time; Pandora keeps the tool loop, approvals, run
+  steps and audit, and the tools it hands the SDK cannot be executed (ADR-0017). Credentials still
+  resolve through Pandora per agent, per tenant and per deployment. It passes the shared provider
+  contract suite on the native Anthropic and OpenAI-compatible adapters' own fixtures. `laravel/ai`
+  is suggested, not required. See `docs/guides/providers.md`.
+
 ### Fixed
 
 - **Cached input tokens were billed twice on OpenAI-compatible and Gemini providers.** OpenAI's
