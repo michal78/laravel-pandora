@@ -254,12 +254,26 @@ it('runs the installer without creating an agent', function (): void {
 });
 
 it('is idempotent -- installing twice is safe', function (): void {
+    // Restamped, as a current Laravel application asks for: the second run
+    // then cannot recognise a migration by its full filename, only by what it
+    // migrates, which is exactly the case that used to fail.
+    config(['database.migrations.update_date_on_publish' => true]);
+
+    $packaged = count(File::glob(dirname(__DIR__, 2).'/database/migrations/*.php'));
+
     $this->artisan('pandora:install', ['--no-migrate' => true])->assertSuccessful();
-    $this->artisan('pandora:install', ['--no-migrate' => true])->assertSuccessful();
+    $this->artisan('pandora:install', ['--no-migrate' => true])
+        ->expectsOutputToContain('up to date')
+        ->assertSuccessful();
 
     // The second run reports the config as already present rather than
     // clobbering a customised file.
-    expect(File::exists(config_path('pandora.php')))->toBeTrue();
+    expect(File::exists(config_path('pandora.php')))->toBeTrue()
+        // And publishes nothing twice. It used to republish every migration
+        // that is not a `create_..._table` -- eight of them -- under a new
+        // timestamp, and the `migrate` after it died on a duplicate column.
+        // Checking the config alone, this test passed throughout.
+        ->and(publishedPandoraMigrations())->toHaveCount($packaged);
 });
 
 it('reports status', function (): void {

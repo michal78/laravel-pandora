@@ -41,6 +41,15 @@ All notable changes to this project are documented here. The format follows
   Found by the
   `laravel-ai` adapter's contract leg, which normalised the same response differently.
 
+- **Running `pandora:install` a second time broke `migrate`.** The installer recognised a host's
+  already-published migrations by the pattern `*_create_pandora_*_table.php`, which eight of the 31
+  do not match (the `add_*` migrations and the two `*_tables` ones). A second run published those
+  eight again under new timestamps, and `migrate` — which a non-interactive install runs itself —
+  failed on a duplicate column. Every packaged migration is now matched by name. **If you already
+  have duplicates**, delete the newer copy of each `*_add_*_to_pandora_*` and
+  `*_create_pandora_{mcp,channel}_tables` migration that has never run (`php artisan migrate:status`
+  lists them as *Pending*), then migrate.
+
 ## v0.1.4 — 2026-08-25
 
 Phase 9's threat audit continues, and **completes**. T3 first: session isolation is enforced by a

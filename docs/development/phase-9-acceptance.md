@@ -117,7 +117,7 @@ independent ways, in one session.
 | # | Criterion | Verified by |
 |---|---|---|
 | 23 ⬜ | The full matrix is green: SQLite (8.3, 8.4), MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector, MinIO | `.github/workflows/tests.yml` *(exists)* |
-| 24 ⬜ | **Migrations run forward from a v0 install to head on every engine in the matrix**, not only from empty | *new* — `Database/UpgradeTest` + CI leg |
+| 24 ✅ | **Migrations run forward from a v0 install to head on every engine in the matrix**, not only from empty | `Database/UpgradeTest` — runs on every engine leg of the existing matrix, so no separate CI leg; verified locally on SQLite, PostgreSQL 17 and MySQL 8.4. **Found a live defect**: a second `pandora:install` republished eight migrations and `migrate` died — see below |
 | 25 ⬜ | **A published config from an earlier version still boots** — a host that published `config/pandora.php` before a key existed gets the package default, not a missing key | *new* — `Feature/ConfigUpgradeTest` |
 | 26 ⬜ | A conversation of 10,000 messages builds context within budget and the page renders without loading all of them | *new* — `Performance/LargeConversationTest` |
 | 27 ✅ | 50 concurrent runs against one agent complete without lock starvation, duplicated tool execution or lost steps *(read as 20 — see below)* | `Performance/ConcurrentRunsTest` · `Queue/ConcurrentHarnessTest` · `tests/Support/RunsConcurrently.php` — **one live defect**, see below |
@@ -797,6 +797,35 @@ Three structural causes account for most of it, and all three are now closed or 
 the suite had one process (closed — `RunsConcurrently`); `QUEUE_CONNECTION=sync` disarmed everything
 that depends on a job carrying its own context (closed — `QueuedJobTenancyTest`); and a fake stood
 where a real boundary belonged (inventoried — `fake-boundaries.md`).
+
+## What building the upgrade test found — 2026-10-28
+
+**A second `pandora:install` broke `migrate`, and an upgrade is a second install.** The installer
+decided which migrations a host already had by globbing `*_create_pandora_*_table.php`. Eight of
+the 31 match nothing of the kind -- six `add_*` migrations and the two whose names end in `_tables`
+-- so every later run published them again under fresh timestamps, and the `migrate` that follows
+(which a non-interactive install runs itself) stopped on `duplicate column name: autonomy_level`.
+Every host that ran the installer twice was affected, which includes every host following the
+command's own upgrade advice.
+
+`InstallationTest` had a test named *is idempotent -- installing twice is safe*. It passed with
+`--no-migrate` and asserted only that the config file existed. It now counts what was published,
+and reverting the fix fails it.
+
+The installer now matches every packaged migration by suffix. In passing, its restamping mutated
+one Carbon instance, so the offsets between published files accumulated (0, 1, 3, 6, 10 ...
+seconds) rather than stepping by one. Order was unaffected; it is fixed anyway.
+
+`Database/UpgradeTest` installs the frozen v0.1.0 migrations (`tests/Fixtures/Upgrade/v0.1.0`,
+taken from the tag, because CI checks out without tags) the way a host published them, writes a
+row, upgrades with the current installer, and asserts the schema equals a fresh install's on the
+same engine and the row survived. Reverting the installer fix fails it. A second test asserts no
+shipped migration has been edited since -- the upgrade bug that needs no new migration to happen
+-- and editing one fails it by name.
+
+**No release has needed a migration yet.** `database/` and `config/` are byte-identical from
+v0.1.0 to head, so the upgrade path has been trivially correct so far except for the installer.
+These tests exist for the first release that changes a table.
 
 ## Design decisions taken for this phase
 

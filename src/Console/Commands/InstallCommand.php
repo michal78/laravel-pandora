@@ -88,12 +88,23 @@ final class InstallCommand extends Command
         // associates with a package update.
         //
         // Matched on the suffix, because a published migration may carry a
-        // different timestamp prefix from the packaged one.
-        $existing = collect(File::glob(database_path('migrations/*_create_pandora_*_table.php')))
+        // different timestamp prefix from the packaged one -- and against
+        // EVERY packaged migration, not a filename pattern. This used to glob
+        // `*_create_pandora_*_table.php`, which no `add_*` migration and no
+        // `*_tables` migration matches, so a second install republished eight
+        // of them under new timestamps and the `migrate` that follows died on
+        // a duplicate column. A second install is what an upgrade is.
+        $packaged = collect(File::glob(dirname(__DIR__, 3).'/database/migrations/*.php'));
+
+        $suffixes = $packaged->map(fn (string $path): string => $this->migrationSuffix($path))->all();
+
+        $existing = collect(File::glob(database_path('migrations/*.php')))
             ->map(fn (string $path): string => $this->migrationSuffix($path))
+            ->filter(static fn (string $suffix): bool => in_array($suffix, $suffixes, true))
+            ->values()
             ->all();
 
-        $missing = collect(File::glob(dirname(__DIR__, 3).'/database/migrations/*.php'))
+        $missing = $packaged
             ->reject(fn (string $path): bool => in_array($this->migrationSuffix($path), $existing, true));
 
         if ($missing->isEmpty()) {
@@ -114,7 +125,9 @@ final class InstallCommand extends Command
 
         foreach ($missing->values() as $index => $path) {
             $name = $restamp
-                ? $stamp->addSeconds($index)->format('Y_m_d_His').'_'.$this->migrationSuffix($path)
+                // A copy: `addSeconds()` mutates, so the offsets used to
+                // accumulate (0, 1, 3, 6, 10 ... seconds) instead of stepping.
+                ? $stamp->copy()->addSeconds($index)->format('Y_m_d_His').'_'.$this->migrationSuffix($path)
                 : basename($path);
 
             File::copy($path, database_path('migrations/'.$name));
