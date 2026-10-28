@@ -22,6 +22,17 @@ All notable changes to this project are documented here. The format follows
   contract suite on the native Anthropic and OpenAI-compatible adapters' own fixtures. `laravel/ai`
   is suggested, not required. See `docs/guides/providers.md`.
 
+### Changed
+
+- **A published `config/pandora.php` now gets new nested defaults.** Laravel's `mergeConfigFrom()`
+  merges one level deep, so a host that published the config before a nested key existed — for
+  example `features.channels` — did not get the default; the key was missing and the feature acted
+  switched off. Pandora now merges its defaults recursively under the host's file. Lists and the
+  collections `providers.connections`, `workspaces.roots` and `memory.stores` are still taken from
+  the host's file whole. **Upgrade note:** if you deleted a nested *setting* from your published
+  file to disable something, it now comes back with its default; set it explicitly instead. See
+  "Upgrading" in `docs/guides/installation.md`.
+
 ### Fixed
 
 - **Cached input tokens were billed twice on OpenAI-compatible and Gemini providers.** OpenAI's

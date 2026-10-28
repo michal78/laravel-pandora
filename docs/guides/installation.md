@@ -40,6 +40,29 @@ php artisan pandora:install
 The installer is **idempotent** — safe to run repeatedly. It publishes config and migrations, offers
 to migrate, and explains the remaining setup. It deliberately creates **no default agent**.
 
+## Upgrading
+
+```bash
+composer update michal78/laravel-pandora
+php artisan pandora:install
+```
+
+Running the installer again is the upgrade. It publishes only the migrations your application does
+not have yet — recognised by what they migrate, not by their timestamp — runs them, and leaves your
+published config alone. Read the release's section of `CHANGELOG.md` first: a breaking change says
+there what to do.
+
+**Your published `config/pandora.php` does not need to be re-published.** Pandora merges its own
+defaults underneath it at every depth, so a setting added in a later release takes the package
+default until you set it yourself, rather than going missing. Two kinds of value are yours outright
+and are never merged into:
+
+- **Lists**, such as `context.providers` or `tools.registered` — your list is your pipeline, in your
+  order. A context provider added in a later release is announced in the CHANGELOG; add it to your
+  list if you want it.
+- **Collections of named entries** — `providers.connections`, `workspaces.roots`, `memory.stores`.
+  A connection you deleted stays deleted.
+
 ## Two installation modes
 
 ### Headless framework mode
