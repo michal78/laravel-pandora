@@ -17,7 +17,7 @@
 | 6 | Multi-agent and MCP | ✅ 31/31; both walkthrough halves driven (delegation 2026-08-08 + 2026-08-10, MCP 2026-08-10 against real servers) — 15 findings, 13 fixed. Two open by decision: no audit page, and a dead-end tool result becomes a retry storm |
 | 7 | Workspaces, released and on object storage | ✅ 25/25 — walkthrough driven end to end 2026-08-10 against real MinIO; 7 defects, 6 fixed. Tenancy section closed 2026-08-11 by `Security/HostResolverTenancyTest`, which found that no test had ever exercised the host resolver path |
 | 8 | Channels and extensions | ✅ 33/33 — walkthrough driven for every section but 5, against a real Slack workspace. 16 findings. Section 5 (two people, one channel account, **concurrently**) is closed as ⚠ **known untested** — no second account, and it goes in the v1.0 support statement |
-| 9 | Hardening and release | 🔨 21/34 — **the threat audit is closed**; **the removal audit is complete at 15 of 15 threats.** T1, T4, T6a, T6b, T9, T10, T11 and T15 accepted 2026-08-17; T12, T14 and T2 on 2026-08-19; T3 on 2026-08-19; T5, T7, T8 and T13 on 2026-08-25. Three live defects: an SSRF in the MCP client and untrusted content able to close its own delimiter inside a system message (both fixed in v0.1.3), and a provider-health insert race that could fail an otherwise healthy run (fixed in v0.1.4) |
+| 9 | Hardening and release | 🔨 25/34 — **the threat audit is closed**; **install and upgrade safety closed 2026-10-28** (two live defects: a second install broke `migrate`, and a published config lost nested keys added after it); **the removal audit is complete at 15 of 15 threats.** T1, T4, T6a, T6b, T9, T10, T11 and T15 accepted 2026-08-17; T12, T14 and T2 on 2026-08-19; T3 on 2026-08-19; T5, T7, T8 and T13 on 2026-08-25. Three live defects: an SSRF in the MCP client and untrusted content able to close its own delimiter inside a system message (both fixed in v0.1.3), and a provider-health insert race that could fail an otherwise healthy run (fixed in v0.1.4) |
 
 ---
 
@@ -423,9 +423,10 @@ automation · CHANGELOG · v1.0 checklist.
 
 **Acceptance:** every T1–T15 threat has a passing test. The matrix is green. The example application
 runs the documented quick start end to end. See `docs/development/phase-9-acceptance.md` — **34
-criteria, 21 accepted**, and deliberately none inherited. **The removal audit (criterion 17) is
-complete: all 15 threats verified by removing their mitigations.** What remains is upgrade and
-install safety, scale, the release documentation set and the human walkthrough.
+criteria, 25 accepted**, and deliberately none inherited. **The removal audit (criterion 17) is
+complete: all 15 threats verified by removing their mitigations**, and **install and upgrade safety
+is complete** (18, 24, 25, 29, 2026-10-28). What remains is scale, the release documentation set and
+the human walkthrough.
 
 This is the first phase whose subject is the **suite** rather than the code, so a green test is
 evidence to be audited rather than a criterion already met. Phase 6 closed at 30 verified criteria
@@ -454,7 +455,7 @@ Thirteen criteria, none of them threats. They are not equal in size, and two are
 
 | Block | Criteria | Notes |
 |---|---|---|
-| **Install and upgrade safety** | 18, 24, 25, 29 | Decides whether 1.0 is *installable*. Independent of everything else, so it is the natural next block. |
+| ~~**Install and upgrade safety**~~ ✅ | 18, 24, 25, 29 | **Done 2026-10-28.** Found two live defects: a second `pandora:install` broke `migrate`, and a published config lost every nested key added after it. |
 | **Scale and CI honesty** | 22, 23, 26, 28 | 23 is verification of a matrix that already exists. 26 and 28 may use `RunsConcurrently` where they need real contention. |
 | **Release documentation** | 30, 31, 32, 33 | **30 is the largest item left in the phase** and the least predictable. 33's content is already gathered — see below. |
 | **The walkthrough** | 34 | A person, and a real Slack workspace. The true long pole; it cannot be compressed or delegated. |

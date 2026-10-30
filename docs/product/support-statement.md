@@ -11,8 +11,8 @@ may contain breaking changes, and will say so in `CHANGELOG.md` with an upgrade 
 `1.0.0` is defined, not aspirational: it is when every criterion in
 `docs/development/phase-9-acceptance.md` is met — most importantly that **each of the fifteen threats
 in `docs/architecture/security-model.md` has a test that fails when its mitigation is removed.**
-**That last part is done as of v0.1.4**, at 15 of 15 threats. The phase overall stands at 21 of 34
-criteria; what remains is upgrade and install safety, the performance suite, the release
+**That last part is done as of v0.1.4**, at 15 of 15 threats. The phase overall stands at 25 of 34
+criteria; install and upgrade safety is done, and what remains is the performance suite, the release
 documentation set and a walkthrough a person drives.
 
 ## Supported
@@ -73,8 +73,8 @@ resolution rather than a wrong isolation key.
 **The threat model is now fully proved by removal — as of v0.1.4.** Every T1–T15 mitigation has been
 deleted, one at a time, and the resulting failure recorded; ten sessions of it. This was the single
 largest reason earlier releases were `0.x`, and it no longer is. What keeps the version below `1.0`
-now is the rest of Phase 9: upgrade and install tests, the performance suite, the example
-application, and a walkthrough a person still has to drive.
+now is the rest of Phase 9: the performance suite, the release documentation audit, and a
+walkthrough a person still has to drive.
 
 Worth knowing what the audit cost, because it is not a formality. It found a live SSRF in the MCP
 HTTP transport, untrusted content able to close its own delimiter inside a system message, a console
