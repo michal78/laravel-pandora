@@ -45,22 +45,22 @@
 > or S3-compatible storage, and **messaging channels** where an unlinked identity gets no run, no
 > session and no seat.
 >
-> **What does not exist yet:** the rest of release hardening — the performance suite, the release
-> documentation audit and a human walkthrough (Phase 9, at 25 of 34 criteria). Install and upgrade
-> safety is done: the quick start below is run by the suite. **The threat-model
-> sweep is done:** every T1–T15 mitigation has been removed one at a time and the failure recorded,
-> which found two security defects (fixed in v0.1.3) and one concurrency defect (fixed in v0.1.4);
-> install and upgrade testing found two more (fixed in v0.2.0).
+> **Phase 9 is complete but for one step:** 31 of 34 criteria accepted, two documentation audits
+> waived because the docs are rewritten after 1.0, and a walkthrough a person drives. The threat-model
+> sweep removed every T1–T15 mitigation one at a time and recorded the failure; it and the rest of
+> Phase 9 found and fixed two security defects (v0.1.3), a concurrency defect (v0.1.4), two upgrade
+> defects (v0.2.0), and a secret leaking onto approval cards, unbounded chat and trace pages and a
+> DST-skipping dependency floor (next release).
 > See [`docs/roadmap.md`](docs/roadmap.md).
 >
-> **Verified by** 2,021 tests across SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector and MinIO
-> — 1,922 in the default leg, the rest **skipping** rather than passing without object storage,
+> **Verified by** 2,039 tests across SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector and MinIO
+> — 1,940 in the default leg, the rest **skipping** rather than passing without object storage,
 > pgvector or a server database engine · PHPStan level 8, no baseline · Pint.
 >
 > **Before depending on this, read
 > [`docs/product/support-statement.md`](docs/product/support-statement.md)** — it names what is
-> supported, what is excluded by design, and what ships *known untested*. The API is usable and in
-> use; it is not yet promised. `1.0.0` is defined as the day Phase 9's criteria are met, not a date.
+> supported, what is excluded by design, and what ships *known untested*. From `1.0.0` the public API
+> it names is covered by semantic versioning.
 
 ---
 
@@ -165,7 +165,7 @@ resumes. Every step is in the trace. Every decision is in the audit log.
 
 | | |
 |---|---|
-| **PHP** | 8.3 · 8.4 |
+| **PHP** | 8.3 · 8.4 · 8.5 |
 | **Laravel** | 13.x |
 | **Database** | SQLite · MySQL 8.4 · MariaDB 11 · PostgreSQL 17 — all in CI |
 | **Queue** | any Laravel queue backend |

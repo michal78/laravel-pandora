@@ -11,6 +11,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Pandora\Agents\Agent;
 use Pandora\Audit\AuditLogger;
+use Pandora\Channels\Data\DeliveryResult;
 use Pandora\Channels\Data\InboundMessage;
 use Pandora\Channels\Data\InboundResult;
 use Pandora\Channels\Data\OutboundMessage;
@@ -246,6 +247,13 @@ final class ChannelInbox
         // Answered once per window. A stranger messaging repeatedly must not be
         // able to turn our instructions into a flood aimed at their own channel,
         // and the refusal itself is already recorded whether or not we speak.
+        //
+        // The window is spent on a DELIVERY, not an attempt. Charged up front
+        // and kept regardless, one failed send -- a revoked token, an outage,
+        // a thread the channel rejects -- silenced a stranger for the whole
+        // interval with nothing to say why (Phase 8 walkthrough, finding 3).
+        // Still hit before sending, so a burst of simultaneous messages cannot
+        // all pass the check; released only if nothing reached them.
         $key = 'pandora:channel-refusal:'.$identity->getKey();
 
         if (! $this->limiter->tooManyAttempts($key, 1)) {
@@ -253,7 +261,9 @@ final class ChannelInbox
                 'pandora.channels.linking.instruction_interval_seconds', 600,
             ));
 
-            $this->reply($account, $identity, $message, $this->instructions($command));
+            if (! $this->reply($account, $identity, $message, $this->instructions($command))->delivered) {
+                $this->limiter->clear($key);
+            }
         }
 
         return InboundResult::unlinked($identity);
@@ -378,8 +388,8 @@ final class ChannelInbox
         ChannelIdentity $identity,
         InboundMessage $message,
         string $text,
-    ): void {
-        $this->dispatcher->send(new OutboundMessage(
+    ): DeliveryResult {
+        return $this->dispatcher->send(new OutboundMessage(
             account: $account,
             identity: $identity,
             text: $text,

@@ -101,6 +101,7 @@ use Pandora\Runs\RunFactory;
 use Pandora\Runs\RunLock;
 use Pandora\Runs\RunStateMachine;
 use Pandora\Runs\RunStepRecorder;
+use Pandora\Support\ClassDiscovery;
 use Pandora\Support\ConfigDefaults;
 use Pandora\Support\CorrelationId;
 use Pandora\Support\Redactor;
@@ -405,6 +406,7 @@ final class PandoraServiceProvider extends ServiceProvider
             $app->make(Redactor::class),
             $app->make(MessageWriter::class),
             $app->make(RunBroadcaster::class),
+            $app->make(SensitivityClassifier::class),
         ));
     }
 
@@ -880,8 +882,19 @@ final class PandoraServiceProvider extends ServiceProvider
 
     private function registerConfiguredAgents(): void
     {
+        $config = $this->app->make(Config::class);
+
         /** @var list<class-string<AgentDefinition>> $definitions */
-        $definitions = $this->app->make(Config::class)->get('pandora.agents.definitions', []);
+        $definitions = $config->get('pandora.agents.definitions', []);
+
+        // A discovered agent is one that can be RUN, which is a bigger act
+        // than a discovered tool (still ungranted until an agent names it) --
+        // hence off by default, exactly as tool discovery is.
+        if ($config->get('pandora.agents.discovery.enabled') === true) {
+            /** @var string $path */
+            $path = $config->get('pandora.agents.discovery.path', '');
+            $definitions = [...$definitions, ...ClassDiscovery::in($path, AgentDefinition::class)];
+        }
 
         if ($definitions === []) {
             return;

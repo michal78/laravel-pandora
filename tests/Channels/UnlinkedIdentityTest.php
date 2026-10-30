@@ -73,6 +73,33 @@ it('tells the stranger how to link, once per window', function (): void {
         ->and($this->account->deliveries()->where('direction', 'inbound')->count())->toBe(3);
 });
 
+it('spends the window on a delivery, not on an attempt', function (): void {
+    // Phase 8 walkthrough, finding 3: one failed send used to silence a
+    // stranger for the whole interval, with nothing to say why.
+    $channel = $this->fakeChannel()->fails();
+
+    $this->inbox->receive($channel->message('U-stranger', 'hello'));
+
+    $channel->recovers();
+    $this->inbox->receive($channel->message('U-stranger', 'hello again'));
+    $this->inbox->receive($channel->message('U-stranger', 'anyone there'));
+
+    // The failed attempt, then one delivered answer -- and still only one.
+    expect($channel->sent())->toHaveCount(2)
+        ->and($channel->lastText())->toContain('not linked');
+});
+
+it('does not spend the window when the adapter throws, either', function (): void {
+    $channel = $this->fakeChannel()->throws();
+
+    $this->inbox->receive($channel->message('U-stranger', 'hello'));
+
+    $channel->recovers();
+    $this->inbox->receive($channel->message('U-stranger', 'hello again'));
+
+    expect($channel->sent())->toHaveCount(2);
+});
+
 it('still records the identity, because a stranger who keeps messaging is worth seeing', function (): void {
     $this->inbox->receive($this->fakeChannel()->message('U-stranger', 'hello'));
 

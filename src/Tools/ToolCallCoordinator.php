@@ -12,6 +12,9 @@ use Pandora\Conversations\Session;
 use Pandora\Core\Actor\ActorContext;
 use Pandora\Jobs\ContinueAgentRun;
 use Pandora\Jobs\ExecuteToolCall;
+use Pandora\Memory\Enums\MemorySensitivity;
+use Pandora\Memory\Enums\MemoryType;
+use Pandora\Memory\SensitivityClassifier;
 use Pandora\Messages\MessageWriter;
 use Pandora\Providers\Data\ToolCall;
 use Pandora\Realtime\RunBroadcaster;
@@ -42,6 +45,7 @@ final class ToolCallCoordinator
         private readonly Redactor $redactor,
         private readonly MessageWriter $messages,
         private readonly RunBroadcaster $broadcaster,
+        private readonly SensitivityClassifier $classifier,
     ) {}
 
     /**
@@ -335,6 +339,44 @@ final class ToolCallCoordinator
             ->count() >= $threshold;
     }
 
+    /**
+     * The copy of a call's arguments that people are shown: approval cards,
+     * the trace, the tool card in the thread.
+     *
+     * Key names alone are not enough. `request_approval` takes free-text
+     * `summary` and `detail`, and a model explaining why it needs approval to
+     * keep a secret puts the secret in the explanation -- the Phase 8
+     * walkthrough found a passphrase stored in the clear here, seconds after
+     * the memory guard had refused the same passphrase. So every string is
+     * also held to the memory guard's definition of a secret: credential
+     * shapes are cut out of it, and a string that is ABOUT a secret is
+     * withheld whole. Over-redacting a display copy costs a person a click
+     * into the raw trace; under-redacting it is the leak.
+     *
+     * @param array<array-key, mixed> $arguments
+     * @return array<array-key, mixed>
+     */
+    private function sanitize(array $arguments): array
+    {
+        $walk = function (mixed $value) use (&$walk): mixed {
+            if (is_array($value)) {
+                return array_map($walk, $value);
+            }
+
+            if (! is_string($value)) {
+                return $value;
+            }
+
+            $value = $this->redactor->redactText($value);
+
+            return $this->classifier->classify($value, MemoryType::Working) === MemorySensitivity::Restricted
+                ? $this->redactor->placeholder()
+                : $value;
+        };
+
+        return array_map($walk, $this->redactor->redact($arguments));
+    }
+
     private function record(Run $run, ToolCall $call, ToolDecision $decision): ToolExecution
     {
         $arguments = $decision->arguments();
@@ -347,7 +389,7 @@ final class ToolCallCoordinator
             'tool_version' => $decision->tool?->version() ?? '1.0',
             'tool_call_id' => $call->id,
             'arguments' => $arguments,
-            'sanitized_arguments' => $this->redactor->redact($arguments),
+            'sanitized_arguments' => $this->sanitize($arguments),
             'arguments_modified' => $decision->wasModified(),
             'argument_diff' => $decision->wasModified()
                 ? $this->redactor->redact($decision->diff?->toArray() ?? [])

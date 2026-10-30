@@ -336,7 +336,13 @@
             <form wire:submit="save" class="pd-stack">
                 <div class="pd-field">
                     <label class="pd-label" for="pd-autonomy">Autonomy level</label>
-                    <p class="pd-help">How far this agent may go without a human. See ADR-0009.</p>
+                    {{-- Says WHERE it applies, because the Phase 7 walkthrough found an
+                         operator reading observe_only as "never writes" and relying on it in
+                         chat, where a person is watching and the level does not apply. --}}
+                    <p class="pd-help">How far this agent may go when no human is watching: automations and
+                        other unattended runs. A run a person starts from chat or a channel is not clamped
+                        by it — the tool policy and that person's own authorization decide instead.
+                        See ADR-0009.</p>
 
                     @if ($locked('autonomy_level'))
                         <div class="pd-locked"><span class="pd-locked-mark" aria-hidden="true">◆</span>
