@@ -7,6 +7,7 @@ namespace Pandora\UI\Livewire;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithPagination;
 use Pandora\Runs\Run;
 use Pandora\Runs\RunCanceller;
 use Pandora\UI\PandoraGate;
@@ -20,6 +21,15 @@ use Pandora\UI\PandoraGate;
  */
 final class RunDetail extends Component
 {
+    use WithPagination;
+
+    /**
+     * Steps per page. A trace has no length limit -- a long tool loop or a
+     * delegation fan-out writes hundreds -- and this page re-renders on every
+     * poll while the run is live, so it reads one page, not the whole trace.
+     */
+    public const STEPS_PER_PAGE = 50;
+
     public string $runId = '';
 
     public function mount(string $run): void
@@ -60,7 +70,7 @@ final class RunDetail extends Component
 
         return view('pandora::livewire.run-detail', [
             'run' => $run,
-            'steps' => $run?->steps()->get() ?? collect(),
+            'steps' => $run?->steps()->paginate(self::STEPS_PER_PAGE, pageName: 'steps'),
             // Both directions. A child run reached from a list is otherwise a
             // run with no visible reason to exist, and a parent that spent its
             // budget on work it delegated shows the spend and not the work.

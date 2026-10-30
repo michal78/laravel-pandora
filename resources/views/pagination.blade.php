@@ -24,7 +24,7 @@
                 <span class="pd-btn pd-btn-sm" aria-disabled="true">Previous</span>
             @else
                 <button type="button" class="pd-btn pd-btn-sm" rel="prev"
-                        wire:click="previousPage" wire:loading.attr="disabled"
+                        wire:click="previousPage('{{ $paginator->getPageName() }}')" wire:loading.attr="disabled"
                 >Previous</button>
             @endif
 
@@ -39,7 +39,7 @@
                             <span class="pd-btn pd-btn-sm is-current" aria-current="page">{{ $page }}</span>
                         @else
                             <button type="button" class="pd-btn pd-btn-sm"
-                                    wire:click="gotoPage({{ $page }})" wire:loading.attr="disabled"
+                                    wire:click="gotoPage({{ $page }}, '{{ $paginator->getPageName() }}')" wire:loading.attr="disabled"
                             >{{ $page }}</button>
                         @endif
                     @endforeach
@@ -48,7 +48,7 @@
 
             @if ($paginator->hasMorePages())
                 <button type="button" class="pd-btn pd-btn-sm" rel="next"
-                        wire:click="nextPage" wire:loading.attr="disabled"
+                        wire:click="nextPage('{{ $paginator->getPageName() }}')" wire:loading.attr="disabled"
                 >Next</button>
             @else
                 <span class="pd-btn pd-btn-sm" aria-disabled="true">Next</span>
