@@ -129,7 +129,7 @@
 
         <x-pandora::card title="Trace">
             <x-slot:actions>
-                <span class="pd-faint">{{ $steps->count() }} steps</span>
+                <span class="pd-faint">{{ $steps->total() }} steps</span>
             </x-slot:actions>
 
             <div class="pd-timeline">
@@ -205,6 +205,8 @@
                     <p class="pd-faint">No steps recorded yet.</p>
                 @endforelse
             </div>
+
+            {{ $steps->links('pandora::pagination') }}
         </x-pandora::card>
     @endif
 </div>

@@ -10,6 +10,52 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
+## Unreleased
+
+The last leg of Phase 9. Nothing here is breaking: every change is a fix, a bounded page, or
+configuration that now does what it always said. **Upgrading:** `composer update
+michal78/laravel-pandora`. No migration, no config change.
+
+From `1.0.0`, Pandora follows semantic versioning over the public API named in
+`docs/product/support-statement.md`; everything else is internal.
+
+### Added
+
+- **Agent discovery.** `pandora.agents.discovery` has been in every published config since v0.1.0
+  and was read by nothing: an operator who enabled it got no agent, no error and no log line. It now
+  registers every concrete `AgentDefinition` under `pandora.agents.discovery.path`, recursively,
+  alongside `pandora.agents.definitions`. **Still off by default** — a discovered agent is one that
+  can be run.
+- **PHP 8.5** is supported and tested.
+
+### Fixed
+
+- **A secret in a free-text tool argument reached the approval card.** `sanitized_arguments` — the
+  copy shown on approval cards, in the trace and in the thread — was redacted by key name only, so a
+  passphrase inside `request_approval`'s `detail` was stored in the clear, seconds after the memory
+  guard had refused the same passphrase. Every string value is now also held to the memory guard's
+  definition of a secret: credential shapes are cut out, and a string that is about a secret is
+  withheld whole. The executable copy is unchanged. Approvals recorded before this release keep
+  what they stored.
+- **One failed delivery silenced an unlinked stranger for ten minutes.** The once-per-window
+  instructions reply was charged on the attempt, so a revoked token or a channel outage spent the
+  window with nothing delivered. It is now released when the delivery fails.
+- **The chat page loaded every message of a conversation, and the run page every step of a trace,**
+  on every poll and broadcast. The thread now shows the latest 50 messages with **Show earlier
+  messages**; the trace is paginated at 50 steps. Both issue the same number of queries whatever the
+  length (`Performance/LargeConversationTest`, `Performance/LongTraceTest`).
+- **`Pandora::version()` returned `0.1.0-dev`** in every release. It now reports the installed
+  version from Composer.
+- **`dragonmantank/cron-expression` is now `^3.5`.** 3.4, which the old constraint allowed, skips a
+  daily automation on the spring-forward DST day. Found by the new lowest-dependencies CI leg.
+
+### Changed
+
+- The agent page says where **Autonomy level** applies — unattended runs — because `observe_only`
+  read as "never writes" while a chat run, with a person watching, is not clamped by it.
+- CI: every leg asserts its exact skipped-test count, so a leg that stops testing what it exists to
+  test fails instead of passing; a PHP 8.5 leg and a lowest-dependencies leg are added.
+
 ## v0.2.0 — 2026-10-30
 
 A minor release, not a patch: it adds a provider adapter and changes how a published config is

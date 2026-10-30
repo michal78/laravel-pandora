@@ -16,7 +16,8 @@
         "illuminate/events": "^13.0",
         "illuminate/notifications": "^13.0",
         "illuminate/broadcasting": "^13.0",
-        "dragonmantank/cron-expression": "^3.4",
+        "composer-runtime-api": "^2.0",
+        "dragonmantank/cron-expression": "^3.5",
         "symfony/uid": "^7.0|^8.0"
     },
     "require-dev": {

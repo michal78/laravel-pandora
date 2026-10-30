@@ -1,6 +1,6 @@
 # Phase 9 — Acceptance Test Plan
 
-> **Status: 25 of 34 criteria accepted** (1–21, 24, 25, 27, 29). Nothing here is ticked by inheritance.
+> **Status: 31 of 34 criteria accepted** (1–29, 32, 33), **2 waived** (30, 31 — see their rows), **1 open**: 34, the walkthrough a person drives. Nothing here is ticked by inheritance.
 >
 > Every previous phase wrote tests and then claimed the criteria those tests were written for. Phase 9
 > is the phase that claims T1–T15, and it is the first one where the claim is about the *suite* rather
@@ -110,28 +110,28 @@ independent ways, in one session.
 | 19 ✅ | **Every fake that stands in for a boundary is inventoried**, and for each, the assertion that the real boundary would have caught what the fake cannot is named — or the gap is recorded as accepted | `docs/development/fake-boundaries.md` — six entries, three closed only after a defect pointed at them |
 | 20 ✅ | **A tool's advertised function name is legal in every shipped provider's grammar**, asserted against the real grammar rather than a fake that accepts anything — the exact Phase 6 defect | `Providers/FunctionNameGrammarTest` — 6 tests; **found a live bug**, see below |
 | 21 ✅ | **Every tool's arguments survive validation to `handle()`**, asserted for every registered tool including `RemoteTool`, whose arguments were silently stripped for the whole of Phase 6 | `Tools/ArgumentSurvivalTest` — 4 tests; reverting the Phase 6 fix fails two, verified |
-| 22 ⬜ | A skipped test is reported as skipped in CI output, and the count is asserted — a leg that stops running must not read as a leg that passed | *new* — CI step |
+| 22 ✅ | A skipped test is reported as skipped in CI output, and the count is asserted — a leg that stops running must not read as a leg that passed | `.github/scripts/assert-skips.php`, a step on every leg of `tests.yml` — each leg pins its exact count (sqlite 99, mysql/mariadb/postgresql 85, pgvector 77, MinIO 22) and a mismatch fails the leg, naming the skipped classes |
 
 ### The matrix, and surviving contact
 
 | # | Criterion | Verified by |
 |---|---|---|
-| 23 ⬜ | The full matrix is green: SQLite (8.3, 8.4), MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector, MinIO | `.github/workflows/tests.yml` *(exists)* |
+| 23 ✅ | The full matrix is green: SQLite (8.3, 8.4), MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector, MinIO | `.github/workflows/tests.yml` — green on every leg, now SQLite on 8.3, 8.4 **and 8.5**, plus a lowest-dependencies leg. The lowest leg **found a live defect** on its first run: `dragonmantank/cron-expression` 3.4, which `^3.4` allowed, skips a daily schedule on the spring-forward DST day; the floor is now `^3.5` |
 | 24 ✅ | **Migrations run forward from a v0 install to head on every engine in the matrix**, not only from empty | `Database/UpgradeTest` — runs on every engine leg of the existing matrix, so no separate CI leg; verified locally on SQLite, PostgreSQL 17 and MySQL 8.4. **Found a live defect**: a second `pandora:install` republished eight migrations and `migrate` died — see below |
 | 25 ✅ | **A published config from an earlier version still boots** — a host that published `config/pandora.php` before a key existed gets the package default, not a missing key | `Feature/ConfigUpgradeTest` — real boots from a published file (v0.1.0's verbatim, and one lacking `features.channels` and the `channels.view` ability) plus every nested leaf checked through the merge. **It was not true before**: `mergeConfigFrom()` is one level deep. `Support/ConfigDefaults` now merges recursively; reverting to `mergeConfigFrom()` fails the boot test |
-| 26 ⬜ | A conversation of 10,000 messages builds context within budget and the page renders without loading all of them | *new* — `Performance/LargeConversationTest` |
+| 26 ✅ | A conversation of 10,000 messages builds context within budget and the page renders without loading all of them | `Performance/LargeConversationTest` — context stays within budget and hydrates at most the recency window; the chat page hydrates at most one 50-message window and issues the same number of queries as a conversation 100 times shorter. **It was not true before**: the chat page loaded every message on every poll |
 | 27 ✅ | 50 concurrent runs against one agent complete without lock starvation, duplicated tool execution or lost steps *(read as 20 — see below)* | `Performance/ConcurrentRunsTest` · `Queue/ConcurrentHarnessTest` · `tests/Support/RunsConcurrently.php` — **one live defect**, see below |
-| 28 ⬜ | A 500-step trace renders and paginates; the run detail page issues a bounded number of queries regardless of trace length | *new* — `Performance/LongTraceTest` |
+| 28 ✅ | A 500-step trace renders and paginates; the run detail page issues a bounded number of queries regardless of trace length | `Performance/LongTraceTest` — paginated at 50 steps, one page hydrated, the same query count at 50 and 500 steps. **It was not true before**: the run page loaded the whole trace on every poll |
 
 ### Release
 
 | # | Criterion | Verified by |
 |---|---|---|
 | 29 ✅ | **`tests/Fixtures/ExampleApp` runs the documented quick start end to end** — installed, migrated, one agent, one conversation, one tool call, from the README's own commands with nothing added *(read without the conversation — see below)* | `Feature/QuickStartTest` — the README's PHP blocks must be byte-identical to `ExampleApp`'s files, and its commands are parsed out and run in order. One thing is added: the fake provider is scripted to call the tool, because it is not a model. Removing the agent's tool grant fails it |
-| 30 ⬜ | The documentation set is complete: every shipped feature has a guide, every guide's commands are run and their output quoted, and no guide documents behaviour that changed after it was written | *the audit* |
-| 31 ⬜ | Every ADR either describes what shipped or records what replaced it | *the audit* |
-| 32 ⬜ | The CHANGELOG covers every phase, and every breaking change carries an upgrade instruction — the namespace-separator change from Phase 6 is the test case, since it revokes every MCP approval | `CHANGELOG.md` |
-| 33 ⬜ | **A v1.0 support statement exists** naming what is supported, what is explicitly excluded (marketplace installs, remote extension updates), what is single-operator only, and **what is shipped untested** — including Phase 8 §5, two identities interleaving on one channel account in real time | *new* — `docs/product/support-statement.md` |
+| 30 ⏭ | The documentation set is complete: every shipped feature has a guide, every guide's commands are run and their output quoted, and no guide documents behaviour that changed after it was written | **Waived for 1.0 by the maintainer (2026-10-30)**: the documentation set is to be rewritten after 1.0, so auditing the current one would be spent on text about to be replaced. The support statement and CHANGELOG, which a 1.0 user does depend on, are current |
+| 31 ⏭ | Every ADR either describes what shipped or records what replaced it | **Waived for 1.0 with criterion 30**, for the same reason |
+| 32 ✅ | The CHANGELOG covers every phase, and every breaking change carries an upgrade instruction — the namespace-separator change from Phase 6 is the test case, since it revokes every MCP approval | `CHANGELOG.md` — every phase from 0 to 9 has an entry; the Phase 6 separator change carries its upgrade instruction ("every `namespaced_name` changes") |
+| 33 ✅ | **A v1.0 support statement exists** naming what is supported, what is explicitly excluded (marketplace installs, remote extension updates), what is single-operator only, and **what is shipped untested** — including Phase 8 §5, two identities interleaving on one channel account in real time | `docs/product/support-statement.md` — supported, excluded, single-operator boundary, and shipped-untested including Phase 8 §5; it now also defines **what semver covers** |
 | 34 ⬜ | A human drives `phase-9-walkthrough.md` | a person |
 
 ## What the first four threat tests found — 2026-08-17

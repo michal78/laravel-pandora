@@ -1,26 +1,50 @@
-# Support Statement — v0.2.0
+# Support Statement — v1.0.0
 
 > What Pandora supports, what it excludes by design, and what it ships **untested**. Read the third
 > section before depending on this in production.
 
 ## What the version number means
 
-`0.2.0`. The public API is usable and in use; it is not yet promised. Minor versions below `1.0.0`
-may contain breaking changes, and will say so in `CHANGELOG.md` with an upgrade instruction.
+`1.0.0`, and from here Pandora follows [semantic versioning](https://semver.org): a breaking change to
+the public API below waits for `2.0.0`. Anything not listed is internal and may change in a minor
+release, whether or not its class carries `@internal`.
 
-`1.0.0` is defined, not aspirational: it is when every criterion in
-`docs/development/phase-9-acceptance.md` is met — most importantly that **each of the fifteen threats
-in `docs/architecture/security-model.md` has a test that fails when its mitigation is removed.**
-**That last part is done as of v0.1.4**, at 15 of 15 threats. The phase overall stands at 25 of 34
-criteria; install and upgrade safety is done, and what remains is the performance suite, the release
-documentation set and a walkthrough a person drives.
+**The public API — covered by semver:**
+
+- The `Pandora` facade and `Pandora\Pandora`, `AgentRunner` and `PendingAgentRun` — running,
+  replying to, and cancelling agents.
+- Everything in `Pandora\Contracts` — the interfaces a host implements or binds: providers,
+  context providers, tool policies, resolvers, channels, vector stores.
+- What a host extends or builds: `Tools\Tool`, `ToolInput`, `ToolContext`, `ToolResult`,
+  `PolicyDecision`, `Agents\AgentBlueprint`, and the provider DTOs in `Providers\Data`.
+- `Pandora\Exceptions` — the classes a host catches, and their hierarchy.
+- `Pandora\Testing` — the fakes and the provider contract suite a host's own tests use.
+- Events a host listens to (`Runs\Events`) and the broadcast event names and payloads
+  (`Realtime\Events`, versioned by `PandoraBroadcastEvent::VERSION`).
+- Eloquent models and their enums as **read** surfaces — attribute names and enum values. Writing
+  to them directly, rather than through the managers, is not covered.
+- Configuration keys in `config/pandora.php`, artisan command names and options, ability names,
+  route names, and the database schema. A minor release may add any of these; a published config
+  from an earlier `1.x` keeps booting (it is merged recursively with the package defaults).
+
+**Not covered:** the control center's markup and CSS, Livewire component internals, job classes,
+the order and content of run-trace payloads, prompt wording, and anything under a namespace not
+listed above.
+
+`1.0.0` was defined, not aspirational: every criterion in `docs/development/phase-9-acceptance.md`,
+most importantly that **each of the fifteen threats in `docs/architecture/security-model.md` has a
+test that fails when its mitigation is removed** — done as of v0.1.4.
 
 ## Supported
 
-**Runtime.** PHP 8.3 and 8.4. Laravel 13.
+**Runtime.** PHP 8.3, 8.4 and 8.5. Laravel 13. Every leg installs the newest release of each
+dependency, and one more installs the **oldest** release `composer.json` accepts, so a lower bound is
+a tested claim rather than a guess — the first run of that leg raised `dragonmantank/cron-expression`
+to `^3.5`, because 3.4 skips a daily schedule on the spring-forward DST day.
 
 **Databases.** SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17 — each a green leg in CI on every push,
-not a claim from a compatibility table.
+not a claim from a compatibility table. Each leg also asserts its exact skipped-test count, so a leg
+that silently stopped testing what it exists to test fails rather than passes.
 
 **Vector storage.** pgvector (a dedicated CI leg), and a database-backed store that works on every
 supported engine.
@@ -72,11 +96,8 @@ different host user, no inheritance — against a real workspace. The untested c
 specific: two linked identities interleaving in real time, where a defect would be a race in session
 resolution rather than a wrong isolation key.
 
-**The threat model is now fully proved by removal — as of v0.1.4.** Every T1–T15 mitigation has been
-deleted, one at a time, and the resulting failure recorded; ten sessions of it. This was the single
-largest reason earlier releases were `0.x`, and it no longer is. What keeps the version below `1.0`
-now is the rest of Phase 9: the performance suite, the release documentation audit, and a
-walkthrough a person still has to drive.
+**The threat model is fully proved by removal — as of v0.1.4.** Every T1–T15 mitigation has been
+deleted, one at a time, and the resulting failure recorded; ten sessions of it.
 
 Worth knowing what the audit cost, because it is not a formality. It found a live SSRF in the MCP
 HTTP transport, untrusted content able to close its own delimiter inside a system message, a console
@@ -86,12 +107,14 @@ describing behaviour the package does not have — and fourteen controls that we
 test would have noticed the removal of. The recurring finding was a docblock stating a guarantee
 precisely with nothing but an accident enforcing it.
 
-**Two configured abilities gate nothing.** `pandora.audit.view` is declared, registered as a
-deny-by-default gate, and read nowhere, because the audit page it was written for does not exist.
-`pandora.tools.manage` likewise: the Tools page is read-only. Neither exposes anything — no audit
-record reaches any view, and no tool can be altered from the UI at all — but an operator granting or
-withholding either sees no change, and cannot discover that from outside. They are kept in the config
-rather than removed, because deleting a published key breaks a host that references it.
+**Two configured abilities are reserved.** `pandora.audit.view` and `pandora.tools.manage` are
+declared and registered as deny-by-default gates, and nothing reads them yet: there is no audit page,
+and the Tools page is read-only. Neither exposes anything. They are kept so that the pages they were
+written for can arrive in a minor release without a new ability for operators to discover.
+
+**A console run has no conversation.** `pandora:agent:run` executes an agent once, with no
+conversation and therefore no history across invocations. That is by design; use the chat surface,
+a channel, or `Pandora::startConversation()` for a dialogue.
 
 **Most Laravel AI SDK drivers.** The `laravel-ai` adapter passes the shared provider contract through
 the SDK's `anthropic` and `openai-compatible` drivers, on the native adapters' own recorded fixtures.

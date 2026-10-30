@@ -7,13 +7,20 @@ on:
 
 jobs:
   sqlite:
-    name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }} · sqlite
+    name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }} · sqlite${{ matrix.dependencies == 'lowest' && ' · lowest' || '' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.3', '8.4']
+        php: ['8.3', '8.4', '8.5']
         laravel: ['13.*']
+        dependencies: [highest]
+        # The lowest leg installs the oldest version of every dependency that
+        # composer.json claims to accept. The repository ships no lock file, so
+        # every other leg resolves to the newest release of everything, and a
+        # lower bound nothing exercises is a promise nobody has checked.
+        include:
+          - { php: '8.3', laravel: '13.*', dependencies: lowest }
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -28,17 +35,22 @@ jobs:
           composer require "laravel/framework:${{ matrix.laravel }}" --no-interaction --no-update
 
           for attempt in 1 2 3; do
-            if composer update --prefer-dist --no-interaction --no-progress; then
+            if composer update --prefer-dist --no-interaction --no-progress ${{ matrix.dependencies == 'lowest' && '--prefer-lowest --prefer-stable' || '' }}; then
               exit 0
             fi
             echo "composer failed (attempt $attempt of 3); retrying in 15s"
             sleep 15
           done
           exit 1
-      - run: vendor/bin/pest --ci
+      - run: vendor/bin/pest --ci --log-junit build/junit.xml
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: ':memory:'
+      # See .github/scripts/assert-skips.php: a leg that stops testing what it
+      # exists to test must not read as a leg that passed. Every leg pins its
+      # count exactly.
+      - name: Assert the skipped-test count
+        run: php .github/scripts/assert-skips.php build/junit.xml 99
 
   databases:
     name: ${{ matrix.db.name }}
@@ -47,16 +59,16 @@ jobs:
       fail-fast: false
       matrix:
         db:
-          - { name: mysql,      image: 'mysql:8.4',           port: 3306, conn: mysql }
-          - { name: mariadb,    image: 'mariadb:11',          port: 3306, conn: mariadb }
-          - { name: postgresql, image: 'postgres:17',         port: 5432, conn: pgsql }
+          - { name: mysql,      image: 'mysql:8.4',           port: 3306, conn: mysql, skips: 85 }
+          - { name: mariadb,    image: 'mariadb:11',          port: 3306, conn: mariadb, skips: 85 }
+          - { name: postgresql, image: 'postgres:17',         port: 5432, conn: pgsql, skips: 85 }
           # The pgvector leg. Optional at runtime, mandatory here: Phase 4
           # produced seven defects and not one was reachable by the suite as
           # configured, and "optional, therefore untested" is that shape
           # exactly. Memory/PgvectorTest SKIPS without this image rather than
           # passing, so removing this leg makes the gap visible instead of
           # silent.
-          - { name: pgvector,   image: 'pgvector/pgvector:pg17', port: 5432, conn: pgsql }
+          - { name: pgvector,   image: 'pgvector/pgvector:pg17', port: 5432, conn: pgsql, skips: 77 }
     services:
       database:
         image: ${{ matrix.db.image }}
@@ -91,7 +103,7 @@ jobs:
             sleep 15
           done
           exit 1
-      - run: vendor/bin/pest --ci
+      - run: vendor/bin/pest --ci --log-junit build/junit.xml
         env:
           DB_CONNECTION: ${{ matrix.db.conn }}
           DB_HOST: 127.0.0.1
@@ -99,6 +111,8 @@ jobs:
           DB_DATABASE: pandora
           DB_USERNAME: ${{ matrix.db.conn == 'pgsql' && 'postgres' || 'root' }}
           DB_PASSWORD: password
+      - name: Assert the skipped-test count
+        run: php .github/scripts/assert-skips.php build/junit.xml ${{ matrix.db.skips }}
 
   # The object-storage leg. Optional at runtime, mandatory here, for the same
   # reason the pgvector leg is: "optional, therefore untested" is how a feature
@@ -202,7 +216,7 @@ jobs:
             sleep 15
           done
           exit 1
-      - run: vendor/bin/pest --ci
+      - run: vendor/bin/pest --ci --log-junit build/junit.xml
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: ':memory:'
@@ -211,6 +225,10 @@ jobs:
           PANDORA_TEST_S3_SECRET: pandora-secret
           PANDORA_TEST_S3_BUCKET: pandora-test
           PANDORA_TEST_S3_REGION: us-east-1
+      # The storage suites must RUN here: an unreachable MinIO turns them into
+      # skips, and this count is what notices.
+      - name: Assert the skipped-test count
+        run: php .github/scripts/assert-skips.php build/junit.xml 22
 
   # One check name that stands for every leg above.
   #

@@ -84,6 +84,14 @@
         </div>
 
         <div class="pd-chat-thread" id="pd-thread">
+            @if ($hasEarlierMessages)
+                <div class="pd-row" style="justify-content: center">
+                    <x-pandora::button variant="ghost" size="sm" wire:click="showEarlierMessages">
+                        Show earlier messages
+                    </x-pandora::button>
+                </div>
+            @endif
+
             @forelse ($messages as $message)
                 @php
                     $isUser = $message->role === \Pandora\Messages\Enums\MessageRole::User;
@@ -251,15 +259,22 @@
 
 @push('scripts')
 <script>
-    // Keep the thread pinned to the newest message. Purely presentational —
-    // nothing here is a source of truth.
+    // Keep the reader's distance from the newest message: zero while they are
+    // following along, so new output stays in view, and unchanged when they
+    // have scrolled back, so "Show earlier messages" prepends without moving
+    // what they were reading. Purely presentational — nothing here is a
+    // source of truth.
     (function () {
         const thread = document.getElementById('pd-thread');
         if (!thread) return;
 
-        const pin = () => { thread.scrollTop = thread.scrollHeight; };
-        pin();
-        new MutationObserver(pin).observe(thread, { childList: true, subtree: true, characterData: true });
+        let fromBottom = 0;
+        const measure = () => { fromBottom = thread.scrollHeight - thread.clientHeight - thread.scrollTop; };
+        const restore = () => { thread.scrollTop = thread.scrollHeight - thread.clientHeight - fromBottom; };
+
+        restore();
+        thread.addEventListener('scroll', measure, { passive: true });
+        new MutationObserver(restore).observe(thread, { childList: true, subtree: true, characterData: true });
     })();
 </script>
 @endpush

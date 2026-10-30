@@ -191,7 +191,12 @@ because `TestCase` hardcoded the connection; it now honours `DB_CONNECTION` and 
 on MySQL 8.4, MariaDB 11 and PostgreSQL 17. Making it real immediately found three defects — see the
 Phase 4 entry in `progress.md`.
 
-## `pandora.agents.discovery` is configuration wired to nothing (2026-08-08)
+## `pandora.agents.discovery` is configuration wired to nothing (2026-08-08) ✅ **resolved 2026-10-30**
+
+**Resolved by implementing it**, off by default, through the same scanner as tool discovery
+(`Support/ClassDiscovery`); `Feature/AgentDiscoveryTest`. Deleting the block was the other option,
+but it had been in every published config since v0.1.0, and a key that silently does nothing is
+worse than either answer.
 
 Found while driving the Phase 7 workspace tools in `laravel-test`. The published config carries
 
@@ -225,7 +230,14 @@ Two honest fixes, and this is a decision rather than an obvious bug fix:
 Not Phase 7's, and not scheduled. Recorded here rather than fixed, because either answer changes
 what an operator's `app/Agents` directory means.
 
-## One unexplained suite failure during Phase 8 (2026-08-08) ⏸ **open**
+## One unexplained suite failure during Phase 8 (2026-08-08) ✅ **closed 2026-10-30, not reproduced**
+
+Closed without a cause, and saying so. Since it was recorded, `tests.yml` has run 49 times on
+`development` and `master`: 38 green, 11 red. The red runs were not individually re-examined for this
+note, and the ones looked at during Phase 9 had named causes (MinIO's registries disappearing,
+Larastan drift); every local full run in Phase 9 was green. That is weaker than a cause. What changed
+is that every leg now asserts its exact skipped-test count and fails loudly, so a recurrence will
+not scroll past unread the way this one did.
 
 A full-suite run at the end of Phase 8 reported `1 failed, 84 skipped, 1697 passed`. The test name was
 lost — the command piped through `tail -4` and the failure block scrolled past it. The run before it

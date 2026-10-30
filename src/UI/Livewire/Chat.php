@@ -41,6 +41,9 @@ use Pandora\UI\PandoraGate;
  */
 final class Chat extends Component
 {
+    /** How many messages the thread shows at first, and adds per "show earlier". */
+    public const MESSAGE_PAGE = 50;
+
     #[Url(as: 'c', except: '')]
     public string $conversationId = '';
 
@@ -53,6 +56,15 @@ final class Chat extends Component
 
     /** Set when a run is in flight, so the view can poll as a safety net. */
     public bool $awaitingRun = false;
+
+    /**
+     * How many of the most recent messages the thread renders.
+     *
+     * A conversation has no length limit, and every poll and broadcast
+     * re-renders from the database: rendering all of them made a long-lived
+     * conversation slower on every update until it could not be opened.
+     */
+    public int $messageWindow = self::MESSAGE_PAGE;
 
     public function mount(?string $conversation = null): void
     {
@@ -135,6 +147,8 @@ final class Chat extends Component
     }
 
     /**
+     * The most recent `$messageWindow` visible messages, oldest first.
+     *
      * @return Collection<int, Message>
      */
     public function messages(): Collection
@@ -145,25 +159,52 @@ final class Chat extends Component
             return collect();
         }
 
-        return $conversation->messages()->visible()->get();
+        return $conversation->messages()
+            ->visible()
+            ->reorder('sequence', 'desc')
+            ->limit($this->messageWindow)
+            ->get()
+            ->reverse()
+            ->values();
+    }
+
+    /** @param  Collection<int, Message>  $messages */
+    private function hasEarlierMessages(Collection $messages): bool
+    {
+        $first = $messages->first();
+
+        return $first instanceof Message
+            && $this->conversation()?->messages()->visible()->where('sequence', '<', $first->sequence)->exists() === true;
+    }
+
+    public function showEarlierMessages(): void
+    {
+        $this->messageWindow += self::MESSAGE_PAGE;
     }
 
     /**
-     * The tool executions behind this conversation's tool messages, keyed by
-     * the provider's call id so a card can find its own.
+     * The tool executions behind the given tool messages, keyed by the
+     * provider's call id so a card can find its own.
      *
+     * Scoped to the messages on screen, not the conversation: a conversation's
+     * executions grow with it, and the thread only ever shows a window.
+     *
+     * @param Collection<int, Message> $messages
      * @return Collection<string, ToolExecution>
      */
-    public function toolExecutions(): Collection
+    public function toolExecutions(Collection $messages): Collection
     {
         $conversation = $this->conversation();
 
-        if ($conversation === null) {
+        $callIds = $messages->pluck('tool_call_id')->filter()->unique()->values();
+
+        if ($conversation === null || $callIds->isEmpty()) {
             return collect();
         }
 
         return ToolExecution::query()
             ->whereIn('run_id', $conversation->runs()->select('id'))
+            ->whereIn('tool_call_id', $callIds->all())
             ->get()
             ->keyBy('tool_call_id');
     }
@@ -263,6 +304,7 @@ final class Chat extends Component
 
     public function startNewConversation(): void
     {
+        $this->messageWindow = self::MESSAGE_PAGE;
         $this->conversationId = '';
         $this->composer = '';
         $this->awaitingRun = false;
@@ -270,6 +312,7 @@ final class Chat extends Component
 
     public function selectConversation(string $conversationId): void
     {
+        $this->messageWindow = self::MESSAGE_PAGE;
         $this->conversationId = $conversationId;
         $this->refreshAwaiting();
     }
@@ -418,13 +461,15 @@ final class Chat extends Component
     public function render(): View
     {
         $conversation = $this->conversation();
+        $messages = $this->messages();
 
         return view('pandora::livewire.chat', [
             'agents' => $this->availableAgents(),
             'conversationList' => $this->conversations(),
             'conversation' => $conversation,
-            'messages' => $this->messages(),
-            'toolExecutions' => $this->toolExecutions(),
+            'messages' => $messages,
+            'hasEarlierMessages' => $this->hasEarlierMessages($messages),
+            'toolExecutions' => $this->toolExecutions($messages),
             'pendingApprovals' => $this->pendingApprovals(),
             'canResolveApprovals' => PandoraGate::allows('approvals.resolve'),
             'canViewToolIo' => PandoraGate::allows('tools.io.view'),

@@ -63,6 +63,12 @@ final class Redactor
         return (string) preg_replace($patterns, $this->placeholder, $text);
     }
 
+    /** What a redacted value is replaced with. */
+    public function placeholder(): string
+    {
+        return $this->placeholder;
+    }
+
     private function isSensitive(string $key): bool
     {
         $normalized = strtolower($key);

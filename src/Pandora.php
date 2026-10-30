@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pandora;
 
+use Composer\InstalledVersions;
 use Illuminate\Contracts\Container\Container;
+use OutOfBoundsException;
 use Pandora\Agents\Agent;
 use Pandora\Agents\AgentRegistry;
 use Pandora\Agents\AgentRunner;
@@ -160,8 +162,19 @@ final class Pandora
         return $this->container->make(RunCanceller::class)->cancel($model, $reason);
     }
 
+    /**
+     * The installed version, as Composer resolved it.
+     *
+     * Read rather than written down: this returned a hard-coded `0.1.0-dev`
+     * through v0.2.0, because a constant is one more thing a release has to
+     * remember to edit.
+     */
     public function version(): string
     {
-        return '0.1.0-dev';
+        try {
+            return InstalledVersions::getPrettyVersion('michal78/laravel-pandora') ?? 'unknown';
+        } catch (OutOfBoundsException) {
+            return 'unknown';
+        }
     }
 }

@@ -50,6 +50,16 @@ abstract class TestCase extends Orchestra
      */
     private static array $tableNames = [];
 
+    /**
+     * Config applied while the application boots, for behaviour the service
+     * provider decides once at boot (discovery, registration) and a later
+     * `config()` call cannot reach. Set it, then `refreshApplication()`.
+     * Cleared after every test.
+     *
+     * @var array<string, mixed>
+     */
+    public static array $bootConfig = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -252,6 +262,17 @@ abstract class TestCase extends Orchestra
         // coalescing window that exists for production message volume.
         $app['config']->set('pandora.realtime.stream.flush_chars', 1);
         $app['config']->set('pandora.realtime.stream.flush_interval_ms', 0);
+
+        foreach (self::$bootConfig as $key => $value) {
+            $app['config']->set($key, $value);
+        }
+    }
+
+    protected function tearDown(): void
+    {
+        self::$bootConfig = [];
+
+        parent::tearDown();
     }
 
     /**
