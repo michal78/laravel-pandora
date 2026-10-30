@@ -117,20 +117,56 @@ jobs:
   # installed. The official `minio/minio` image needs a command (`server /data`)
   # and `services:` has nowhere to put one. Starting it by hand costs eight
   # lines and owes nothing to a vendor's distribution policy.
+  #
+  # A second scar, same shape: MinIO then withdrew `minio/minio` and `minio/mc`
+  # from Docker Hub — `pull access denied ... repository does not exist` — and
+  # stopped publishing community builds. Both images moved to quay.io, pinned.
+  #
+  # The third, and the last of its kind (2026-10-28): quay.io now answers 401
+  # for the whole repository, Docker Hub says it does not exist, and
+  # dl.min.io returns 410 Gone for the binaries. There is no MinIO left to
+  # download. The source is still public -- archived, not deleted -- so the
+  # SAME pinned release is built from it, once, and cached by tag. That keeps
+  # "exercised against real MinIO" true without trusting anybody's registry,
+  # and the bucket is made with the AWS CLI every runner already has, so `mc`
+  # is no longer needed at all.
+  #
+  # An archived server gets no fixes. That is acceptable for a test target
+  # pinned to one release; it is a reason to choose a maintained
+  # S3-compatible server before this pin is ever moved.
   object-storage:
     name: object storage · minio
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Restore the MinIO build
+        id: minio-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/minio-bin
+          key: minio-RELEASE.2025-09-07T16-13-09Z-linux-amd64
+
+      - uses: actions/setup-go@v5
+        if: steps.minio-cache.outputs.cache-hit != 'true'
+        with:
+          go-version: '1.24'
+          cache: false
+
+      - name: Build MinIO from its source
+        if: steps.minio-cache.outputs.cache-hit != 'true'
+        env:
+          CGO_ENABLED: '0'
+          GOFLAGS: -trimpath
+        run: GOBIN="$HOME/minio-bin" go install github.com/minio/minio@RELEASE.2025-09-07T16-13-09Z
+
       - name: Start MinIO and create the bucket
         run: |
           set -euo pipefail
 
-          docker run -d --name minio -p 9000:9000 \
-            -e MINIO_ROOT_USER=pandora \
-            -e MINIO_ROOT_PASSWORD=pandora-secret \
-            minio/minio:latest server /data
+          MINIO_ROOT_USER=pandora MINIO_ROOT_PASSWORD=pandora-secret \
+            nohup ~/minio-bin/minio server "$RUNNER_TEMP/minio-data" --address 127.0.0.1:9000 \
+            > "$RUNNER_TEMP/minio.log" 2>&1 &
 
           # Ready means answering, not running: the bucket creation below fails
           # against a server that has started but not yet bound its port.
@@ -142,12 +178,10 @@ jobs:
             sleep 2
           done
 
-          curl -fs http://127.0.0.1:9000/minio/health/live >/dev/null
+          curl -fs http://127.0.0.1:9000/minio/health/live >/dev/null || { cat "$RUNNER_TEMP/minio.log"; exit 1; }
 
-          docker run --rm --network host --entrypoint sh minio/mc:latest -c "
-            mc alias set local http://127.0.0.1:9000 pandora pandora-secret &&
-            mc mb --ignore-existing local/pandora-test
-          "
+          AWS_ACCESS_KEY_ID=pandora AWS_SECRET_ACCESS_KEY=pandora-secret AWS_DEFAULT_REGION=us-east-1 \
+            aws --endpoint-url http://127.0.0.1:9000 s3api create-bucket --bucket pandora-test
 
       - uses: shivammathur/setup-php@v2
         with:

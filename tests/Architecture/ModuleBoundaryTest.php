@@ -85,6 +85,26 @@ it('confines vendor SDK types to their own adapter directory', function (): void
     expect($offenders)->toBe([]);
 });
 
+it('confines the Laravel AI SDK to its own adapter directory', function (): void {
+    // Stricter than the rule above, which lets any adapter reach any vendor.
+    // `laravel/ai` is suggested rather than required, so a reference anywhere
+    // else -- another adapter included -- is a class-not-found error waiting
+    // for the first host that did not install it.
+    $offenders = [];
+
+    foreach (pandoraSourceClasses() as $class => $path) {
+        if (str_starts_with($class, 'Pandora\Providers\Adapters\LaravelAi\\')) {
+            continue;
+        }
+
+        if (preg_match('/\\\\?Laravel\\\\Ai\\\\/', (string) file_get_contents($path)) === 1) {
+            $offenders[] = $class;
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
 it('keeps everything in Contracts an interface', function (): void {
     foreach (array_keys(pandoraSourceClasses()) as $class) {
         if (str_starts_with($class, 'Pandora\Contracts\\')) {

@@ -1,0 +1,8 @@
+// config/pandora.php -- in the file the installer published
+'agents' => [
+    'definitions' => [App\Agents\SupportAgent::class],
+],
+
+'tools' => [
+    'registered' => [App\Tools\LookupOrder::class],
+],

@@ -145,7 +145,9 @@ expect($run->output)->toBe('Order 1234 shipped on Tuesday.');
 $provider->willThrow(new ProviderRateLimited('Slow down', 'openai'));
 ```
 
-## What is not here yet
+## Where to go next
 
-Tools, approvals, memory, automations, skills, MCP and messaging channels are Phases 2–7. See
-[`../roadmap.md`](../roadmap.md).
+Tools and approvals ([tools](tools.md)), providers, routing and costs ([providers](providers.md)),
+memory ([memory](memory.md)), automations ([automations](automations.md)), workspaces
+([workspaces](workspaces.md)), MCP ([mcp](mcp.md)) and messaging channels ([channels](channels.md))
+all ship today. The README's quick start shows the smallest agent that calls a tool, with no API key.

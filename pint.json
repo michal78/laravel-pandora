@@ -10,5 +10,5 @@
         "trailing_comma_in_multiline": { "elements": ["arrays", "arguments", "parameters"] },
         "phpdoc_align": { "align": "left" }
     },
-    "exclude": ["docs"]
+    "exclude": ["docs", "tests/Fixtures/ExampleApp"]
 }

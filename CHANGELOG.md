@@ -10,6 +10,70 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
+## v0.2.0 — 2026-10-30
+
+A minor release, not a patch: it adds a provider adapter and changes how a published config is
+merged. **Read "Changed" before upgrading** — one behaviour a host could have relied on is different.
+
+Two of the fixes matter more than the feature. Cost estimates on OpenAI-compatible and Gemini
+providers billed every cached input token twice, and a second `pandora:install` — which is what an
+upgrade is — left `migrate` unable to run. Both were invisible to a suite that only ever started from
+an empty database and only ever compared one vendor against itself; both were found by tests that
+stopped doing that. Phase 9 stands at 25 of 34 criteria, with install and upgrade safety complete.
+
+**Upgrading:** `composer update michal78/laravel-pandora`, then `php artisan pandora:install`. If a
+previous second install already published duplicate migrations, the fix below says how to clear
+them first.
+
+### Added
+
+- **`laravel-ai` provider adapter.** Reaches every text provider the Laravel AI SDK (`laravel/ai`)
+  has a driver for — Bedrock, Azure OpenAI, Mistral, Groq, xAI, DeepSeek, Cohere and the rest — with
+  a config entry. The SDK makes one model call at a time; Pandora keeps the tool loop, approvals, run
+  steps and audit, and the tools it hands the SDK cannot be executed (ADR-0017). Credentials still
+  resolve through Pandora per agent, per tenant and per deployment. It passes the shared provider
+  contract suite on the native Anthropic and OpenAI-compatible adapters' own fixtures. `laravel/ai`
+  is suggested, not required. See `docs/guides/providers.md`.
+
+### Changed
+
+- **A published `config/pandora.php` now gets new nested defaults.** Laravel's `mergeConfigFrom()`
+  merges one level deep, so a host that published the config before a nested key existed — for
+  example `features.channels` — did not get the default; the key was missing and the feature acted
+  switched off. Pandora now merges its defaults recursively under the host's file. Lists and the
+  collections `providers.connections`, `workspaces.roots` and `memory.stores` are still taken from
+  the host's file whole. **Upgrade note:** if you deleted a nested *setting* from your published
+  file to disable something, it now comes back with its default; set it explicitly instead. See
+  "Upgrading" in `docs/guides/installation.md`.
+
+### Fixed
+
+- **Cached input tokens were billed twice on OpenAI-compatible and Gemini providers.** OpenAI's
+  `prompt_tokens` and Gemini's `promptTokenCount` already include the cached share, and both adapters
+  reported that total as fresh input *and* reported the cached share again, so
+  `CatalogModel::estimate()` priced every cached token once at the input rate and once at the cached
+  rate. Affected: the `openai-compatible` adapter (OpenAI, Ollama, OpenRouter and every other
+  server speaking that dialect) and `gemini`. `anthropic` was correct. `input_tokens` on new usage
+  records is now fresh input only, and cost estimates for prompt-cached runs go **down**. Usage rows
+  recorded before this release keep their old figures; nothing is rewritten.
+
+  **One consequence to check:** an agent's `token_budget` counts input plus output tokens, so on
+  these providers it no longer counts cache reads — which is how it already behaved on Anthropic. A
+  prompt-cached run on OpenAI or Gemini can now use more total tokens before the budget stops it.
+  Lower the budget if it was sized with cached tokens in mind.
+
+  Found by the
+  `laravel-ai` adapter's contract leg, which normalised the same response differently.
+
+- **Running `pandora:install` a second time broke `migrate`.** The installer recognised a host's
+  already-published migrations by the pattern `*_create_pandora_*_table.php`, which eight of the 31
+  do not match (the `add_*` migrations and the two `*_tables` ones). A second run published those
+  eight again under new timestamps, and `migrate` — which a non-interactive install runs itself —
+  failed on a duplicate column. Every packaged migration is now matched by name. **If you already
+  have duplicates**, delete the newer copy of each `*_add_*_to_pandora_*` and
+  `*_create_pandora_{mcp,channel}_tables` migration that has never run (`php artisan migrate:status`
+  lists them as *Pending*), then migrate.
+
 ## v0.1.4 — 2026-08-25
 
 Phase 9's threat audit continues, and **completes**. T3 first: session isolation is enforced by a

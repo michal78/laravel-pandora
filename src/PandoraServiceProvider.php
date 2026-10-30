@@ -12,6 +12,7 @@ use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Contracts\Foundation\CachesConfiguration;
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionInterface;
@@ -100,6 +101,7 @@ use Pandora\Runs\RunFactory;
 use Pandora\Runs\RunLock;
 use Pandora\Runs\RunStateMachine;
 use Pandora\Runs\RunStepRecorder;
+use Pandora\Support\ConfigDefaults;
 use Pandora\Support\CorrelationId;
 use Pandora\Support\Redactor;
 use Pandora\Tools\BuiltIn\BuiltInTools;
@@ -146,7 +148,7 @@ final class PandoraServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/pandora.php', 'pandora');
+        $this->mergeConfig();
 
         $this->registerSupport();
         $this->registerTenancy();
@@ -652,6 +654,32 @@ final class PandoraServiceProvider extends ServiceProvider
             // inventing values would make the audit log lie about origin.
             $app->runningInConsole() ? null : $app->make('request'),
         ));
+    }
+
+    /**
+     * `mergeConfigFrom()`, but recursive -- see ConfigDefaults for why a
+     * one-level merge breaks every host that published an older config.
+     *
+     * Skipped when the configuration is cached, as `mergeConfigFrom()` skips
+     * it: a cached config was merged when it was cached, and `config:cache`
+     * runs this same code to produce it.
+     */
+    private function mergeConfig(): void
+    {
+        if ($this->app instanceof CachesConfiguration && $this->app->configurationIsCached()) {
+            return;
+        }
+
+        /** @var Config $config */
+        $config = $this->app->make('config');
+
+        /** @var array<array-key, mixed> $defaults */
+        $defaults = require __DIR__.'/../config/pandora.php';
+
+        /** @var array<array-key, mixed> $host */
+        $host = $config->get('pandora', []);
+
+        $config->set('pandora', ConfigDefaults::merge($defaults, $host));
     }
 
     // -------------------------------------------------------------------- boot

@@ -23,13 +23,14 @@ PANDORA_MODEL=claude-sonnet-4-5
 PANDORA_ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Four adapters ship in core:
+Five adapters ship in core:
 
 | Adapter | Speaks to |
 |---|---|
 | `anthropic` | Anthropic's Messages API |
 | `gemini` | Google's Gemini API |
 | `openai-compatible` | OpenAI, Ollama, OpenRouter, vLLM, llama.cpp, LM Studio, and most self-hosted servers |
+| `laravel-ai` | Any text provider the [Laravel AI SDK](https://laravel.com/docs/ai-sdk) supports — Bedrock, Azure OpenAI, Mistral, Groq, xAI, DeepSeek, Cohere and the rest. Needs `composer require laravel/ai` |
 | `fake` | Tests, and a first look at the UI before you have any key at all |
 
 Adding one is a config entry:
@@ -54,6 +55,68 @@ That command is the only thing in Pandora that makes a real, billable call. It
 prints the answer, the token counts, the round-trip time — and on a failure,
 the *classification*, because "rate limited" and "you have no credit left" look
 identical from the outside and need completely different responses from you.
+
+### Through the Laravel AI SDK
+
+The `laravel-ai` adapter reaches every text provider the SDK has a driver for,
+without Pandora shipping an adapter per vendor:
+
+```bash
+composer require laravel/ai
+```
+
+```php
+'connections' => [
+    'bedrock' => [
+        'adapter' => 'laravel-ai',
+        'driver' => 'bedrock',               // any SDK text driver
+        'api_key' => env('PANDORA_BEDROCK_API_KEY'),
+        'sdk' => ['region' => 'eu-west-1'],  // passed to the SDK driver as-is
+        'max_tokens' => 4096,
+        'timeout' => 120,
+    ],
+],
+```
+
+If the application already configures the provider in `config/ai.php`, name it
+instead of repeating it:
+
+```php
+'claude-via-sdk' => [
+    'adapter' => 'laravel-ai',
+    'ai_provider' => 'anthropic',   // a key under `providers` in config/ai.php
+],
+```
+
+`base_url` overrides the SDK's `url`. A Pandora credential (per agent, per
+tenant or per deployment, below) always wins over a key in either file, so
+credential scoping and rotation work exactly as they do for the native
+adapters.
+
+**What the SDK does and does not do here.** Pandora uses the SDK to make one
+model call at a time. Pandora still runs the tool loop, approvals, run steps,
+budgets and the audit trail. Tools are passed to the SDK as names and schemas
+only, so the SDK never executes one: execution stays behind Pandora's
+authorisation layer ([ADR-0017](../adr/0017-the-laravel-ai-sdk-is-a-transport.md)).
+The SDK's agents, its conversation tables and its own approvals are not used,
+and you do not need to run its migrations for this adapter.
+
+Limits worth knowing:
+
+- **Prefer a native adapter where one exists.** The SDK's `gemini` driver
+  talks to Google's Interactions API rather than `generateContent`, which
+  Pandora's contract fixtures do not cover — use the native `gemini` adapter
+  for Gemini. The `anthropic` and `openai-compatible` drivers are covered by the
+  same contract suite as the native adapters.
+- **Health is reported as unknown.** The SDK has no reachability probe and a
+  paid completion is not an acceptable one, so the Health page cannot show a
+  latency for these connections. Failures during real calls are still
+  classified, retried and failed over as usual.
+- **Capabilities are claimed conservatively** — streaming and tools only. Vision
+  and structured output vary by SDK driver, so the router is not told they are
+  available.
+- **The SDK retries a rate limit briefly by itself** when the provider sends a
+  short `Retry-After`, before Pandora's own retry policy sees the failure.
 
 ## Credentials
 

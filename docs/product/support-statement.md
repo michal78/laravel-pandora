@@ -1,18 +1,18 @@
-# Support Statement — v0.1.4
+# Support Statement — v0.2.0
 
 > What Pandora supports, what it excludes by design, and what it ships **untested**. Read the third
 > section before depending on this in production.
 
 ## What the version number means
 
-`0.1.4`. The public API is usable and in use; it is not yet promised. Minor versions below `1.0.0`
+`0.2.0`. The public API is usable and in use; it is not yet promised. Minor versions below `1.0.0`
 may contain breaking changes, and will say so in `CHANGELOG.md` with an upgrade instruction.
 
 `1.0.0` is defined, not aspirational: it is when every criterion in
 `docs/development/phase-9-acceptance.md` is met — most importantly that **each of the fifteen threats
 in `docs/architecture/security-model.md` has a test that fails when its mitigation is removed.**
-**That last part is done as of v0.1.4**, at 15 of 15 threats. The phase overall stands at 21 of 34
-criteria; what remains is upgrade and install safety, the performance suite, the release
+**That last part is done as of v0.1.4**, at 15 of 15 threats. The phase overall stands at 25 of 34
+criteria; install and upgrade safety is done, and what remains is the performance suite, the release
 documentation set and a walkthrough a person drives.
 
 ## Supported
@@ -26,10 +26,12 @@ not a claim from a compatibility table.
 supported engine.
 
 **Object storage.** Any S3-compatible endpoint. Exercised in CI against real MinIO, deliberately not
-against `Storage::fake()`, which is the local driver wearing an object store's name.
+against `Storage::fake()`, which is the local driver wearing an object store's name. MinIO no longer
+distributes community builds, so CI builds one pinned release from its archived source.
 
-**Providers.** Any OpenAI-compatible HTTP API. Function names are asserted against the grammar OpenAI
-and Anthropic share.
+**Providers.** Any OpenAI-compatible HTTP API, Anthropic and Gemini natively, and every text driver
+the Laravel AI SDK ships through the `laravel-ai` adapter (`laravel/ai`, suggested). Function names
+are asserted against the grammar OpenAI and Anthropic share.
 
 **Deployment shape.** A single operator, or multiple tenants of one trusted operator. See the
 boundary note below.
@@ -73,8 +75,8 @@ resolution rather than a wrong isolation key.
 **The threat model is now fully proved by removal — as of v0.1.4.** Every T1–T15 mitigation has been
 deleted, one at a time, and the resulting failure recorded; ten sessions of it. This was the single
 largest reason earlier releases were `0.x`, and it no longer is. What keeps the version below `1.0`
-now is the rest of Phase 9: upgrade and install tests, the performance suite, the example
-application, and a walkthrough a person still has to drive.
+now is the rest of Phase 9: the performance suite, the release documentation audit, and a
+walkthrough a person still has to drive.
 
 Worth knowing what the audit cost, because it is not a formality. It found a live SSRF in the MCP
 HTTP transport, untrusted content able to close its own delimiter inside a system message, a console
@@ -90,6 +92,13 @@ deny-by-default gate, and read nowhere, because the audit page it was written fo
 record reaches any view, and no tool can be altered from the UI at all — but an operator granting or
 withholding either sees no change, and cannot discover that from outside. They are kept in the config
 rather than removed, because deleting a published key breaks a host that references it.
+
+**Most Laravel AI SDK drivers.** The `laravel-ai` adapter passes the shared provider contract through
+the SDK's `anthropic` and `openai-compatible` drivers, on the native adapters' own recorded fixtures.
+Every other SDK driver — Bedrock, Azure, Mistral, Groq, xAI, DeepSeek, Cohere — is reachable and
+untested here, and the SDK's `gemini` driver speaks a different Google API from the one the fixtures
+describe; use the native `gemini` adapter for Gemini. Health for these connections is always
+*unknown*, because the SDK has no reachability probe and a paid completion is not an acceptable one.
 
 **The cross-process cache lock is not exercised.** `RunLock` has two mechanisms and documents the
 database lease as the authority. `Performance/ConcurrentRunsTest` proves the lease across real
