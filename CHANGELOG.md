@@ -10,7 +10,20 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
-## Unreleased
+## v0.2.0 — 2026-10-30
+
+A minor release, not a patch: it adds a provider adapter and changes how a published config is
+merged. **Read "Changed" before upgrading** — one behaviour a host could have relied on is different.
+
+Two of the fixes matter more than the feature. Cost estimates on OpenAI-compatible and Gemini
+providers billed every cached input token twice, and a second `pandora:install` — which is what an
+upgrade is — left `migrate` unable to run. Both were invisible to a suite that only ever started from
+an empty database and only ever compared one vendor against itself; both were found by tests that
+stopped doing that. Phase 9 stands at 25 of 34 criteria, with install and upgrade safety complete.
+
+**Upgrading:** `composer update michal78/laravel-pandora`, then `php artisan pandora:install`. If a
+previous second install already published duplicate migrations, the fix below says how to clear
+them first.
 
 ### Added
 

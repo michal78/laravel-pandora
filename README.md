@@ -34,7 +34,7 @@
 
 ---
 
-> ### ⚠ v0.1.4 — deliberately still `0.x`
+> ### ⚠ v0.2.0 — deliberately still `0.x`
 >
 > **What works today:** define an agent, start a conversation, dispatch a queued run, stream it over
 > Reverb, persist an immutable trace, reload without losing anything, cancel it, and inspect it in
@@ -49,11 +49,12 @@
 > documentation audit and a human walkthrough (Phase 9, at 25 of 34 criteria). Install and upgrade
 > safety is done: the quick start below is run by the suite. **The threat-model
 > sweep is done:** every T1–T15 mitigation has been removed one at a time and the failure recorded,
-> which found two security defects (fixed in v0.1.3) and one concurrency defect (fixed in v0.1.4).
+> which found two security defects (fixed in v0.1.3) and one concurrency defect (fixed in v0.1.4);
+> install and upgrade testing found two more (fixed in v0.2.0).
 > See [`docs/roadmap.md`](docs/roadmap.md).
 >
-> **Verified by** 1,948 tests across SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector and MinIO
-> — 1,849 in the default leg, the rest **skipping** rather than passing without object storage,
+> **Verified by** 2,021 tests across SQLite, MySQL 8.4, MariaDB 11, PostgreSQL 17, pgvector and MinIO
+> — 1,922 in the default leg, the rest **skipping** rather than passing without object storage,
 > pgvector or a server database engine · PHPStan level 8, no baseline · Pint.
 >
 > **Before depending on this, read

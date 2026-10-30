@@ -1,11 +1,11 @@
-# Support Statement — v0.1.4
+# Support Statement — v0.2.0
 
 > What Pandora supports, what it excludes by design, and what it ships **untested**. Read the third
 > section before depending on this in production.
 
 ## What the version number means
 
-`0.1.4`. The public API is usable and in use; it is not yet promised. Minor versions below `1.0.0`
+`0.2.0`. The public API is usable and in use; it is not yet promised. Minor versions below `1.0.0`
 may contain breaking changes, and will say so in `CHANGELOG.md` with an upgrade instruction.
 
 `1.0.0` is defined, not aspirational: it is when every criterion in
@@ -26,10 +26,12 @@ not a claim from a compatibility table.
 supported engine.
 
 **Object storage.** Any S3-compatible endpoint. Exercised in CI against real MinIO, deliberately not
-against `Storage::fake()`, which is the local driver wearing an object store's name.
+against `Storage::fake()`, which is the local driver wearing an object store's name. MinIO no longer
+distributes community builds, so CI builds one pinned release from its archived source.
 
-**Providers.** Any OpenAI-compatible HTTP API. Function names are asserted against the grammar OpenAI
-and Anthropic share.
+**Providers.** Any OpenAI-compatible HTTP API, Anthropic and Gemini natively, and every text driver
+the Laravel AI SDK ships through the `laravel-ai` adapter (`laravel/ai`, suggested). Function names
+are asserted against the grammar OpenAI and Anthropic share.
 
 **Deployment shape.** A single operator, or multiple tenants of one trusted operator. See the
 boundary note below.
@@ -90,6 +92,13 @@ deny-by-default gate, and read nowhere, because the audit page it was written fo
 record reaches any view, and no tool can be altered from the UI at all — but an operator granting or
 withholding either sees no change, and cannot discover that from outside. They are kept in the config
 rather than removed, because deleting a published key breaks a host that references it.
+
+**Most Laravel AI SDK drivers.** The `laravel-ai` adapter passes the shared provider contract through
+the SDK's `anthropic` and `openai-compatible` drivers, on the native adapters' own recorded fixtures.
+Every other SDK driver — Bedrock, Azure, Mistral, Groq, xAI, DeepSeek, Cohere — is reachable and
+untested here, and the SDK's `gemini` driver speaks a different Google API from the one the fixtures
+describe; use the native `gemini` adapter for Gemini. Health for these connections is always
+*unknown*, because the SDK has no reachability probe and a paid completion is not an acceptable one.
 
 **The cross-process cache lock is not exercised.** `RunLock` has two mechanisms and documents the
 database lease as the authority. `Performance/ConcurrentRunsTest` proves the lease across real
