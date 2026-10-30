@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pandora\Tests\Support\Concurrency;
 
+use Laravel\Ai\AiServiceProvider;
 use Livewire\LivewireServiceProvider;
 use Pandora\PandoraServiceProvider;
 
@@ -31,6 +32,9 @@ final class TestApplication
         return [
             PandoraServiceProvider::class,
             LivewireServiceProvider::class,
+            // The Laravel AI SDK is a dev dependency so the `laravel-ai`
+            // adapter can be tested; a host gets it by package discovery.
+            AiServiceProvider::class,
         ];
     }
 }

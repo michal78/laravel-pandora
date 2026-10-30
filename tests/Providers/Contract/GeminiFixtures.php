@@ -68,11 +68,13 @@ final class GeminiFixtures implements ProviderFixtures
                 'finishReason' => 'STOP',
                 'index' => 0,
             ]],
+            // The contract's `$inputTokens` is FRESH input. Gemini's
+            // `promptTokenCount` is the total, cached share included.
             'usageMetadata' => [
-                'promptTokenCount' => $inputTokens,
+                'promptTokenCount' => $inputTokens + $cachedInputTokens,
                 'candidatesTokenCount' => $outputTokens,
                 'cachedContentTokenCount' => $cachedInputTokens,
-                'totalTokenCount' => $inputTokens + $outputTokens,
+                'totalTokenCount' => $inputTokens + $cachedInputTokens + $outputTokens,
             ],
             'modelVersion' => $this->model(),
             'responseId' => 'resp-contract',

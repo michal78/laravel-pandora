@@ -21,6 +21,7 @@
     },
     "require-dev": {
         "larastan/larastan": "^3.9",
+        "laravel/ai": "^1.3",
         "laravel/pint": "^1.27",
         "league/flysystem-aws-s3-v3": "^3.0",
         "livewire/livewire": "^4.1",
@@ -33,6 +34,7 @@
         "livewire/livewire": "Required for the Pandora control center UI.",
         "laravel/reverb": "Required for realtime streaming of runs, tool calls and approvals.",
         "guzzlehttp/guzzle": "Required by the HTTP-based provider adapters.",
+        "laravel/ai": "Required by the laravel-ai provider adapter, which reaches every text provider the Laravel AI SDK supports (Bedrock, Azure, Mistral, Groq, xAI, DeepSeek, Cohere, ...).",
         "league/flysystem-aws-s3-v3": "Required for workspaces and context files on S3-compatible object storage (AWS, DigitalOcean, Hetzner, MinIO, R2)."
     },
     "autoload": {

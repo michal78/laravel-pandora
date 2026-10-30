@@ -478,16 +478,20 @@ final class GeminiProvider implements ModelCatalogProvider, StreamingProvider
 
     /**
      * `promptTokenCount` INCLUDES cached tokens, unlike Anthropic's, so the
-     * cached figure is reported alongside rather than added to it.
+     * cached share is taken out of it. Pandora's input figures are disjoint,
+     * because `CatalogModel::estimate()` prices each one; reporting the total
+     * as fresh input billed every cached token twice.
      *
      * @param array<string, mixed> $usage
      */
     private function parseUsage(array $usage): UsageData
     {
+        $cached = (int) ($usage['cachedContentTokenCount'] ?? 0);
+
         return new UsageData(
-            inputTokens: (int) ($usage['promptTokenCount'] ?? 0),
+            inputTokens: max(0, (int) ($usage['promptTokenCount'] ?? 0) - $cached),
             outputTokens: (int) ($usage['candidatesTokenCount'] ?? 0),
-            cachedInputTokens: (int) ($usage['cachedContentTokenCount'] ?? 0),
+            cachedInputTokens: $cached,
             reasoningTokens: (int) ($usage['thoughtsTokenCount'] ?? 0),
         );
     }

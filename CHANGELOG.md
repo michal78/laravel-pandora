@@ -10,6 +10,37 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
+## Unreleased
+
+### Added
+
+- **`laravel-ai` provider adapter.** Reaches every text provider the Laravel AI SDK (`laravel/ai`)
+  has a driver for — Bedrock, Azure OpenAI, Mistral, Groq, xAI, DeepSeek, Cohere and the rest — with
+  a config entry. The SDK makes one model call at a time; Pandora keeps the tool loop, approvals, run
+  steps and audit, and the tools it hands the SDK cannot be executed (ADR-0017). Credentials still
+  resolve through Pandora per agent, per tenant and per deployment. It passes the shared provider
+  contract suite on the native Anthropic and OpenAI-compatible adapters' own fixtures. `laravel/ai`
+  is suggested, not required. See `docs/guides/providers.md`.
+
+### Fixed
+
+- **Cached input tokens were billed twice on OpenAI-compatible and Gemini providers.** OpenAI's
+  `prompt_tokens` and Gemini's `promptTokenCount` already include the cached share, and both adapters
+  reported that total as fresh input *and* reported the cached share again, so
+  `CatalogModel::estimate()` priced every cached token once at the input rate and once at the cached
+  rate. Affected: the `openai-compatible` adapter (OpenAI, Ollama, OpenRouter and every other
+  server speaking that dialect) and `gemini`. `anthropic` was correct. `input_tokens` on new usage
+  records is now fresh input only, and cost estimates for prompt-cached runs go **down**. Usage rows
+  recorded before this release keep their old figures; nothing is rewritten.
+
+  **One consequence to check:** an agent's `token_budget` counts input plus output tokens, so on
+  these providers it no longer counts cache reads — which is how it already behaved on Anthropic. A
+  prompt-cached run on OpenAI or Gemini can now use more total tokens before the budget stops it.
+  Lower the budget if it was sized with cached tokens in mind.
+
+  Found by the
+  `laravel-ai` adapter's contract leg, which normalised the same response differently.
+
 ## v0.1.4 — 2026-08-25
 
 Phase 9's threat audit continues, and **completes**. T3 first: session isolation is enforced by a

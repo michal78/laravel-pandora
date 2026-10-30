@@ -78,10 +78,12 @@ class OpenAiCompatibleFixtures implements ProviderFixtures
                 'message' => ['role' => 'assistant', 'content' => $text],
                 'finish_reason' => 'stop',
             ]],
+            // The contract's `$inputTokens` is FRESH input. OpenAI's
+            // `prompt_tokens` is the total, cached share included.
             'usage' => [
-                'prompt_tokens' => $inputTokens,
+                'prompt_tokens' => $inputTokens + $cachedInputTokens,
                 'completion_tokens' => $outputTokens,
-                'total_tokens' => $inputTokens + $outputTokens,
+                'total_tokens' => $inputTokens + $cachedInputTokens + $outputTokens,
                 'prompt_tokens_details' => ['cached_tokens' => $cachedInputTokens],
             ],
         ];
