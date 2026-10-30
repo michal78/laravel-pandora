@@ -55,6 +55,15 @@ parameters:
             identifier: argument.type
             message: '#\$attributes of method Illuminate\\Database\\Eloquent\\Builder<.*>::(create|firstOrCreate)\(\) expects#'
 
+        # The same signature on `Model::fill()`, which Larastan began enforcing
+        # after a dependency update (first seen 2026-10-28, with no Pandora
+        # change): a definition class's attributes and a form's validated input
+        # are built as plain arrays, which `array<model property, mixed>` cannot
+        # describe. Every key reaching fill() is still filtered by $fillable.
+        -
+            identifier: argument.type
+            message: '#\$attributes of method Illuminate\\Database\\Eloquent\\Model::fill\(\) expects#'
+
         # `pluck()`/`latest()` over a raw aggregate select, where the column is
         # a SQL alias rather than a model property.
         -
