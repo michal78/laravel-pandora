@@ -97,7 +97,14 @@ final readonly class HttpTransport implements McpTransportContract
                     'jsonrpc' => '2.0',
                     'id' => bin2hex(random_bytes(8)),
                     'method' => $method,
-                    'params' => $params,
+                    // JSON-RPC 2.0 requires `params` to be a structured value,
+                    // and MCP methods take an object. PHP encodes an empty
+                    // array as `[]`, which strict servers (Home Assistant's
+                    // `/api/mcp`) reject with a 400 — so `tools/list` failed
+                    // before it was ever answered. An empty set is sent as
+                    // `{}`, for every method, the way `callTool()` already
+                    // guards its `arguments`.
+                    'params' => $params === [] ? new \stdClass : $params,
                 ]);
         } catch (\Throwable $e) {
             // A timeout, a DNS failure, a reset connection. All the same thing

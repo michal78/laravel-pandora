@@ -34,7 +34,7 @@
 
 ---
 
-> ### ⚠ v0.2.0 — deliberately still `0.x`
+> ### ⚠ v0.2.1 — deliberately still `0.x`
 >
 > **What works today:** define an agent, start a conversation, dispatch a queued run, stream it over
 > Reverb, persist an immutable trace, reload without losing anything, cancel it, and inspect it in
