@@ -10,6 +10,17 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
+## [Unreleased]
+
+### Fixed
+
+- **MCP `tools/list` was rejected by strict JSON-RPC servers.** `HttpTransport` sent an empty
+  parameter set as `"params":[]`, because PHP encodes an empty array as a JSON array. JSON-RPC 2.0
+  and MCP expect an object, and Home Assistant's built-in MCP server (`/api/mcp`) answers `[]` with
+  HTTP 400, so discovery reported the server as unavailable. Empty params now go out as `{}` for
+  every method. Non-empty params are unchanged.
+
+
 ## v0.2.0 — 2026-10-30
 
 A minor release, not a patch: it adds a provider adapter and changes how a published config is
