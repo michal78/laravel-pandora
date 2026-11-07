@@ -10,7 +10,12 @@ All notable changes to this project are documented here. The format follows
 > merging to `master` — there is no other button.
 
 
-## [Unreleased]
+## v0.2.1 — 2026-11-07
+
+A patch release with one fix. MCP discovery against Home Assistant's built-in server failed on
+every attempt.
+
+**Upgrading:** `composer update michal78/laravel-pandora`. No migrations or config changes.
 
 ### Fixed
 
