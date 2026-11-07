@@ -1,11 +1,11 @@
-# Support Statement — v0.2.0
+# Support Statement — v0.2.1
 
 > What Pandora supports, what it excludes by design, and what it ships **untested**. Read the third
 > section before depending on this in production.
 
 ## What the version number means
 
-`0.2.0`. The public API is usable and in use; it is not yet promised. Minor versions below `1.0.0`
+`0.2.1`. The public API is usable and in use; it is not yet promised. Minor versions below `1.0.0`
 may contain breaking changes, and will say so in `CHANGELOG.md` with an upgrade instruction.
 
 `1.0.0` is defined, not aspirational: it is when every criterion in
